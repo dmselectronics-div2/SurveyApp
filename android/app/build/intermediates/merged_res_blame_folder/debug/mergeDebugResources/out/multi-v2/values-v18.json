@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.mangrove.app-mergeDebugResources-44:/values-v18/values-v18.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\nethm\\.gradle\\caches\\transforms-3\\57ece696114dc9762287ff565abb4c45\\transformed\\appcompat-1.6.1\\res\\values-v18\\values-v18.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "48",
+                        "endOffsets": "99"
+                    }
+                }
+            ]
+        }
+    ]
+}

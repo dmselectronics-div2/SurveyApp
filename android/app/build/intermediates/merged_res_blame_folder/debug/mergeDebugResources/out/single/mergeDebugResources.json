@@ -1,0 +1,134 @@
+[
+    {
+        "merged": "com.mangrove.app-debug-46:/mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "com.mangrove.app-main-48:/mipmap-mdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-mdpi_node_modules_reactnavigation_elements_src_assets_backiconmask.png.flat",
+        "source": "com.mangrove.app-main-48:/drawable-mdpi/node_modules_reactnavigation_elements_src_assets_backiconmask.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-mdpi_node_modules_reactnavigation_elements_src_assets_backicon.png.flat",
+        "source": "com.mangrove.app-main-48:/drawable-mdpi/node_modules_reactnavigation_elements_src_assets_backicon.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "com.mangrove.app-main-48:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-mdpi_src_assets_image_imaged.jpg.flat",
+        "source": "com.mangrove.app-main-48:/drawable-mdpi/src_assets_image_imaged.jpg"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-mdpi_src_assets_image_survay.png.flat",
+        "source": "com.mangrove.app-main-48:/drawable-mdpi/src_assets_image_survay.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-mdpi_src_assets_image_dashboard.png.flat",
+        "source": "com.mangrove.app-main-48:/drawable-mdpi/src_assets_image_dashboard.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable_rn_edit_text_material.xml.flat",
+        "source": "com.mangrove.app-main-48:/drawable/rn_edit_text_material.xml"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-mdpi_node_modules_reactnativeelementdropdown_src_assets_down.png.flat",
+        "source": "com.mangrove.app-main-48:/drawable-mdpi/node_modules_reactnativeelementdropdown_src_assets_down.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-mdpi_src_assets_image_prof.jpg.flat",
+        "source": "com.mangrove.app-main-48:/drawable-mdpi/src_assets_image_prof.jpg"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-mdpi_src_assets_image_imageb.jpg.flat",
+        "source": "com.mangrove.app-main-48:/drawable-mdpi/src_assets_image_imageb.jpg"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "com.mangrove.app-main-48:/mipmap-hdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "com.mangrove.app-main-48:/mipmap-xhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "com.mangrove.app-main-48:/mipmap-xxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "com.mangrove.app-main-48:/mipmap-mdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "com.mangrove.app-main-48:/mipmap-xxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-mdpi_src_assets_image_done.gif.flat",
+        "source": "com.mangrove.app-main-48:/drawable-mdpi/src_assets_image_done.gif"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-mdpi_node_modules_reactnativepaper_src_assets_backchevron.png.flat",
+        "source": "com.mangrove.app-main-48:/drawable-mdpi/node_modules_reactnativepaper_src_assets_backchevron.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "com.mangrove.app-main-48:/mipmap-hdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-mdpi_src_assets_image_imaged1.jpg.flat",
+        "source": "com.mangrove.app-main-48:/drawable-mdpi/src_assets_image_imaged1.jpg"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-mdpi_src_assets_image_imagea.jpg.flat",
+        "source": "com.mangrove.app-main-48:/drawable-mdpi/src_assets_image_imagea.jpg"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-xxxhdpi_node_modules_reactnavigation_elements_src_assets_backicon.png.flat",
+        "source": "com.mangrove.app-main-48:/drawable-xxxhdpi/node_modules_reactnavigation_elements_src_assets_backicon.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-mdpi_src_assets_image_google.png.flat",
+        "source": "com.mangrove.app-main-48:/drawable-mdpi/src_assets_image_google.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "com.mangrove.app-main-48:/mipmap-xhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-xhdpi_node_modules_reactnavigation_elements_src_assets_backicon.png.flat",
+        "source": "com.mangrove.app-main-48:/drawable-xhdpi/node_modules_reactnavigation_elements_src_assets_backicon.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-mdpi_src_assets_image_bird.jpeg.flat",
+        "source": "com.mangrove.app-main-48:/drawable-mdpi/src_assets_image_bird.jpeg"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-xxhdpi_node_modules_reactnavigation_elements_src_assets_backicon.png.flat",
+        "source": "com.mangrove.app-main-48:/drawable-xxhdpi/node_modules_reactnavigation_elements_src_assets_backicon.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-hdpi_node_modules_reactnavigation_elements_src_assets_backicon.png.flat",
+        "source": "com.mangrove.app-main-48:/drawable-hdpi/node_modules_reactnavigation_elements_src_assets_backicon.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-mdpi_src_assets_image_imagec.jpg.flat",
+        "source": "com.mangrove.app-main-48:/drawable-mdpi/src_assets_image_imagec.jpg"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-mdpi_src_assets_image_bordgroup.jpeg.flat",
+        "source": "com.mangrove.app-main-48:/drawable-mdpi/src_assets_image_bordgroup.jpeg"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "com.mangrove.app-main-48:/mipmap-xxxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-mdpi_node_modules_reactnativeelementdropdown_src_assets_close.png.flat",
+        "source": "com.mangrove.app-main-48:/drawable-mdpi/node_modules_reactnativeelementdropdown_src_assets_close.png"
+    },
+    {
+        "merged": "com.mangrove.app-debug-46:/drawable-mdpi_src_assets_image_birdsurvey.jpeg.flat",
+        "source": "com.mangrove.app-main-48:/drawable-mdpi/src_assets_image_birdsurvey.jpeg"
+    }
+]
