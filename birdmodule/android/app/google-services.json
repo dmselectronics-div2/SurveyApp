@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "216240600858",
+    "project_id": "mangrove-623a1",
+    "storage_bucket": "mangrove-623a1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:216240600858:android:c24ae8cd3b2363706b9ea3",
+        "android_client_info": {
+          "package_name": "com.mangrove"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDXSKpPJ4kqUK1jAAy_b-X3s-s0khXpvPk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

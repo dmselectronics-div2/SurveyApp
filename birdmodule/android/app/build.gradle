@@ -1,0 +1,93 @@
+apply plugin: "com.android.application"
+apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "com.facebook.react"
+
+/**
+ * This is the configuration block to customize your React Native Android app.
+ * By default you don't need to apply any configuration, just uncomment the lines you need.
+ */
+react {
+    // Configuration for React Native (optional)
+}
+
+def enableProguardInReleaseBuilds = false
+def jscFlavor = 'org.webkit:android-jsc:+'
+
+android {
+    namespace "com.mangrove"
+    ndkVersion rootProject.ext.ndkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+    compileSdk rootProject.ext.compileSdkVersion
+
+    defaultConfig {
+        applicationId "com.mangrove"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 4
+        versionName "2.0"
+    }
+
+    signingConfigs {
+        debug {
+            storeFile file('D:/var/Mangrove/android/dms.keystore')
+            storePassword '123456'
+            keyAlias 'dms'
+            keyPassword '123456'
+        }
+        release {
+            storeFile file('D:/var/Mangrove/android/dms.keystore')
+            storePassword '123456'
+            keyAlias 'dms'
+            keyPassword '123456'
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+            // Caution! In production, you need to generate your own keystore file.
+            // see https://reactnative.dev/docs/signed-apk-android.
+            signingConfig signingConfigs.release
+            minifyEnabled enableProguardInReleaseBuilds
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+        }
+    }
+}
+
+dependencies {
+    // The version of react-native is set by the React Native Gradle Plugin
+    implementation 'com.facebook.react:react-native:+'
+
+    // Exclude Flipper integration if not used
+    implementation('com.facebook.react:react-native:+') {
+        exclude group: 'com.facebook.flipper'
+    }
+
+    implementation 'com.facebook.soloader:soloader:0.10.1'
+    implementation project(':react-native-vector-icons')
+    implementation 'com.google.android.gms:play-services-location:20.0.0'
+    implementation 'com.google.android.gms:play-services-auth:20.3.0'
+    implementation 'androidx.biometric:biometric:1.1.0'
+    implementation 'com.google.android.material:material:1.4.0'
+
+
+    // Hermes or JSC
+    if (hermesEnabled.toBoolean()) {
+        implementation("com.facebook.react:hermes-android")
+    } else {
+        implementation jscFlavor
+    }
+}
+
+// Fix for vector icons and fonts.gradle dependency
+//tasks.named('generateDebugLintReportModel').configure {
+//    dependsOn tasks.named('copyReactNativeVectorIconFonts')
+//}
+
+apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
+applyNativeModulesAppBuildGradle(project)
+apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
+// Uncomment the line below if Firebase or other Google services are needed
+// apply plugin: 'com.google.gms.google-services'
