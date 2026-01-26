@@ -20,7 +20,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNFS from 'react-native-fs';
-import { animalApi } from '../../api/animalApi';
+import { animalApi } from '../api/animalApi';
 import CustomAlert from '../custom-alert/alert-design';
 
 // Custom Radio Button Component
@@ -41,7 +41,7 @@ const CustomRadioButton = ({ selected, onPress, disabled }) => (
 
 // component
 const AnimalDataCollection = () => {
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
     const route = useRoute();
     const category = route.params?.category || 'Animal';
     const [currentLanguage, setCurrentLanguage] = useState('en');
@@ -635,7 +635,13 @@ const AnimalDataCollection = () => {
                 visible={isAlertVisible}
                 onClose={() => {
                     setIsAlertVisible(false);
-                    navigation.goBack();
+                    // Reset form
+                    setAnimalType('');
+                    setPhoto(null);
+                    setDate(new Date());
+                    setTimeOfDay('');
+                    setDescription('');
+                    navigation.navigate('CitizenDashboard');
                 }}
                 language={currentLanguage as 'en' | 'si' | 'ta'}
             />

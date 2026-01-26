@@ -11,7 +11,7 @@ import CustomAlert from '../custom-alert/alert-design';
 
 // component
 const HumanActivityDataCollection = () => {
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
     const route = useRoute();
     const category = route.params?.category || 'Human Activity';
     const [currentLanguage, setCurrentLanguage] = useState('en');
@@ -585,7 +585,7 @@ const HumanActivityDataCollection = () => {
                     setDate(new Date());
                     setTimeOfDay('');
                     setDescription('');
-                    navigation.goBack();
+                    navigation.navigate('CitizenDashboard');
                 }}
                 language={currentLanguage as 'en' | 'si' | 'ta'}
             />

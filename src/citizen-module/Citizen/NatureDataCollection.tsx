@@ -20,7 +20,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNFS from 'react-native-fs';
-import { natureApi } from '../../api/natureApi';
+import { natureApi } from '../api/natureApi';
 import CustomAlert from '../custom-alert/alert-design';
 
 // Custom Radio Button Component
@@ -41,7 +41,7 @@ const CustomRadioButton = ({ selected, onPress, disabled }) => (
 
 // component
 const NatureDataCollection = () => {
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
     const route = useRoute();
     const category = route.params?.category || 'Nature';
     const [currentLanguage, setCurrentLanguage] = useState('en');
@@ -301,11 +301,10 @@ const NatureDataCollection = () => {
 
             console.log('Submitting nature observation to backend...');
 
-            const response = await natureApi.createNature(natureData);
+            await natureApi.createNature(natureData);
 
-            if (response.success) {
-                setIsAlertVisible(true);
-            }
+            // Show success alert - if API didn't throw, submission was successful
+            setIsAlertVisible(true);
         } catch (error) {
             console.error('Error submitting nature observation:', error);
             Alert.alert(
@@ -622,7 +621,7 @@ const NatureDataCollection = () => {
                     setDate(new Date());
                     setTimeOfDay('');
                     setDescription('');
-                    navigation.goBack();
+                    navigation.navigate('CitizenDashboard');
                 }}
                 language={currentLanguage as 'en' | 'si' | 'ta'}
             />

@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  Image,
   Dimensions,
   StatusBar,
 } from 'react-native';
@@ -57,26 +56,26 @@ const ModuleSelector: React.FC = () => {
     {
       id: 'bird',
       title: 'Bird Survey',
-      description: 'Bird observation and bivalve data collection',
+      description: 'Bird observation and monitoring',
       icon: 'bird',
       color: '#4CAF50',
       screen: 'BirdBottomNav',
     },
     {
-      id: 'citizen',
-      title: 'Citizen Science',
-      description: 'Plants, animals, nature & human activity',
-      icon: 'account-group',
-      color: '#2196F3',
-      screen: 'CitizenDashboard',
+      id: 'byvalvi',
+      title: 'Byvalvi Survey',
+      description: 'Bivalve & gastropod data collection',
+      icon: 'waves',
+      color: '#FF9800',
+      screen: 'MangroveNew',
     },
     {
-      id: 'mangrove',
-      title: 'Mangrove Survey',
-      description: 'Mangrove forest and ecosystem surveys',
-      icon: 'tree',
-      color: '#FF9800',
-      screen: 'MangroveBottomNav',
+      id: 'citizen',
+      title: 'Citizen Survey',
+      description: 'Plants, animals, nature & human activity',
+      icon: 'leaf',
+      color: '#2196F3',
+      screen: 'WelcomeSinhala',
     },
   ];
 
@@ -90,14 +89,14 @@ const ModuleSelector: React.FC = () => {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.welcomeText, {color: theme.colors.onSurfaceVariant}]}>
-          Welcome back!
+        <Text style={[styles.appName, {color: theme.colors.primary}]}>
+          Blu Tally
         </Text>
         <Text style={[styles.title, {color: theme.colors.onSurface}]}>
-          Select a Module
+          Select Survey Module
         </Text>
         <Text style={[styles.subtitle, {color: theme.colors.onSurfaceVariant}]}>
-          Choose the survey module you want to work with
+          Choose the survey you want to work with
         </Text>
       </View>
 
@@ -139,9 +138,10 @@ const styles = StyleSheet.create({
     marginTop: 40,
     marginBottom: 30,
   },
-  welcomeText: {
-    fontSize: 16,
-    marginBottom: 8,
+  appName: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 12,
   },
   title: {
     fontSize: 28,

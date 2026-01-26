@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 const LanguageSelection = () => {
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
     const [selectedLanguage, setSelectedLanguage] = useState('');
 
     const languages = [
@@ -26,7 +26,7 @@ const LanguageSelection = () => {
         try {
             // Save language preference
             await AsyncStorage.setItem('userLanguage', selectedLanguage);
-            
+
             // Navigate to citizen dashboard
             navigation.navigate('CitizenDashboard');
         } catch (error) {
@@ -53,6 +53,15 @@ const LanguageSelection = () => {
         >
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.container}>
+                    {/* Back Button */}
+                    <TouchableOpacity 
+                        style={styles.backButton}
+                        onPress={() => navigation.navigate('ModuleSelector')}
+                        activeOpacity={0.7}
+                    >
+                        <Icon name="arrow-back" size={28} color="#4A7856" />
+                    </TouchableOpacity>
+
                     {/* Header Card */}
                     <View style={styles.headerCard}>
                         <Icon name="language" size={40} color="#FFFFFF" />
@@ -114,6 +123,13 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 20,
+    },
+    backButton: {
+        position: 'absolute',
+        top: 20,
+        left: 20,
+        padding: 8,
+        zIndex: 10,
     },
     headerCard: {
         backgroundColor: '#4A7856',

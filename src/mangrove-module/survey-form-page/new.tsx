@@ -28,7 +28,6 @@ import { API_URL } from '../../config';
 import { useNavigation } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
 import axios from 'axios';
-import SQLite from 'react-native-sqlite-storage';
 import { Modal, FlatList } from 'react-native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 
@@ -42,15 +41,6 @@ const HABITAT_TYPES = {
   OTHER: 'Other'
 };
 
-// Initialize the database connection
-const db = SQLite.openDatabase(
-  {
-    name: 'gastropodData.db',
-    location: 'default',
-  },
-  () => console.log('Database opened successfully'),
-  error => console.error('Error opening database:', error)
-);
 
 const { width } = Dimensions.get('window');
 
@@ -515,46 +505,16 @@ const GastropodBivalveForm = () => {
     return () => unsubscribe();
   }, []);
 
-  // Initialize database tables on component mount
-  useEffect(() => {
-    db.transaction(tx => {
-      tx.executeSql(
-        `CREATE TABLE IF NOT EXISTS pending_submissions (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          data TEXT NOT NULL,
-          timestamp INTEGER NOT NULL
-        );`,
-        [],
-        () => console.log('Pending submissions table created successfully'),
-        error => console.error('Error creating table:', error)
-      );
-    });
-  }, []);
 
   const isDarkMode = theme === 'dark';
 
-  // Store failed submission to SQLite for later synchronization
+  // Handle offline submission
   const storeFailedSubmission = (formData) => {
-    const timestamp = Date.now();
-
-    db.transaction(tx => {
-      tx.executeSql(
-        'INSERT INTO pending_submissions (data, timestamp) VALUES (?, ?)',
-        [JSON.stringify(formData), timestamp],
-        () => {
-          console.log('Submission stored locally');
-          Alert.alert(
-            'Offline Mode',
-            'Data has been saved locally and will be submitted when connection is restored.',
-            [{ text: 'OK', onPress: () => resetForm() }]
-          );
-        },
-        error => {
-          console.error('Error storing submission:', error);
-          Alert.alert('Error', 'Failed to store data locally.');
-        }
-      );
-    });
+    Alert.alert(
+      'Offline Mode',
+      'You are offline. Please connect to the internet and try again.',
+      [{ text: 'OK' }]
+    );
   };
 
   // Helper function to convert empty values to "N/A"
@@ -860,7 +820,7 @@ const GastropodBivalveForm = () => {
           text: 'OK',
           onPress: () => {
             resetForm();
-            navigation.navigate('MyDataTable');
+            navigation.navigate('MangroveDataTable');
           }
         }]
       );
@@ -1048,7 +1008,7 @@ const GastropodBivalveForm = () => {
         </RNModal>
       )}
       <ImageBackground
-        source={require('../../assets/image/mangroveplace.jpg')}
+        source={require('../../assets/image/bivalvi.jpeg')}
         style={styles.backgroundImage}
       >
         <ScrollView style={styles.container}>
@@ -1060,6 +1020,14 @@ const GastropodBivalveForm = () => {
               </Text>
             </View>
           )}
+
+          <TouchableOpacity 
+            style={styles.backButtonContainer}
+            onPress={() => navigation.navigate('ModuleSelector')}
+          >
+            <Icon name="arrow-left" size={20} color="#333" />
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
 
           <View style={styles.formContainer}>
             <Text style={styles.formTitle}>Gastropod and Bivalve Data Collection</Text>
@@ -1113,6 +1081,8 @@ const GastropodBivalveForm = () => {
                   selectedTextStyle={styles.selectedTextStyle}
                   inputSearchStyle={styles.inputSearchStyle}
                   iconStyle={styles.iconStyle}
+                  itemTextStyle={styles.dropdownItemStyle}
+                  containerStyle={styles.dropdownContainerStyle}
                   data={timeOfDayOptions}
                   maxHeight={300}
                   labelField="label"
@@ -1189,6 +1159,8 @@ const GastropodBivalveForm = () => {
                   selectedTextStyle={styles.selectedTextStyle}
                   inputSearchStyle={styles.inputSearchStyle}
                   iconStyle={styles.iconStyle}
+                  itemTextStyle={styles.dropdownItemStyle}
+                  containerStyle={styles.dropdownContainerStyle}
                   data={locationOptions}
                   maxHeight={300}
                   labelField="label"
@@ -1236,6 +1208,8 @@ const GastropodBivalveForm = () => {
                   selectedTextStyle={styles.selectedTextStyle}
                   inputSearchStyle={styles.inputSearchStyle}
                   iconStyle={styles.iconStyle}
+                  itemTextStyle={styles.dropdownItemStyle}
+                  containerStyle={styles.dropdownContainerStyle}
                   data={weatherOptions}
                   maxHeight={300}
                   labelField="label"
@@ -1284,6 +1258,8 @@ const GastropodBivalveForm = () => {
                   selectedTextStyle={styles.selectedTextStyle}
                   inputSearchStyle={styles.inputSearchStyle}
                   iconStyle={styles.iconStyle}
+                  itemTextStyle={styles.dropdownItemStyle}
+                  containerStyle={styles.dropdownContainerStyle}
                   data={samplingLayerOptions}
                   maxHeight={300}
                   labelField="label"
@@ -1312,6 +1288,8 @@ const GastropodBivalveForm = () => {
                     selectedTextStyle={styles.selectedTextStyle}
                     inputSearchStyle={styles.inputSearchStyle}
                     iconStyle={styles.iconStyle}
+                    itemTextStyle={styles.dropdownItemStyle}
+                    containerStyle={styles.dropdownContainerStyle}
                     data={samplingMethodOptions[samplingLayer] || []}
                     maxHeight={300}
                     labelField="label"
@@ -1708,6 +1686,8 @@ const GastropodBivalveForm = () => {
                     selectedTextStyle={styles.selectedTextStyle}
                     inputSearchStyle={styles.inputSearchStyle}
                     iconStyle={styles.iconStyle}
+                    itemTextStyle={styles.dropdownItemStyle}
+                    containerStyle={styles.dropdownContainerStyle}
                     data={quadratLocationOptions}
                     maxHeight={300}
                     labelField="label"
@@ -1752,6 +1732,8 @@ const GastropodBivalveForm = () => {
                     selectedTextStyle={styles.selectedTextStyle}
                     inputSearchStyle={styles.inputSearchStyle}
                     iconStyle={styles.iconStyle}
+                    itemTextStyle={styles.dropdownItemStyle}
+                    containerStyle={styles.dropdownContainerStyle}
                     data={habitatTypeOptions}
                     maxHeight={300}
                     labelField="label"
@@ -1838,6 +1820,8 @@ const GastropodBivalveForm = () => {
                     selectedTextStyle={styles.selectedTextStyle}
                     inputSearchStyle={styles.inputSearchStyle}
                     iconStyle={styles.iconStyle}
+                    itemTextStyle={styles.dropdownItemStyle}
+                    containerStyle={styles.dropdownContainerStyle}
                     data={vegetationOptions}
                     maxHeight={300}
                     labelField="label"
@@ -1880,6 +1864,8 @@ const GastropodBivalveForm = () => {
                     selectedTextStyle={styles.selectedTextStyle}
                     inputSearchStyle={styles.inputSearchStyle}
                     iconStyle={styles.iconStyle}
+                    itemTextStyle={styles.dropdownItemStyle}
+                    containerStyle={styles.dropdownContainerStyle}
                     data={microhabitatOptions}
                     maxHeight={300}
                     labelField="label"
@@ -1928,6 +1914,8 @@ const GastropodBivalveForm = () => {
                     selectedTextStyle={styles.selectedTextStyle}
                     inputSearchStyle={styles.inputSearchStyle}
                     iconStyle={styles.iconStyle}
+                    itemTextStyle={styles.dropdownItemStyle}
+                    containerStyle={styles.dropdownContainerStyle}
                     data={yesNoOptions}
                     maxHeight={300}
                     labelField="label"
@@ -2011,6 +1999,8 @@ const GastropodBivalveForm = () => {
                     selectedTextStyle={styles.selectedTextStyle}
                     inputSearchStyle={styles.inputSearchStyle}
                     iconStyle={styles.iconStyle}
+                    itemTextStyle={styles.dropdownItemStyle}
+                    containerStyle={styles.dropdownContainerStyle}
                     data={yesNoOptions}
                     maxHeight={300}
                     labelField="label"
@@ -2081,6 +2071,8 @@ const GastropodBivalveForm = () => {
                     selectedTextStyle={styles.selectedTextStyle}
                     inputSearchStyle={styles.inputSearchStyle}
                     iconStyle={styles.iconStyle}
+                    itemTextStyle={styles.dropdownItemStyle}
+                    containerStyle={styles.dropdownContainerStyle}
                     data={yesNoOptions}
                     maxHeight={300}
                     labelField="label"
@@ -2113,6 +2105,8 @@ const GastropodBivalveForm = () => {
                         selectedTextStyle={styles.selectedTextStyle}
                         inputSearchStyle={styles.inputSearchStyle}
                         iconStyle={styles.iconStyle}
+                        itemTextStyle={styles.dropdownItemStyle}
+                        containerStyle={styles.dropdownContainerStyle}
                         data={waterStatusOptions}
                         maxHeight={300}
                         labelField="label"
@@ -2262,6 +2256,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  backButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
   formContainer: {
     padding: 16,
   },
@@ -2345,6 +2352,15 @@ const styles = StyleSheet.create({
   inputSearchStyle: {
     height: 40,
     fontSize: 16,
+  },
+  dropdownContainerStyle: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  dropdownItemStyle: {
+    color: '#000',
   },
   dateInput: {
     height: 50,

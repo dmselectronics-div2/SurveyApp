@@ -20,16 +20,16 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNFS from 'react-native-fs';
-import { plantApi } from '../../api/plantapi';
+import { plantApi } from '../api/plantapi';
 import CustomAlert from '../custom-alert/alert-design';
 
 // component
 const PlantDataCollection = () => {
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
     const [currentLanguage, setCurrentLanguage] = useState('en');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isAlertVisible, setIsAlertVisible] = useState(false);
-    const [submittedData, setSubmittedData] = useState(null);
+    const [submittedData, setSubmittedData] = useState<{ message?: string } | null>(null);
 
     const [activeTab, setActiveTab] = useState('Terrestrial');
     const [plantType, setPlantType] = useState('');
@@ -313,10 +313,9 @@ const PlantDataCollection = () => {
             // Send to backend
             const response = await plantApi.createPlant(plantData);
 
-            if (response.success) {
-                setSubmittedData(response.data);
-                setIsAlertVisible(true);
-            }
+            // Show success alert - if API didn't throw, submission was successful
+            setSubmittedData(response);
+            setIsAlertVisible(true);
         } catch (error) {
             console.error('Error submitting plant observation:', error);
             Alert.alert(
@@ -629,9 +628,10 @@ const PlantDataCollection = () => {
                     setDate(new Date());
                     setTimeOfDay('Morning');
                     setDescription('');
-                    navigation.goBack();
+                    navigation.navigate('CitizenDashboard');
                 }}
                 language={currentLanguage as 'en' | 'si' | 'ta'}
+                responseMessage={submittedData?.message}
             />
         </SafeAreaView>
     );

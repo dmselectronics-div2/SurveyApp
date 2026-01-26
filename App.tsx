@@ -9,7 +9,6 @@ import {
 } from 'react-native-paper';
 import {useEffect, useState} from 'react';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import SQLite from 'react-native-sqlite-storage';
 
 // Auth Components (from Bird Module)
 import StartPage from './src/bird-module/start-pages/start-page';
@@ -30,6 +29,9 @@ import Welcome from './src/bird-module/welcome-page/welcome';
 
 // Module Selector
 import ModuleSelector from './src/module-selector/ModuleSelector';
+
+// BluTally Start Page
+import BluTallyStartPage from './src/blu-tally/BluTallyStartPage';
 
 // Bird Module Components
 import BirdBottomNav from './src/bird-module/bottom-navpage/bottom-nav';
@@ -62,10 +64,18 @@ import BirdPieChartModel3 from './src/bird-module/dashboard-page/pie-charts/dive
 
 // Citizen Module Components
 import CitizenDashboard from './src/citizen-module/Citizen/CitizenDashboard';
+import LanguageSelection from './src/citizen-module/LanguageSelection/LanguageOption';
+import PlantDataCollection from './src/citizen-module/Citizen/PlantDataCollection';
+import AnimalDataCollection from './src/citizen-module/Citizen/AnimalDataCollections';
+import NatureDataCollection from './src/citizen-module/Citizen/NatureDataCollection';
+import HumanActivityDataCollection from './src/citizen-module/Citizen/HumanActivityDataCollection';
+import WelcomeSinhala from './src/citizen-module/start-pages/WelcomeSinhala';
+import WelcomeTamil from './src/citizen-module/start-pages/WelcomeTamil';
+import WelcomeEnglish from './src/citizen-module/start-pages/WelcomeEnglish';
 
 // Mangrove Module Components
 import MangroveNew from './src/mangrove-module/survey-form-page/new';
-import MangroveMyDataTable from './src/mangrove-module/data-table/display-table';
+import MangroveDataTableComponent from './src/mangrove-module/data-table/MyDataTable';
 
 // Config
 import {GOOGLE_WEB_CLIENT_ID} from './src/config';
@@ -132,40 +142,6 @@ const App = () => {
   );
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
 
-  // Open the SQLite database
-  const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
-
-  // Function to retrieve email securely
-  const retrieveEmailSecurely = async (): Promise<string | null> => {
-    return new Promise(resolve => {
-      db.transaction(tx => {
-        tx.executeSql(
-          'SELECT email FROM LoginData',
-          [],
-          (tx, results) => {
-            if (results.rows.length > 0) {
-              resolve(results.rows.item(0).email);
-            } else {
-              resolve(null);
-            }
-          },
-          error => {
-            console.log('Error querying Users table: ' + error.message);
-            resolve(null);
-          },
-        );
-      });
-    });
-  };
-
   // Listen for theme changes
   useEffect(() => {
     const listener = Appearance.addChangeListener(({colorScheme}) => {
@@ -174,13 +150,9 @@ const App = () => {
     return () => listener.remove();
   }, []);
 
-  // Set the initial route based on whether email exists
+  // Set the initial route to BluTallyStartPage
   useEffect(() => {
-    const checkForEmail = async () => {
-      const email = await retrieveEmailSecurely();
-      setInitialRoute(email ? 'LoginPage' : 'StartPage');
-    };
-    checkForEmail();
+    setInitialRoute('BluTallyStartPage');
   }, []);
 
   // Return null or a loader until the initial route is determined
@@ -213,6 +185,9 @@ const App = () => {
           <Stack.Screen name="ResetPassword" component={ResetPassword} />
           <Stack.Screen name="SetNewPin" component={SetNewPin} />
           <Stack.Screen name="Welcome" component={Welcome} />
+
+          {/* ============== BLU TALLY START PAGE ============== */}
+          <Stack.Screen name="BluTallyStartPage" component={BluTallyStartPage} />
 
           {/* ============== MODULE SELECTOR ============== */}
           <Stack.Screen name="ModuleSelector" component={ModuleSelector} />
@@ -247,11 +222,19 @@ const App = () => {
           <Stack.Screen name="PieChartModel3" component={BirdPieChartModel3} />
 
           {/* ============== CITIZEN MODULE SCREENS ============== */}
+          <Stack.Screen name="CitizenLanguageSelection" component={LanguageSelection} />
+          <Stack.Screen name="WelcomeSinhala" component={WelcomeSinhala} />
+          <Stack.Screen name="WelcomeTamil" component={WelcomeTamil} />
+          <Stack.Screen name="WelcomeEnglish" component={WelcomeEnglish} />
           <Stack.Screen name="CitizenDashboard" component={CitizenDashboard} />
+          <Stack.Screen name="PlantDataCollection" component={PlantDataCollection} />
+          <Stack.Screen name="AnimalDataCollection" component={AnimalDataCollection} />
+          <Stack.Screen name="NatureDataCollection" component={NatureDataCollection} />
+          <Stack.Screen name="HumanActivityDataCollection" component={HumanActivityDataCollection} />
 
           {/* ============== MANGROVE MODULE SCREENS ============== */}
           <Stack.Screen name="MangroveNew" component={MangroveNew} />
-          <Stack.Screen name="MangroveMyDataTable" component={MangroveMyDataTable} />
+          <Stack.Screen name="MangroveDataTable" component={MangroveDataTableComponent} />
         </Stack.Navigator>
       </NavigationContainer>
     </PaperProvider>

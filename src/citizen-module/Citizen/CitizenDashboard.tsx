@@ -79,7 +79,7 @@ const CitizenDashboard = () => {
     const t = translations[currentLanguage] || translations.en;
 
     const handleBackPress = () => {
-        navigation.goBack();
+        navigation.navigate('ModuleSelector');
     };
 
     const handleCategoryPress = (category) => {

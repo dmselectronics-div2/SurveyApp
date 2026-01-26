@@ -6,6 +6,7 @@ interface CustomAlertProps {
   visible: boolean;
   onClose: () => void;
   language?: 'en' | 'si' | 'ta'; // English, Sinhala, Tamil
+  responseMessage?: string; // Optional message from backend response
 }
 
 const translations = {
@@ -26,8 +27,11 @@ const translations = {
   },
 };
 
-const CustomAlert: React.FC<CustomAlertProps> = ({ visible, onClose, language = 'en' }) => {
+const CustomAlert: React.FC<CustomAlertProps> = ({ visible, onClose, language = 'en', responseMessage }) => {
   const t = translations[language] || translations.en;
+
+  // Use response message from backend if provided, otherwise use default translation
+  const displayMessage = responseMessage || t.message;
 
   return (
     <Modal
@@ -47,7 +51,7 @@ const CustomAlert: React.FC<CustomAlertProps> = ({ visible, onClose, language = 
           <Text style={styles.title}>{t.title}</Text>
 
           {/* Message */}
-          <Text style={styles.message}>{t.message}</Text>
+          <Text style={styles.message}>{displayMessage}</Text>
 
           {/* Continue Button */}
           <TouchableOpacity style={styles.button} onPress={onClose} activeOpacity={0.8}>

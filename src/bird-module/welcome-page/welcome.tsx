@@ -68,7 +68,7 @@ const Welcome = ({navigation, route}) => {
   useEffect(() => {
     // updateLoginEmailInSQLite(email);
     const timer = setTimeout(() => {
-      navigation.navigate('ModuleSelector');
+      navigation.navigate('BluTallyStartPage');
     }, 2000);
 
     // Add back button handler
