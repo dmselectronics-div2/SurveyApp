@@ -10,22 +10,25 @@ import {
 import {useEffect, useState} from 'react';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 
-// Auth Components (from Bird Module)
-import StartPage from './src/bird-module/start-pages/start-page';
-import RegisterPage from './src/bird-module/register-page/register-page';
-import VerifyEmail from './src/bird-module/register-page/veryfy-email';
-import VerifyFingerPrint from './src/bird-module/register-page/verify-fingerprint';
-import SetPin from './src/bird-module/register-page/pin-password';
-import GetUserName from './src/bird-module/register-page/get-user-name';
-import PrivacyPolicy from './src/bird-module/register-page/privacy-policy';
-import GetAdminApprove from './src/bird-module/register-page/get-verification-admin';
-import LoginPage from './src/bird-module/login-page/login-page';
-import AddPin from './src/bird-module/login-page/addpin-page';
-import ForgetPasswordPage from './src/bird-module/login-page/forgot-pasword';
-import VerifyFPEmail from './src/bird-module/login-page/veryfy-fogotPW-email';
-import ResetPassword from './src/bird-module/login-page/reset-password';
-import SetNewPin from './src/bird-module/login-page/re-add-new-pin';
-import Welcome from './src/bird-module/welcome-page/welcome';
+// Auth Components (shared across all modules)
+import StartPage from './src/auth/start-pages/start-page';
+import StartPageA from './src/auth/start-pages/start-page-A';
+import StartPageB from './src/auth/start-pages/start-page-B';
+import StartPageC from './src/auth/start-pages/start-page-C';
+import RegisterPage from './src/auth/register-page/register-page';
+import VerifyEmail from './src/auth/register-page/veryfy-email';
+import VerifyFingerPrint from './src/auth/register-page/verify-fingerprint';
+import SetPin from './src/auth/register-page/pin-password';
+import GetUserName from './src/auth/register-page/get-user-name';
+import PrivacyPolicy from './src/auth/register-page/privacy-policy';
+import GetAdminApprove from './src/auth/register-page/get-verification-admin';
+import LoginPage from './src/auth/login-page/login-page';
+import AddPin from './src/auth/login-page/addpin-page';
+import ForgetPasswordPage from './src/auth/login-page/forgot-pasword';
+import VerifyFPEmail from './src/auth/login-page/veryfy-fogotPW-email';
+import ResetPassword from './src/auth/login-page/reset-password';
+import SetNewPin from './src/auth/login-page/re-add-new-pin';
+import Welcome from './src/auth/welcome-page/welcome';
 
 // Module Selector
 import ModuleSelector from './src/module-selector/ModuleSelector';
@@ -150,9 +153,9 @@ const App = () => {
     return () => listener.remove();
   }, []);
 
-  // Set the initial route to BluTallyStartPage
+  // Set the initial route to StartPage (onboarding screens)
   useEffect(() => {
-    setInitialRoute('BluTallyStartPage');
+    setInitialRoute('StartPage');
   }, []);
 
   // Return null or a loader until the initial route is determined
@@ -171,6 +174,9 @@ const App = () => {
           }}>
           {/* ============== SHARED AUTH SCREENS ============== */}
           <Stack.Screen name="StartPage" component={StartPage} />
+          <Stack.Screen name="StartPageA" component={StartPageA} />
+          <Stack.Screen name="StartPageB" component={StartPageB} />
+          <Stack.Screen name="StartPageC" component={StartPageC} />
           <Stack.Screen name="RegisterPage" component={RegisterPage} />
           <Stack.Screen name="VerifyEmail" component={VerifyEmail} />
           <Stack.Screen name="VerifyFingerPrint" component={VerifyFingerPrint} />

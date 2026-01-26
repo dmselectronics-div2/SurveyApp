@@ -25,7 +25,7 @@ import ReactNativeBiometrics from 'react-native-biometrics';
 // import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import * as Keychain from 'react-native-keychain';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import ProfileMenu from '../dashboard-page/menu-page/profile-page';
+import ProfileMenu from '../../bird-module/dashboard-page/menu-page/profile-page';
 const GOOGLE_WEB_CLIENT_ID: string =
   '532310046514-217fr842olbptie78ubtgi4mkq84ljo8.apps.googleusercontent.com';
 // const GOOGLE_ANDROID_CLIENT_ID: string = '532310046514-9c13pu3kgf7sqo1latjgrodclq1kl2m9.apps.googleusercontent.com ';
@@ -63,6 +63,8 @@ const LoginPage = ({route}) => {
   const [loading, setLoading] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [isFingerPrintEnable, setFingerPrintEnable] = useState(false);
+  const [db, setDb] = useState<any>(null);
+  const [dbReady, setDbReady] = useState(false);
 
   // Get the email from route parameters
   const userNewEmail = route?.params?.email || null;
@@ -100,23 +102,32 @@ const LoginPage = ({route}) => {
   //     }
   //   };
 
-  // Open the SQLite database
-  const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
+  // Initialize SQLite database
+  useEffect(() => {
+    const initDb = () => {
+      const database = SQLite.openDatabase(
+        {name: 'user_db.db', location: 'default'},
+        () => {
+          console.log('Database opened successfully');
+          setDb(database);
+          setDbReady(true);
+        },
+        error => {
+          console.error('Error opening database: ', error);
+        },
+      );
+    };
+    initDb();
+  }, []);
 
   useEffect(() => {
-    createFailedSubmissionsTable();
-    createTable();
-    createTableLoginData();
-    showData();
-  }, []);
+    if (dbReady && db) {
+      createFailedSubmissionsTable();
+      createTable();
+      createTableLoginData();
+      showData();
+    }
+  }, [dbReady, db]);
 
   const createFailedSubmissionsTable = () => {
     db.transaction(tx => {
