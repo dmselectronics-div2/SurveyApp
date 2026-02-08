@@ -1,13 +1,15 @@
 //import libraries
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ImageBackground, Platform, BackHandler, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, ImageBackground, Platform, BackHandler, TouchableOpacity, Animated } from 'react-native';
 import { ToggleButton } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 // component
 const WelcomeTamil = () => {
-    const [value, setValue] = useState('right');
-    const navigation = useNavigation<any>();
+    const [value, setValue] = useState('middle');
+    const navigation = useNavigation();
+    const pulseAnim = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
         // Add back button handler
@@ -15,77 +17,105 @@ const WelcomeTamil = () => {
             return true; // Prevents the default back button action
         });
 
+        // Start pulse animation
+        const pulse = Animated.loop(
+            Animated.sequence([
+                Animated.timing(pulseAnim, {
+                    toValue: 1.2,
+                    duration: 800,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(pulseAnim, {
+                    toValue: 1,
+                    duration: 800,
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+        pulse.start();
+
         return () => {
             backHandler.remove();
+            pulse.stop();
         };
     }, []);
 
     const handlePress = () => {
-        navigation.navigate('WelcomeEnglish');
+        navigation.navigate('WelcomeEnglish'); // Update with your next screen name
     };
 
     return (
         <ImageBackground
-             source={require('../../assets/image/welcome.jpg')}
+            source={require('../../assets/image/welcome.jpg')}
             style={styles.backgroundImage}
         >
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={styles.overlay}
                 activeOpacity={0.9}
                 onPress={handlePress}
             >
-                <View style={styles.contentContainer}>
-                    {/* Logo at top */}
-                    {/* <Text style={styles.logoText}>{'<Logo>'}</Text> */}
+                {/* Professional Frame Container */}
+                
+                    <View style={styles.contentContainer}>
+                        {/* Welcome badge in Tamil */}
+                        <View style={styles.welcomeBadge}>
+                            <Text style={styles.welcomeText}>வணக்கம்</Text>
+                        </View>
 
-                    {/* Welcome badge in Tamil */}
-                    <View style={styles.welcomeBadge}>
-                        <Text style={styles.welcomeText}>வணக்கம்</Text>
-                    </View>
+                        {/* Decorative divider */}
+                        <View style={styles.dividerContainer}>
+                            <View style={styles.decorativeLine} />
+                            <View style={styles.decorativeDot} />
+                            <View style={styles.decorativeLine} />
+                        </View>
 
-                    {/* Main description text in Tamil */}
-                    <View style={styles.descriptionContainer}>
-                        <Text style={styles.descriptionText}>
-                            இச் செயலியானது இலங்கையினுடைய இயற்கை மறுசீரமைப்பினை நிர்வகிக்க முயற்சிக்கிறது. 
-                            மேலும் எமது வளத்தினை திறன்பட கையாள உதவுகிறது
-                        </Text>
-                    </View>
+                        {/* Main description text in Tamil */}
+                        <View style={styles.descriptionContainer}>
+                            <Text style={styles.descriptionText}>
+                                இச் செயலியானது இலங்கையினுடைய இயற்கை மறுசீரமைப்பினை நிர்வகிக்க முயற்சிக்கிறது.
+                                மேலும் எமது வளத்தினை திறன்பட கையாள உதவுகிறது
+                            </Text>
+                        </View>
 
-                    {/* Bottom additional text */}
-                    <View style={styles.bottomTextContainer}>
-                        <Text style={styles.bottomText}>
-                            உங்களுடைய பங்களிப்புக்கு நன்றி. 
-                        </Text>
+                        {/* Bottom additional text */}
+                        <View style={styles.bottomTextContainer}>
+                            <Text style={styles.bottomText}>உங்களுடைய பங்களிப்புக்கு நன்றி.</Text>
+                        </View>
+
+                        {/* Animated tap indicator */}
+                        <Animated.View style={[styles.tapIndicator, { transform: [{ scale: pulseAnim }] }]}>
+                            <Icon name="touch-app" size={32} color="rgba(255, 255, 255, 0.8)" />
+                        </Animated.View>
                     </View>
-                </View>
+              
 
                 {/* Bottom navigation dots */}
                 <View style={styles.buttonGroup}>
-                    <ToggleButton.Row 
-                        onValueChange={value => setValue(value)} 
-                        value={value} 
+                    <ToggleButton.Row
+                        onValueChange={value => setValue(value)}
+                        value={value}
                         style={styles.toggleButtonRow}
                     >
-                        <ToggleButton 
-                            icon="circle" 
-                            value="left" 
-                            iconColor='#DADADA' 
-                            size={20} 
-                            style={styles.toggleButton} 
+                        <ToggleButton
+                            icon="circle"
+                            value="left"
+                            iconColor='#DADADA'
+                            size={20}
+                            style={styles.toggleButton}
                         />
-                        <ToggleButton 
-                            icon="circle" 
-                            value="middle" 
-                            iconColor='#DADADA' 
-                            size={20} 
-                            style={styles.toggleButton} 
+                        <ToggleButton
+                            icon="circle"
+                            value="middle"
+                            iconColor='#DADADA'
+                            size={20}
+                            style={styles.toggleButton}
                         />
-                        <ToggleButton 
-                            icon="circle" 
-                            value="right" 
-                            iconColor='white' 
-                            size={20} 
-                            style={styles.toggleButton} 
+                        <ToggleButton
+                            icon="circle"
+                            value="right"
+                            iconColor='white'
+                            size={20}
+                            style={styles.toggleButton}
                         />
                     </ToggleButton.Row>
                 </View>
@@ -102,69 +132,77 @@ const styles = StyleSheet.create({
     },
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+        backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    },
+    frameContainer: {
+        flex: 1,
+        margin: 20,
+        borderWidth: 3,
+        borderColor: 'rgba(255, 255, 255, 0.6)',
+        borderRadius: 20,
+        backgroundColor: 'rgba(74, 120, 86, 0.15)',
     },
     contentContainer: {
         flex: 1,
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingTop: 60,
-    },
-    logoText: {
-        fontSize: 32,
-        color: '#FFFFFF',
-        fontFamily: 'JejuHallasan-Regular',
-        marginBottom: 30,
-        opacity: 0.8,
-        ...Platform.select({
-            ios: {
-                shadowColor: 'black',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.3,
-                shadowRadius: 4,
-            },
-            android: {
-                elevation: 4,
-            },
-        }),
+        justifyContent: 'center',
+        paddingHorizontal: 24,
     },
     welcomeBadge: {
-        backgroundColor: 'rgba(76, 111, 87, 0.85)',
+        backgroundColor: 'rgba(74, 120, 86, 0.9)',
         paddingHorizontal: 45,
-        paddingVertical: 15,
+        paddingVertical: 18,
         borderRadius: 30,
-        marginBottom: 40,
+        marginBottom: 25,
+        borderWidth: 2,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
         ...Platform.select({
             ios: {
-                shadowColor: 'black',
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: 0.3,
-                shadowRadius: 5,
+                shadowColor: '#4A7856',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.4,
+                shadowRadius: 8,
             },
             android: {
-                elevation: 6,
+                elevation: 10,
             },
         }),
     },
     welcomeText: {
         fontSize: 32,
-        fontFamily: 'JejuHallasan-Regular',
+        fontFamily: 'Times New Roman',
         color: '#FFFFFF',
         fontWeight: 'bold',
         letterSpacing: 1,
     },
+    dividerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 25,
+    },
+    decorativeLine: {
+        width: 50,
+        height: 2,
+        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    },
+    decorativeDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        marginHorizontal: 15,
+    },
     descriptionContainer: {
         alignItems: 'center',
-        paddingHorizontal: 20,
-        marginTop: 20,
+        paddingHorizontal: 15,
     },
     descriptionText: {
-        fontSize: 22,
-        fontFamily: 'IstokWeb-Bold',
+        fontSize: 20,
+        fontFamily: 'Times New Roman',
         color: '#FFFFFF',
         textAlign: 'center',
         fontWeight: 'bold',
-        lineHeight: 32,
+        lineHeight: 30,
         letterSpacing: 0.5,
         ...Platform.select({
             ios: {
@@ -180,16 +218,16 @@ const styles = StyleSheet.create({
     },
     bottomTextContainer: {
         alignItems: 'center',
-        marginTop: 60,
+        marginTop: 30,
         paddingHorizontal: 20,
     },
     bottomText: {
-        fontSize: 18,
-        fontFamily: 'IstokWeb-Bold',
+        fontSize: 16,
+        fontFamily: 'Times New Roman',
         color: '#FFFFFF',
         textAlign: 'center',
         fontWeight: 'bold',
-        lineHeight: 26,
+        lineHeight: 24,
         ...Platform.select({
             ios: {
                 shadowColor: 'black',
@@ -201,6 +239,17 @@ const styles = StyleSheet.create({
                 elevation: 6,
             },
         }),
+    },
+    tapIndicator: {
+        marginTop: 30,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: 'rgba(74, 120, 86, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
     },
     buttonGroup: {
         position: 'absolute',
@@ -214,7 +263,7 @@ const styles = StyleSheet.create({
         borderWidth: 0,
     },
     toggleButtonRow: {
-        borderWidth: 0, 
+        borderWidth: 0,
         backgroundColor: 'transparent',
     },
 });

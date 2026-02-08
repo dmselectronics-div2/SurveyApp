@@ -1,4 +1,3 @@
-//import liraries
 import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
@@ -13,9 +12,7 @@ import {
   BackHandler,
 } from 'react-native';
 import {
-  Provider as PaperProvider,
   TextInput,
-  DefaultTheme,
   Button,
 } from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
@@ -23,32 +20,21 @@ import axios from 'axios';
 import {API_URL} from '../../config';
 import SQLite from 'react-native-sqlite-storage';
 
-const theme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    primary: '#56FF64',
-    text: 'red',
-    placeholder: 'white',
-    surface: 'rgba(217, 217, 217, 0.7)',
-  },
-};
 // component
 const VerifyEmail = ({navigation, route}) => {
   const [theme, setTheme] = useState(Appearance.getColorScheme());
-  const [pin5, setPin5] = useState('');
   const [pin1, setPin1] = useState('');
   const [pin2, setPin2] = useState('');
   const [pin3, setPin3] = useState('');
   const [pin4, setPin4] = useState('');
-  const [userPin, setUserPin] = useState('');
+  const [pin5, setPin5] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [confirmCode, setConfirmCode] = useState(null);
-  const [countdown, setCountdown] = useState(30); // Countdown state
-  const [isResendEnabled, setIsResendEnabled] = useState(false); // State to control button enabling
+  const [countdown, setCountdown] = useState(30);
+  const [isResendEnabled, setIsResendEnabled] = useState(false);
   const timerRef = useRef(null);
-  const [resendAttempts, setResendAttempts] = useState(0); // Track resend attempts
+  const [resendAttempts, setResendAttempts] = useState(0);
 
   // Create references for each TextInput
   const pin1Ref = useRef(null);
@@ -105,11 +91,10 @@ const VerifyEmail = ({navigation, route}) => {
     db.transaction(tx => {
       tx.executeSql(
         'UPDATE Users SET emailConfirm = ? WHERE email = ?',
-        [1, email], // Update fingerprint status (1 for enabled, 0 for disabled)
+        [1, email],
         (tx, result) => {
           console.log('Email Confirmation status updated in SQLite');
           Alert.alert('Success', 'Email verified in successfully');
-          // navigation.navigate('SetPin', {email});
           navigation.navigate('PrivacyPolicy', {email});
         },
         error => {
@@ -122,7 +107,6 @@ const VerifyEmail = ({navigation, route}) => {
     });
   };
 
-  // Update useEffect to use the startCountdown function
   useEffect(() => {
     if (confirmation) {
       setConfirmCode(confirmation);
@@ -130,26 +114,23 @@ const VerifyEmail = ({navigation, route}) => {
     }
 
     return () => {
-      clearInterval(timerRef.current); // Cleanup on component unmount
+      clearInterval(timerRef.current);
     };
   }, [confirmation]);
 
   const startCountdown = () => {
-    // Clear any existing timer
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
 
-    // Reset countdown and disable the resend button
     setCountdown(30);
     setIsResendEnabled(false);
 
-    // Start a new countdown
     timerRef.current = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
-          clearInterval(timerRef.current); // Clear the timer when countdown finishes
-          setIsResendEnabled(true); // Enable the button
+          clearInterval(timerRef.current);
+          setIsResendEnabled(true);
           return 0;
         }
         return prev - 1;
@@ -183,7 +164,6 @@ const VerifyEmail = ({navigation, route}) => {
     }
   };
 
-  // Get the email from route parameters
   const sendEmailAgain = async () => {
     if (resendAttempts >= 2) {
       Alert.alert('Limit Reached', 'You can try again later.');
@@ -191,27 +171,18 @@ const VerifyEmail = ({navigation, route}) => {
     }
 
     try {
-      // Clear the existing timer and start a new countdown
       startCountdown();
-
-      // Clear the pin fields
       cleanFilled();
-
-      // Disable the resend button and reset countdown
       setIsResendEnabled(false);
       setCountdown(30);
 
-      // Make the API request to resend the confirmation code
       const response = await axios.post(`${API_URL}/send-confirmation-email`, {
         email,
       });
       const {confirmationCode} = response.data;
       console.log('New confirmation code:', confirmationCode);
 
-      // Update the confirmation code state
       setConfirmCode(confirmationCode);
-
-      // Increment the resend attempt counter
       setResendAttempts(prev => prev + 1);
     } catch (err) {
       setError('Failed to send confirmation email.');
@@ -219,7 +190,6 @@ const VerifyEmail = ({navigation, route}) => {
     }
   };
 
-  // remove back press
   useEffect(() => {
     const backAction = () => {
       navigation.goBack();
@@ -305,17 +275,17 @@ const VerifyEmail = ({navigation, route}) => {
               to complete the verification process.
             </Text>
           </View>
-          {/* <Text>hi {confirmationCode}</Text> */}
 
           <View style={styles.flex_container_text_input}>
             <TextInput
+              ref={pin1Ref}
               label=""
               mode="outlined"
               value={pin1}
               onChangeText={text => {
                 setPin1(text);
                 if (text.length === 1) {
-                  pin1Ref.current.focus(); // Move to next input
+                  pin2Ref.current?.focus();
                 }
               }}
               style={[
@@ -332,19 +302,19 @@ const VerifyEmail = ({navigation, route}) => {
               maxLength={1}
               onKeyPress={({nativeEvent}) => {
                 if (nativeEvent.key === 'Backspace' && pin1.length === 0) {
-                  pin1Ref.current.blur(); // Prevent focus shift if already empty
+                  pin1Ref.current?.blur();
                 }
               }}
             />
             <TextInput
-              ref={pin1Ref}
+              ref={pin2Ref}
               label=""
               mode="outlined"
               value={pin2}
               onChangeText={text => {
                 setPin2(text);
                 if (text.length === 1) {
-                  pin2Ref.current.focus(); // Move to next input
+                  pin3Ref.current?.focus();
                 }
               }}
               style={[
@@ -361,20 +331,19 @@ const VerifyEmail = ({navigation, route}) => {
               maxLength={1}
               onKeyPress={({nativeEvent}) => {
                 if (nativeEvent.key === 'Backspace' && pin2.length === 0) {
-                  pin2Ref.current.blur();
-                  pin1Ref.current.focus(); // Move back to the previous input
+                  pin1Ref.current?.focus();
                 }
               }}
             />
             <TextInput
-              ref={pin2Ref}
+              ref={pin3Ref}
               label=""
               mode="outlined"
               value={pin3}
               onChangeText={text => {
                 setPin3(text);
                 if (text.length === 1) {
-                  pin3Ref.current.focus(); // Move to next input
+                  pin4Ref.current?.focus();
                 }
               }}
               style={[
@@ -391,19 +360,19 @@ const VerifyEmail = ({navigation, route}) => {
               maxLength={1}
               onKeyPress={({nativeEvent}) => {
                 if (nativeEvent.key === 'Backspace' && pin3.length === 0) {
-                  pin3Ref.current.focus(); // Move back to the previous input
+                  pin2Ref.current?.focus();
                 }
               }}
             />
             <TextInput
-              ref={pin3Ref}
+              ref={pin4Ref}
               label=""
               mode="outlined"
               value={pin4}
               onChangeText={text => {
                 setPin4(text);
                 if (text.length === 1) {
-                  pin4Ref.current.focus(); // Move to next input
+                  pin5Ref.current?.focus();
                 }
               }}
               style={[
@@ -420,13 +389,12 @@ const VerifyEmail = ({navigation, route}) => {
               maxLength={1}
               onKeyPress={({nativeEvent}) => {
                 if (nativeEvent.key === 'Backspace' && pin4.length === 0) {
-                  pin4Ref.current.blur();
-                  pin3Ref.current.focus(); // Move back to the previous input
+                  pin3Ref.current?.focus();
                 }
               }}
             />
             <TextInput
-              ref={pin4Ref}
+              ref={pin5Ref}
               label=""
               mode="outlined"
               value={pin5}
@@ -445,16 +413,12 @@ const VerifyEmail = ({navigation, route}) => {
               maxLength={1}
               onKeyPress={({nativeEvent}) => {
                 if (nativeEvent.key === 'Backspace' && pin5.length === 0) {
-                  pin5Ref.current.focus(); // Move back to the previous input
+                  pin4Ref.current?.focus();
                 }
               }}
             />
           </View>
 
-          {/* {loading ?
-           (
-            <ActivityIndicator size="large" color="#516E9E" />
-          ) : ( */}
           <Button
             mode="contained"
             onPress={handleConfirmEmail}
@@ -464,12 +428,10 @@ const VerifyEmail = ({navigation, route}) => {
             labelStyle={styles.button_label}>
             Confirm
           </Button>
-          {/* </Button>)} */}
 
           <TouchableOpacity
             onPress={sendEmailAgain}
-            disabled={!isResendEnabled || resendAttempts >= 2} // Disable until countdown finishes
-          >
+            disabled={!isResendEnabled || resendAttempts >= 2}>
             <Text
               style={[
                 styles.forgotPasswordText,
@@ -495,7 +457,6 @@ const VerifyEmail = ({navigation, route}) => {
   );
 };
 
-// styles
 const styles = StyleSheet.create({
   container: {
     justifyContent: 'flex-end',

@@ -65,7 +65,7 @@ const MyDataTable = () => {
 
   // State variables
   const [data, setData] = useState([]);
-  const [visibleColumns, setVisibleColumns] = useState([]);
+  const [visibleColumns, setVisibleColumns] = useState<any[]>([]);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -77,10 +77,10 @@ const MyDataTable = () => {
   const [totalEntries, setTotalEntries] = useState(0);
   const [entriesPerPage, setEntriesPerPage] = useState(50);
 
-  // Edit modal states
-  const [editItem, setEditItem] = useState(null);
+  // Edit modal states (kept but modal is not used - editing now navigates to main form)
+  const [editItem, setEditItem] = useState<any>(null);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [editFormData, setEditFormData] = useState({});
+  const [editFormData, setEditFormData] = useState<any>({});
 
   // Date and Time picker states
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -410,43 +410,43 @@ const MyDataTable = () => {
     { key: 'imageUri', displayName: 'Images', priority: 2 },
     // { key: 'remark', displayName: 'Remarks', priority: 2 },
 
-    // Gastropod Species Counts
-    { key: 'ellobium_gangeticum_eg', displayName: 'Ellobium gangeticum', priority: 4 },
-    { key: 'melampus_ceylonicus_mc', displayName: 'Melampus ceylonicus', priority: 4 },
-    { key: 'melampus_fasciatus_mf', displayName: 'Melampus fasciatus', priority: 4 },
-    { key: 'pythia_plicata_pp', displayName: 'Pythia plicata', priority: 4 },
-    { key: 'littoraria_scabra_lc', displayName: 'Littoraria scabra', priority: 4 },
-    { key: 'nerita_polita_np', displayName: 'Nerita polita', priority: 4 },
-    { key: 'cerithidea_quoyii_cq', displayName: 'Cerithidea quoyii', priority: 4 },
-    { key: 'pirenella_cingulata_pc1', displayName: 'Pirenella cingulata', priority: 4 },
-    { key: 'pirinella_conica_pc2', displayName: 'Pirinella conica', priority: 4 },
-    { key: 'telescopium_telescopium_tr', displayName: 'Telescopium telescopium', priority: 4 },
-    { key: 'terebralia_palustris_tp', displayName: 'Terebralia palustris', priority: 4 },
-    { key: 'haminoea_crocata_hc', displayName: 'Haminoea crocata', priority: 4 },
-    { key: 'faunus_ater_fa', displayName: 'Faunus ater', priority: 4 },
-    { key: 'family_onchidiidae', displayName: 'Family onchidiidae', priority: 4 },
-    { key: 'meiniplotia_scabra_ms3', displayName: 'Meiniplotia scabra', priority: 4 },
+    // Gastropod Species Counts (isScientific: true for italic styling)
+    { key: 'ellobium_gangeticum_eg', displayName: 'Ellobium gangeticum (EG)', priority: 4, isScientific: true },
+    { key: 'melampus_ceylonicus_mc', displayName: 'Melampus ceylonicus (MC)', priority: 4, isScientific: true },
+    { key: 'melampus_fasciatus_mf', displayName: 'Melampus fasciatus (MF)', priority: 4, isScientific: true },
+    { key: 'pythia_plicata_pp', displayName: 'Pythia plicata (PP)', priority: 4, isScientific: true },
+    { key: 'littoraria_scabra_lc', displayName: 'Littoraria scabra (LC)', priority: 4, isScientific: true },
+    { key: 'nerita_polita_np', displayName: 'Nerita polita (NP)', priority: 4, isScientific: true },
+    { key: 'cerithidea_quoyii_cq', displayName: 'Cerithidea quoyii (CQ)', priority: 4, isScientific: true },
+    { key: 'pirenella_cingulata_pc1', displayName: 'Pirenella cingulata (PC1)', priority: 4, isScientific: true },
+    { key: 'pirinella_conica_pc2', displayName: 'Pirinella conica (PC2)', priority: 4, isScientific: true },
+    { key: 'telescopium_telescopium_tr', displayName: 'Telescopium telescopium (TR)', priority: 4, isScientific: true },
+    { key: 'terebralia_palustris_tp', displayName: 'Terebralia palustris (TP)', priority: 4, isScientific: true },
+    { key: 'haminoea_crocata_hc', displayName: 'Haminoea crocata (HC)', priority: 4, isScientific: true },
+    { key: 'faunus_ater_fa', displayName: 'Faunus ater (FA)', priority: 4, isScientific: true },
+    { key: 'family_onchidiidae', displayName: 'Family Onchidiidae', priority: 4, isScientific: true },
+    { key: 'meiniplotia_scabra_ms3', displayName: 'Meiniplotia scabra (MS3)', priority: 4, isScientific: true },
 
-    // Bivalve Species Counts
-    { key: 'meretrix_casta_MC', displayName: 'Meretrix casta (Cap)', priority: 4 },
-    { key: 'gelonia_coaxons_GC', displayName: 'Gelonia coaxons', priority: 4 },
-    { key: 'magallana_belcheri_MB1', displayName: 'Magallana belcheri', priority: 4 },
-    { key: 'magallana_bilineata_MB2', displayName: 'Magallana bilineata', priority: 4 },
-    { key: 'saccostra_scyphophilla_SS', displayName: 'Saccostra scyphophilla', priority: 4 },
-    { key: 'saccostra_cucullata_SC', displayName: 'Saccostra cucullata', priority: 4 },
-    { key: 'martesia_striata_MS1', displayName: 'Martesia striata', priority: 4 },
-    { key: 'barnacle_sp_b', displayName: 'Barnacle sp.', priority: 4 },
-    { key: 'mytella_strigata_MS2', displayName: 'Mytella strigata', priority: 4 },
-    { key: 'corbicula_solida_cs', displayName: 'Corbicula solida', priority: 4 },
-    { key: 'meretrix_casta_mc', displayName: 'Meretrix casta', priority: 4 },
-    { key: 'gelonia_coaxans_gc', displayName: 'Gelonia coaxans', priority: 4 },
-    { key: 'magallana_belcheri_mb1', displayName: 'Magallana belcheri', priority: 4 },
-    { key: 'magallana_bilineata_mb2', displayName: 'Magallana bilineata', priority: 4 },
-    { key: 'saccostrea_scyphophilla_ss', displayName: 'Saccostrea scyphophilla', priority: 4 },
-    { key: 'saccostrea_cucullata_sc', displayName: 'Saccostrea cucullata', priority: 4 },
-    { key: 'martesia_striata_ms', displayName: 'Martesia striata', priority: 4 },
-    { key: 'ballanus_sp_b', displayName: 'Ballanus sp.', priority: 4 },
-    { key: 'mytella_strigata_ms2', displayName: 'Mytella strigata', priority: 4 }
+    // Bivalve Species Counts (isScientific: true for italic styling)
+    { key: 'meretrix_casta_MC', displayName: 'Meretrix casta (MC)', priority: 4, isScientific: true },
+    { key: 'gelonia_coaxons_GC', displayName: 'Gelonia coaxans (GC)', priority: 4, isScientific: true },
+    { key: 'magallana_belcheri_MB1', displayName: 'Magallana belcheri (MB1)', priority: 4, isScientific: true },
+    { key: 'magallana_bilineata_MB2', displayName: 'Magallana bilineata (MB2)', priority: 4, isScientific: true },
+    { key: 'saccostra_scyphophilla_SS', displayName: 'Saccostrea scyphophilla (SS)', priority: 4, isScientific: true },
+    { key: 'saccostra_cucullata_SC', displayName: 'Saccostrea cucullata (SC)', priority: 4, isScientific: true },
+    { key: 'martesia_striata_MS1', displayName: 'Martesia striata (MS1)', priority: 4, isScientific: true },
+    { key: 'barnacle_sp_b', displayName: 'Barnacle sp. (B)', priority: 4, isScientific: true },
+    { key: 'mytella_strigata_MS2', displayName: 'Mytella strigata (MS2)', priority: 4, isScientific: true },
+    { key: 'corbicula_solida_cs', displayName: 'Corbicula solida (CS)', priority: 4, isScientific: true },
+    { key: 'meretrix_casta_mc', displayName: 'Meretrix casta (MC)', priority: 4, isScientific: true },
+    { key: 'gelonia_coaxans_gc', displayName: 'Gelonia coaxans (GC)', priority: 4, isScientific: true },
+    { key: 'magallana_belcheri_mb1', displayName: 'Magallana belcheri (MB1)', priority: 4, isScientific: true },
+    { key: 'magallana_bilineata_mb2', displayName: 'Magallana bilineata (MB2)', priority: 4, isScientific: true },
+    { key: 'saccostrea_scyphophilla_ss', displayName: 'Saccostrea scyphophilla (SS)', priority: 4, isScientific: true },
+    { key: 'saccostrea_cucullata_sc', displayName: 'Saccostrea cucullata (SC)', priority: 4, isScientific: true },
+    { key: 'martesia_striata_ms', displayName: 'Martesia striata (MS)', priority: 4, isScientific: true },
+    { key: 'ballanus_sp_b', displayName: 'Ballanus sp. (B)', priority: 4, isScientific: true },
+    { key: 'mytella_strigata_ms2', displayName: 'Mytella strigata (MS2)', priority: 4, isScientific: true }
   ];
 
   // Function to determine which columns have data and should be displayed
@@ -929,86 +929,10 @@ const MyDataTable = () => {
     return dropdownFields[field].some(option => option.value === value);
   };
 
-  // Open the edit modal
+  // Navigate to main form for editing
   const openEditModal = (item) => {
-    // Create a fresh copy of the item for editing
-    const formattedItem = { ...item };
-
-    // Format date field if it exists
-    if (formattedItem.select_date) {
-      try {
-        // Ensure it's stored as ISO string for consistency
-        const date = new Date(formattedItem.select_date);
-        if (!isNaN(date.getTime())) {
-          formattedItem.select_date = date.toISOString();
-        }
-      } catch (error) {
-        console.error('Error formatting date:', error);
-      }
-    }
-
-    // Normalize quadratSize/quadrat_size_m fields
-    if (formattedItem.quadratSize !== undefined && formattedItem.quadrat_size_m === undefined) {
-      formattedItem.quadrat_size_m = formattedItem.quadratSize;
-    } else if (formattedItem.quadrat_size_m !== undefined && formattedItem.quadratSize === undefined) {
-      formattedItem.quadratSize = formattedItem.quadrat_size_m;
-    }
-
-    // Check for image URI in remarks if imageUri is not present
-    if (!formattedItem.imageUri && formattedItem.remark) {
-      const uriFromRemark = extractImageUri(formattedItem.remark);
-      if (uriFromRemark) {
-        formattedItem.imageUri = uriFromRemark;
-      }
-    }
-
-    // Parse content if it's a string
-    if (formattedItem.content && typeof formattedItem.content === 'string') {
-      try {
-        formattedItem.content = JSON.parse(formattedItem.content);
-      } catch (e) {
-        console.error('Error parsing content JSON:', e);
-        formattedItem.content = [];
-      }
-    } else if (!Array.isArray(formattedItem.content)) {
-      formattedItem.content = [];
-    }
-
-    // Handle "Other" selections
-    Object.keys(customFieldMappings).forEach(field => {
-      const customField = customFieldMappings[field];
-
-      // If field value is not one of standard options and we have a custom field,
-      // set up the data for displaying in the edit form
-      if (formattedItem[field] && !isStandardOption(field, formattedItem[field])) {
-        // Store the custom value
-        formattedItem[customField] = formattedItem[field];
-        // Set the field to "Other" for the dropdown
-        formattedItem[field] = 'Other';
-      }
-    });
-
-    // Handle "Remark" weather condition
-    if ((formattedItem.selectedWeatherConditions === 'Remark' ||
-      formattedItem.weatherCondition === 'Remark') &&
-      !formattedItem.weatherRemark) {
-      formattedItem.weatherRemark = '';
-    }
-
-    // Set the formatted item for editing
-    setEditFormData(formattedItem);
-    setEditItem(item);
-    setIsEditModalVisible(true);
-
-    // Set imageUri if it exists
-    if (formattedItem.imageUri) {
-      setImageUri(formattedItem.imageUri);
-    } else {
-      setImageUri(null);
-    }
-
-    // Set content state based on formattedItem.content
-    setContent(formattedItem.content || []);
+    // Navigate to the main Byvalvi form (new.tsx) with the item data for editing
+    (navigation as any).navigate('MangroveNew', { editData: item });
   };
 
   // Handle update of an item
@@ -2239,7 +2163,7 @@ const MyDataTable = () => {
       <View style={[styles.container, isDarkTheme ? styles.darkContainer : styles.lightContainer]}>
         {renderBackButton()}
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={isDarkTheme ? "#fff" : "#4CAF50"} />
+          <ActivityIndicator size="large" color={isDarkTheme ? "#fff" : "#4A7856"} />
           <Text style={[styles.loadingText, isDarkTheme ? styles.darkText : styles.lightText]}>
             Loading data...
           </Text>
@@ -2318,7 +2242,7 @@ const MyDataTable = () => {
           </Text>
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => navigation.navigate('GastropodBivalveForm')}>
+            onPress={() => (navigation as any).navigate('MangroveNew')}>
             <Text style={styles.addButtonText}>Add New Data</Text>
           </TouchableOpacity>
         </View>
@@ -2348,18 +2272,14 @@ const MyDataTable = () => {
                     <Text
                       style={[
                         styles.headerText,
-                        isDarkTheme ? styles.darkText : styles.lightText,
+                        col.isScientific && styles.scientificHeaderText,
                       ]}>
                       {col.displayName}
                     </Text>
                   </View>
                 ))}
                 <View style={[styles.headerCell, { width: columnWidth }]}>
-                  <Text
-                    style={[
-                      styles.headerText,
-                      isDarkTheme ? styles.darkText : styles.lightText,
-                    ]}>
+                  <Text style={styles.headerText}>
                     Actions
                   </Text>
                 </View>
@@ -2403,7 +2323,7 @@ const MyDataTable = () => {
                         },
                       ]}>
                       <TouchableOpacity onPress={() => openEditModal(item)}>
-                        <Icon name="edit" size={24} color={isDarkTheme ? "#4CAF50" : "green"} />
+                        <Icon name="edit" size={24} color={isDarkTheme ? "#4A7856" : "green"} />
                       </TouchableOpacity>
                       <TouchableOpacity onPress={() => handleDelete(item._id)}>
                         <Icon name="delete" size={24} color={isDarkTheme ? "#ff6b6b" : "red"} />
@@ -2445,15 +2365,14 @@ const MyDataTable = () => {
           {/* Add button */}
           <TouchableOpacity
             style={styles.floatingButton}
-            onPress={() => navigation.navigate('GastropodBivalveForm')}
+            onPress={() => (navigation as any).navigate('MangroveNew')}
           >
             <Icon name="add" size={24} color="white" />
           </TouchableOpacity>
         </>
       )}
 
-      {/* Render the edit modal */}
-      {renderEditModal()}
+      {/* Edit modal removed - editing now uses main form via navigation */}
 
       {/* Render image modal */}
       {renderImageModal()}
@@ -2476,10 +2395,12 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
+    fontFamily: 'Times New Roman',
+    color: '#4A7856',
   },
   controlsContainer: {
     flexDirection: 'row',
@@ -2496,6 +2417,8 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 16,
     marginLeft: 5,
+    fontFamily: 'Times New Roman',
+    color: '#4A7856',
   },
   themeSwitchContainer: {
     flexDirection: 'row',
@@ -2511,85 +2434,103 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   refreshButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#4A7856',
     padding: 8,
     borderRadius: 5,
     alignItems: 'center',
     marginVertical: 5,
   },
   refreshButtonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontWeight: 'bold',
+    fontFamily: 'Times New Roman',
   },
   tableHeaderContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
+    paddingHorizontal: 5,
   },
   entriesText: {
     fontSize: 14,
+    fontFamily: 'Times New Roman',
+    fontWeight: '500',
   },
   scrollIndicatorText: {
     fontStyle: 'italic',
-    fontSize: 14,
+    fontSize: 13,
+    color: '#4A7856',
+    fontFamily: 'Times New Roman',
   },
   table: {
     flexDirection: 'column',
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#4A7856',
   },
   headerRow: {
     flexDirection: 'row',
     borderBottomWidth: 2,
   },
   lightHeaderRow: {
-    borderBottomColor: '#ccc',
-    backgroundColor: '#e6e6e6',
+    borderBottomColor: '#4A7856',
+    backgroundColor: '#4A7856',
   },
   darkHeaderRow: {
-    borderBottomColor: '#555',
-    backgroundColor: '#444',
+    borderBottomColor: '#3d6348',
+    backgroundColor: '#3d6348',
   },
   headerCell: {
-    padding: 12,
+    padding: 14,
     justifyContent: 'center',
     alignItems: 'center',
     borderRightWidth: 1,
-    borderRightColor: '#ddd',
+    borderRightColor: 'rgba(255,255,255,0.2)',
   },
   headerText: {
     fontWeight: 'bold',
     textAlign: 'center',
+    fontFamily: 'Times New Roman',
+    fontSize: 13,
+    color: '#FFFFFF',
+  },
+  scientificHeaderText: {
+    fontStyle: 'italic',
   },
   row: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    minHeight: 48,
+    minHeight: 50,
   },
   lightRowEven: {
     backgroundColor: '#ffffff',
-    borderBottomColor: '#eee',
+    borderBottomColor: '#e0e0e0',
   },
   lightRowOdd: {
-    backgroundColor: '#f9f9f9',
-    borderBottomColor: '#eee',
+    backgroundColor: '#f5f9f6',
+    borderBottomColor: '#e0e0e0',
   },
   darkRowEven: {
-    backgroundColor: '#333',
+    backgroundColor: '#2a2a2a',
     borderBottomColor: '#444',
   },
   darkRowOdd: {
-    backgroundColor: '#3a3a3a',
+    backgroundColor: '#333',
     borderBottomColor: '#444',
   },
   cell: {
-    padding: 10,
+    padding: 12,
     justifyContent: 'center',
     alignItems: 'center',
     borderRightWidth: 1,
-    borderRightColor: '#ddd',
+    borderRightColor: '#e8e8e8',
   },
   cellText: {
     textAlign: 'center',
+    fontFamily: 'Times New Roman',
+    fontSize: 13,
   },
   lightText: {
     color: '#333',
@@ -2610,15 +2551,16 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   addButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#4A7856',
     padding: 12,
     borderRadius: 5,
     marginTop: 20,
   },
   addButtonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontWeight: 'bold',
     fontSize: 16,
+    fontFamily: 'Times New Roman',
   },
   floatingButton: {
     position: 'absolute',
@@ -2627,7 +2569,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#4A7856',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
@@ -2644,6 +2586,8 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 15,
     fontSize: 16,
+    fontFamily: 'Times New Roman',
+    color: '#4A7856',
   },
   errorContainer: {
     flex: 1,
@@ -2658,9 +2602,9 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   retryButton: {
-    backgroundColor: '#4285F4',
+    backgroundColor: '#4A7856',
     padding: 12,
-    borderRadius: 5,
+    borderRadius: 8,
   },
   retryButtonText: {
     color: 'white',
@@ -2673,28 +2617,34 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 15,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#ddd',
+    borderTopColor: '#4A7856',
+    backgroundColor: '#f5f9f6',
+    borderRadius: 8,
+    paddingHorizontal: 10,
   },
   paginationButton: {
-    backgroundColor: '#4285F4',
-    padding: 8,
-    borderRadius: 5,
+    backgroundColor: '#4A7856',
+    padding: 10,
+    borderRadius: 6,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
   },
   paginationButtonDisabled: {
-    backgroundColor: '#aaa',
+    backgroundColor: '#a0b8a5',
   },
   paginationButtonText: {
     color: 'white',
     fontWeight: 'bold',
     marginHorizontal: 5,
+    fontFamily: 'Times New Roman',
   },
   paginationText: {
     fontSize: 14,
+    fontFamily: 'Times New Roman',
+    fontWeight: '600',
   },
 
   // Modal styles
@@ -2961,6 +2911,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: 4,
     fontWeight: '500',
+    fontFamily: 'Times New Roman',
+    fontStyle: 'italic',
   },
   speciesInput: {
     borderWidth: 1,
@@ -3000,7 +2952,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#555',
   },
   saveButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#4A7856',
   },
   modalButtonText: {
     color: 'white',

@@ -8,14 +8,16 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomAlert from '../custom-alert/alert-design';
+import PreviewModal from './PreviewModal';
 
 // component
 const HumanActivityDataCollection = () => {
-    const navigation = useNavigation<any>();
+    const navigation = useNavigation();
     const route = useRoute();
     const category = route.params?.category || 'Human Activity';
     const [currentLanguage, setCurrentLanguage] = useState('en');
     const [isAlertVisible, setIsAlertVisible] = useState(false);
+    const [submittedData, setSubmittedData] = useState(null);
 
     const [activityType, setActivityType] = useState('');
     const [showActivityPicker, setShowActivityPicker] = useState(false);
@@ -25,11 +27,13 @@ const HumanActivityDataCollection = () => {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [timeOfDay, setTimeOfDay] = useState('');
     const [description, setDescription] = useState('');
+    const [showPreview, setShowPreview] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Translation object
     const translations = {
         en: {
-            title: 'Human Activity',
+            title: 'Threats & Human Activities',
             activityType: 'Activity Type',
             selectActivityType: 'Select activity type',
             photo: 'Photo',
@@ -48,42 +52,37 @@ const HumanActivityDataCollection = () => {
             selectTimeOfDay: 'Please select time of day',
             descriptionPlaceholder: 'Add any additional notes about your observation...',
             // Activity categories
-            environmentalImpacts: 'Environmental Impacts',
-            constructionDevelopment: 'Construction & Development',
-            wildlifeAnimals: 'Wildlife & Animals',
-            otherActivities: 'Other Activities',
-            // Environmental Impacts
+            threatsAndHumanActivities: 'Threats and Human Activities',
+            // Activities
             fire: 'Fire',
             deforestation: 'Deforestation',
             mining: 'Mining',
-            wastePollution: 'Waste & Pollution',
             wasteDisposal: 'Waste disposal',
-            plasticPolythene: 'Plastic and polythene',
-            // Construction & Development
-            constructions: 'Constructions',
-            // Wildlife & Animals
-            domesticAnimal: 'Domestic Animal',
-            hunting: 'Hunting',
-            // Other Activities
+            construction: 'Construction',
+            domesticAnimals: 'Domestic animals',
+            huntingCollection: 'Hunting and collection of species',
+            feedingWildAnimals: 'Feeding of wild animals',
             illegalBehaviour: 'Illegal behaviour',
-            other: 'Other',
             // Time options
             morning: 'Morning',
             noon: 'Noon',
             evening: 'Evening',
-            night: 'Night'
+            night: 'Night',
+            preview: 'Preview',
+            type: 'Type'
         },
         si: {
-            title: 'මානව ක්‍රියාකාරකම්',
-            activityType: 'ක්‍රියාකාරකම් වර්ගය',
-            selectActivityType: 'ක්‍රියාකාරකම් වර්ගය තෝරන්න',
+            title: 'තර්ජන සහ මානව ක්‍රියාකාරකම්',
+            activityType: ' ක්‍රියාකාරකම් කාණ්ඩය',
+            selectActivityType: 'ක්‍රියාකාරකම් කාණ්ඩය තෝරන්න',
             photo: 'ඡායාරූපය',
             date: 'දිනය',
             timeOfDay: 'දවසේ වේලාව',
             description: 'විස්තරය (අත්‍යවශ්‍ය නොවේ)',
-            submit: 'ඉදිරිපත් කරන්න',
+            submit: 'දත්ත ඇතුලත් කිරීම තහවුරු කරන්න',
+            submitting: 'දත්ත ඇතුලත් කිරීම තහවුරු කරමින්...',
             photoPlaceholder: 'ඡායාරූපය ගැනීම/ ඇතුලත් කිරීම මෙහිදී සිදු කරන්න',
-            chooseOption: 'විකල්පයක් තෝරන්න',
+            chooseOption: ' තෝරන්න',
             camera: 'කැමරාව',
             gallery: 'ගැලරිය',
             cancel: 'අවලංගු කරන්න',
@@ -93,44 +92,38 @@ const HumanActivityDataCollection = () => {
             selectTimeOfDay: 'කරුණාකර දවසේ වේලාව තෝරන්න',
             descriptionPlaceholder: 'ඔබේ නිරීක්ෂණය ගැන අමතර සටහන් එක් කරන්න...',
             // Activity categories
-            environmentalImpacts: 'පාරිසරික බලපෑම්',
-            constructionDevelopment: 'ඉදිකිරීම් සහ සංවර්ධනය',
-            wildlifeAnimals: 'වන ජීවී සහ සතුන්',
-            otherActivities: 'වෙනත් ක්‍රියාකාරකම්',
-            // Environmental Impacts
-            fire: 'ගින්න',
-            deforestation: 'වන විනාශය',
-            mining: 'පතල් කැණීම',
-            wastePollution: 'අපද්‍රව්‍ය සහ දූෂණය',
+            threatsAndHumanActivities: 'තර්ජන සහ මානව ක්‍රියාකාරකම්',
+            // Activities
+            fire: 'ගිනි ගැනීම්',
+            deforestation: 'වන හායනය',
+            mining: 'කැණීම් කටයුතු',
             wasteDisposal: 'අපද්‍රව්‍ය බැහැර කිරීම',
-            plasticPolythene: 'ප්ලාස්ටික් සහ පොලිතීන්',
-            // Construction & Development
-            constructions: 'ඉදිකිරීම්',
-            // Wildlife & Animals
-            domesticAnimal: 'ගෘහ සතුන්',
-            hunting: 'දඩයම්',
-            // Other Activities
-            illegalBehaviour: 'නීති විරෝධී හැසිරීම',
-            other: 'වෙනත්',
+            construction: 'ඉදිකිරීම් කටයුතු',
+            domesticAnimals: 'ගෘහාශ්‍රිත සතුන්',
+            huntingCollection: 'දඩයම් කිරීම / ජීවීන් එකතු කිරීම',
+            feedingWildAnimals: 'වන සතුන්ට ආහාර දීම',
+            illegalBehaviour: 'අවිනීතික හැසිරීම්',
             // Time options
             morning: 'උදෑසන',
-            noon: 'මධ්‍යාහ්නය',
+            noon: 'මධ්‍යහනය',
             evening: 'සවස',
-            night: 'රාත්‍රිය'
+            night: 'රාත්‍රිය',
+            preview: 'පෙරදසුන',
+            type: 'වර්ගය'
         },
         ta: {
-            title: 'மனித செயல்பாடு',
-            activityType: 'செயல்பாடு வகை',
-            selectActivityType: 'செயல்பாடு வகையைத் தேர்ந்தெடுக்கவும்',
+            title: 'அச்சுறுத்தல்கள் மற்றும் மனித செயற்பாடுகள்',
+            activityType: 'செயற்பாட்டு வகை',
+            selectActivityType: 'செயற்பாட்டு வகையைத் தேர்ந்தெடுக்கவும்',
             photo: 'புகைப்படம்',
-            date: 'தேதி',
+            date: 'திகதி',
             timeOfDay: 'நாளின் நேரம்',
             description: 'விளக்கம் (விருப்பமானது)',
             submit: 'சமர்ப்பிக்கவும்',
-            photoPlaceholder: 'புகைப்படத்தைப் பதிவேற்ற அல்லது எடுக்க தட்டவும்',
+            photoPlaceholder: 'புகைப்படத்தைப் பதிவேற்ற அழுத்தவும் எடுக்க தட்டவும்',
             chooseOption: 'ஒரு விருப்பத்தைத் தேர்ந்தெடுக்கவும்',
             camera: 'கேமரா',
-            gallery: 'கேலரி',
+            gallery: 'புகைப்படங்கள்',
             cancel: 'ரத்துசெய்',
             requiredField: 'தேவையான புலம்',
             selectActivityAlert: 'தயவுசெய்து ஒரு செயல்பாடு வகையைத் தேர்ந்தெடுக்கவும்',
@@ -138,30 +131,24 @@ const HumanActivityDataCollection = () => {
             selectTimeOfDay: 'தயவுசெய்து நாளின் நேரத்தைத் தேர்ந்தெடுக்கவும்',
             descriptionPlaceholder: 'உங்கள் கவனிப்பு பற்றிய கூடுதல் குறிப்புகளைச் சேர்க்கவும்...',
             // Activity categories
-            environmentalImpacts: 'சுற்றுச்சூழல் தாக்கங்கள்',
-            constructionDevelopment: 'கட்டுமானம் & மேம்பாடு',
-            wildlifeAnimals: 'வனவிலங்குகள் & விலங்குகள்',
-            otherActivities: 'பிற செயல்பாடுகள்',
-            // Environmental Impacts
+            threatsAndHumanActivities: 'அச்சுறுத்தல் மற்றும் மனித நடவடிக்கைகள்',
+            // Activities
             fire: 'தீ',
             deforestation: 'காடழிப்பு',
-            mining: 'சுரங்கம்',
-            wastePollution: 'கழிவு & மாசுபாடு',
-            wasteDisposal: 'கழிவு அகற்றல்',
-            plasticPolythene: 'பிளாஸ்டிக் மற்றும் பாலித்தீன்',
-            // Construction & Development
-            constructions: 'கட்டுமானங்கள்',
-            // Wildlife & Animals
-            domesticAnimal: 'வீட்டு விலங்கு',
-            hunting: 'வேட்டையாடுதல்',
-            // Other Activities
+            mining: 'அகழ்வுப் பணிகள்',
+            wasteDisposal: 'கழிவுகள்',
+            construction: 'கட்டுமானம்',
+            domesticAnimals: 'வீட்டு விலங்குகள்',
+            huntingCollection: 'வேட்டையாடுதல் / உயிரினங்களை சேகரித்தல்',
+            feedingWildAnimals: 'காட்டு விலங்குகளுக்கு உணவளித்தல்',
             illegalBehaviour: 'சட்டவிரோத நடத்தை',
-            other: 'மற்றவை',
             // Time options
             morning: 'காலை',
             noon: 'மதியம்',
             evening: 'மாலை',
-            night: 'இரவு'
+            night: 'இரவு',
+            preview: 'முன்னோட்டம்',
+            type: 'வகை'
         }
     };
 
@@ -177,7 +164,7 @@ const HumanActivityDataCollection = () => {
                 setCurrentLanguage(savedLanguage);
             }
         } catch (error) {
-            console.error('Error loading language:', error);
+            // Error silently handled
         }
     };
 
@@ -185,24 +172,16 @@ const HumanActivityDataCollection = () => {
     const t = translations[currentLanguage] || translations.en;
 
     const activityCategories = {
-        [t.environmentalImpacts]: [
+        [t.threatsAndHumanActivities]: [
             { value: 'Fire', label: t.fire },
             { value: 'Deforestation', label: t.deforestation },
             { value: 'Mining', label: t.mining },
-            { value: 'Waste & Pollution', label: t.wastePollution },
             { value: 'Waste disposal', label: t.wasteDisposal },
-            { value: 'Plastic and polythene', label: t.plasticPolythene }
-        ],
-        [t.constructionDevelopment]: [
-            { value: 'Constructions', label: t.constructions }
-        ],
-        [t.wildlifeAnimals]: [
-            { value: 'Domestic Animal', label: t.domesticAnimal },
-            { value: 'Hunting', label: t.hunting }
-        ],
-        [t.otherActivities]: [
-            { value: 'Illegal behaviour', label: t.illegalBehaviour },
-            { value: 'Other', label: t.other }
+            { value: 'Construction', label: t.construction },
+            { value: 'Domestic animals', label: t.domesticAnimals },
+            { value: 'Hunting and collection of species', label: t.huntingCollection },
+            { value: 'Feeding of wild animals', label: t.feedingWildAnimals },
+            { value: 'Illegal behaviour', label: t.illegalBehaviour }
         ]
     };
 
@@ -231,7 +210,7 @@ const HumanActivityDataCollection = () => {
 
         launchCamera(options, (response) => {
             if (response.didCancel) {
-                console.log('User cancelled camera');
+                // User cancelled, no need to show error
             } else if (response.errorCode) {
                 Alert.alert('Error', 'Failed to open camera: ' + response.errorMessage);
             } else if (response.assets && response.assets[0]) {
@@ -249,7 +228,7 @@ const HumanActivityDataCollection = () => {
 
         launchImageLibrary(options, (response) => {
             if (response.didCancel) {
-                console.log('User cancelled gallery');
+                // User cancelled, no need to show error
             } else if (response.errorCode) {
                 Alert.alert('Error', 'Failed to open gallery: ' + response.errorMessage);
             } else if (response.assets && response.assets[0]) {
@@ -270,7 +249,7 @@ const HumanActivityDataCollection = () => {
         setShowActivityPicker(false);
     };
 
-    const handleSubmit = () => {
+    const handlePreview = () => {
         if (!activityType) {
             Alert.alert(t.requiredField, t.selectActivityAlert);
             return;
@@ -286,6 +265,13 @@ const HumanActivityDataCollection = () => {
             return;
         }
 
+        setShowPreview(true);
+    };
+
+    const handleSubmit = () => {
+        setShowPreview(false);
+        setIsSubmitting(true);
+
         const observationData = {
             category,
             activityType,
@@ -294,7 +280,8 @@ const HumanActivityDataCollection = () => {
             timeOfDay,
             description
         };
-        console.log('Submit observation:', observationData);
+        setSubmittedData(observationData);
+        setIsSubmitting(false);
         setIsAlertVisible(true);
     };
 
@@ -331,6 +318,7 @@ const HumanActivityDataCollection = () => {
                 </View>
 
                 {/* Form Content */}
+                <View style={styles.frameContainer}>
                 <View style={styles.formContainer}>
                     {/* Activity Type Dropdown */}
                     <View style={styles.inputGroup}>
@@ -473,14 +461,15 @@ const HumanActivityDataCollection = () => {
                         />
                     </View>
 
-                    {/* Submit Button */}
-                    <TouchableOpacity 
+                    {/* Preview Button */}
+                    <TouchableOpacity
                         style={styles.submitButton}
-                        onPress={handleSubmit}
+                        onPress={handlePreview}
                         activeOpacity={0.8}
                     >
-                        <Text style={styles.submitButtonText}>{t.submit}</Text>
+                        <Text style={styles.submitButtonText}>{t.preview}</Text>
                     </TouchableOpacity>
+                </View>
                 </View>
             </ScrollView>
 
@@ -528,8 +517,11 @@ const HumanActivityDataCollection = () => {
                                     </View>
                                 </View>
                             ))}
+                            
                         </ScrollView>
+                        
                     </View>
+                    
                 </View>
             </Modal>
 
@@ -579,15 +571,30 @@ const HumanActivityDataCollection = () => {
                 visible={isAlertVisible}
                 onClose={() => {
                     setIsAlertVisible(false);
-                    // Reset form
-                    setActivityType('');
-                    setPhoto(null);
-                    setDate(new Date());
-                    setTimeOfDay('');
-                    setDescription('');
-                    navigation.navigate('CitizenDashboard');
+                    // Navigate to CreditInterface
+                    navigation.navigate('CreditInterface', {
+                        observationData: submittedData,
+                        observationType: 'humanActivity'
+                    });
                 }}
                 language={currentLanguage as 'en' | 'si' | 'ta'}
+            />
+
+            {/* Preview Modal */}
+            <PreviewModal
+                visible={showPreview}
+                onClose={() => setShowPreview(false)}
+                onConfirm={handleSubmit}
+                title={t.title}
+                isSubmitting={isSubmitting}
+                language={currentLanguage as 'en' | 'si' | 'ta'}
+                fields={[
+                    { label: t.activityType, value: getCurrentActivityLabel() },
+                    { label: t.photo, value: photo || '', isImage: true },
+                    { label: t.date, value: formatDate(date) },
+                    { label: t.timeOfDay, value: timeOptions.find(opt => opt.value === timeOfDay)?.label || timeOfDay },
+                    { label: t.description, value: description || '-' },
+                ]}
             />
         </SafeAreaView>
     );
@@ -620,9 +627,10 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 32,
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
         color: '#4A7856',
         fontWeight: 'bold',
+        textAlign:'center'
     },
     formContainer: {
         paddingHorizontal: 20,
@@ -635,7 +643,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#333',
         marginBottom: 8,
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     required: {
         color: '#E74C3C',
@@ -654,7 +662,7 @@ const styles = StyleSheet.create({
     dropdownText: {
         fontSize: 16,
         color: '#333',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     placeholder: {
         color: '#999',
@@ -676,7 +684,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
         fontSize: 14,
         color: '#999',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     photoContainer: {
         width: '100%',
@@ -724,7 +732,7 @@ const styles = StyleSheet.create({
     dateText: {
         fontSize: 16,
         color: '#333',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     radioContainer: {
         marginTop: 5,
@@ -743,7 +751,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#333',
         marginLeft: 5,
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     textArea: {
         borderWidth: 1,
@@ -754,7 +762,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#333',
         minHeight: 100,
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     submitButton: {
         backgroundColor: '#4A7856',
@@ -778,7 +786,8 @@ const styles = StyleSheet.create({
         fontSize: 20,
         color: '#FFFFFF',
         fontWeight: 'bold',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
+        textAlign: 'center',
     },
     // Modal Styles
     modalOverlay: {
@@ -805,7 +814,7 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
         color: '#333',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     modalCloseButton: {
         padding: 5,
@@ -822,7 +831,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#4A7856',
         marginBottom: 12,
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     activityGrid: {
         flexDirection: 'row',
@@ -845,7 +854,7 @@ const styles = StyleSheet.create({
     activityOptionText: {
         fontSize: 15,
         color: '#333',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     activityOptionTextSelected: {
         color: '#FFFFFF',
@@ -885,7 +894,7 @@ const styles = StyleSheet.create({
         color: '#333',
         textAlign: 'center',
         marginBottom: 25,
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     imagePickerOptions: {
         flexDirection: 'row',
@@ -907,7 +916,7 @@ const styles = StyleSheet.create({
         color: '#333',
         marginTop: 10,
         fontWeight: '600',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     imagePickerCancelButton: {
         backgroundColor: '#F5F5F5',
@@ -921,8 +930,28 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#666',
         fontWeight: '600',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
+    frameContainer: {
+    marginHorizontal: 15,
+    marginBottom: 25,
+    borderWidth: 2,
+    borderColor: '#4A7856',
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    paddingTop: 10,
+    ...Platform.select({
+        ios: {
+            shadowColor: 'black',
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.15,
+            shadowRadius: 6,
+        },
+        android: {
+            elevation: 6,
+        },
+    }),
+},
 });
 
 export default HumanActivityDataCollection;

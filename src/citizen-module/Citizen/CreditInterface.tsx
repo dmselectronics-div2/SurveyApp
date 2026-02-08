@@ -1,24 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, SafeAreaView, Platform, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, SafeAreaView, ActivityIndicator, Platform } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { plantApi } from '../../api/plantapi';
 import { natureApi } from '../../api/natureApi';
 import { animalApi } from '../../api/animalApi';
+import CustomAlert from '../custom-alert/alert-design';
 
-// component
 const PhotoInformation = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const { observationData, observationType } = route.params || {};
     const [currentLanguage, setCurrentLanguage] = useState('en');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isAlertVisible, setIsAlertVisible] = useState(false);
+    const [isErrorAlertVisible, setIsErrorAlertVisible] = useState(false);
+    const [errorAlertType, setErrorAlertType] = useState<'error' | 'network'>('error');
+    const [errorAlertTitle, setErrorAlertTitle] = useState('');
+    const [errorAlertMessage, setErrorAlertMessage] = useState('');
 
     const [contactInfo, setContactInfo] = useState('');
     const [canUsePhoto, setCanUsePhoto] = useState('Yes');
     const [photoCredit, setPhotoCredit] = useState('');
 
-    // Translation object
     const translations = {
         en: {
             headerTitle: 'Photo Information',
@@ -36,31 +40,45 @@ const PhotoInformation = () => {
             success: 'Success',
             submissionSuccess: 'Photo information saved successfully!',
             submissionFailed: 'Submission Failed',
-            tryAgain: 'Please try again later.'
+            tryAgain: 'Please try again later.',
+            networkIssue: 'Network Issue',
+            networkError: 'Unable to connect. Please check your internet connection and try again.',
+            validationError: 'Validation Error',
+            invalidEmail: 'Please enter a valid email address.',
+            invalidPhone: 'Please enter a valid phone number (at least 10 digits).',
+            invalidContact: 'Please enter a valid email or phone number.',
+            contactRequired: 'Contact information is required when providing photo credit or usage permission.'
         },
         si: {
-            headerTitle: 'ඡායාරූප තොරතුරු',
-            sectionTitle: 'ඡායාරූප ණය තොරතුරු',
-            infoText: 'ඔබ උඩුගත කළ ඡායාරූපය ගැන වැඩිදුර දැනගැනීමට අවශ්‍ය නම්, කරුණාකර ඔබගේ සම්බන්ධතා විස්තර තබන්න.',
-            contactLabel: 'ජංගම දුරකථන අංකය හෝ විද්‍යුත් තැපෑල (අත්‍යවශ්‍ය නොවේ)',
-            contactPlaceholder: 'ඔබේ සම්බන්ධතා තොරතුරු',
-            helperText: 'මෙම තොරතුරු පරිපාලකයා සමඟ බෙදා ගනු ඇත.',
-            permissionQuestion: 'කරුණාකර අපට මෙම ඡායාරූපය භාවිතා කළ හැකිද යන්න සඳහන් කරන්න:',
+            headerTitle: 'ඡායාරූපය පිළිබද තොරතුරු',
+            sectionTitle: 'ඡායාරූපයේ හිමිකාරීත්වය සඳහා තොරතුරු',
+            infoText: 'ඔබ ලබා දුන් ඡායාරූපය පිළිබඳ වැඩිදුර තොරතුරු අවශ්‍ය නම් පහත තොරතුරු ලබා දෙන්න.',
+            contactLabel: 'දුරකථන අංකය / විද්‍යුත් තැපැල් ලිපිනය',
+            contactPlaceholder: 'ඔබව සම්බන්ධ කර ගත හැකි විස්තර',
+            helperText: 'මෙම තොරතුරු පරිපාලක සමග හුවමාරු වීම සිදුවේ.',
+            permissionQuestion: 'ඔබගේ ඡායාරූපය අප හට භාවිතා කිරීමට අවසර ලබා දෙන්නේ ද ?',
             yes: 'ඔව්',
             no: 'නැත',
-            photoCreditLabel: 'ඡායාරූප ණය:',
-            photoCreditPlaceholder: 'මෙම ඡායාරූපය සඳහා අප කෙසේ ණය දිය යුතුද?',
-            submit: 'ඉදිරිපත් කරන්න',
+            photoCreditLabel: 'ඡායාරූපයේ හිමිකාරීත්වය:',
+            photoCreditPlaceholder: 'ඡායාරූපයේ හිමිකාරිත්වය සඳහන් විය යුතු ආකාරය පහත දක්වන්න?',
+            submit: 'දත්ත ඇතුලත් කිරීම තහවුරු කරන්න',
             success: 'සාර්ථකයි',
             submissionSuccess: 'ඡායාරූප තොරතුරු සාර්ථකව සුරකින ලදී!',
             submissionFailed: 'ඉදිරිපත් කිරීම අසාර්ථකයි',
-            tryAgain: 'කරුණාකර පසුව නැවත උත්සාහ කරන්න.'
+            tryAgain: 'කරුණාකර පසුව නැවත උත්සාහ කරන්න.',
+            networkIssue: 'ජාල ගැටලුව',
+            networkError: 'සංයෝගය ස්ථාපිත කිරීමට නොහැකි විය. කරුණාකර ඔබේ අන්තර්ජාල සංයෝගය පරීක්ෂා කරන්න සහ නැවත උත්සාහ කරන්න.',
+            validationError: 'වලංගුතා දෝෂය',
+            invalidEmail: 'කරුණාකර වලංගු විද්‍යුත් තැපැල් ලිපිනයක් ඇතුළු කරන්න.',
+            invalidPhone: 'කරුණාකර වලංගු දුරකථන අංකයක් ඇතුළු කරන්න (අවම වශයෙන් ඉලක්කම් 10).',
+            invalidContact: 'කරුණාකර වලංගු විද්‍යුත් තැපැල් ලිපිනයක් හෝ දුරකථන අංකයක් ඇතුළු කරන්න.',
+            contactRequired: 'ඡායාරූප හිමිකාරිත්වය හෝ භාවිතා කිරීමේ අවසර ලබා දෙන විට සම්බන්ධතා තොරතුරු අවශ්‍ය වේ.'
         },
         ta: {
             headerTitle: 'புகைப்பட தகவல்',
             sectionTitle: 'புகைப்பட வரவுகள் தகவல்',
-            infoText: 'நீங்கள் பதிவேற்றிய புகைப்படத்தைப் பற்றி மேலும் அறிய விரும்பினால், உங்கள் தொடர்பு விவரங்களை விட்டுவிடுங்கள்.',
-            contactLabel: 'மொபைல் எண் அல்லது மின்னஞ்சல் (விருப்பமானது)',
+            infoText: 'நீங்கள் பதிவேற்றிய புகைப்படத்தைப் பற்றி மேலும் அறிய விரும்பினால், உங்கள் தொடர்பு விவரங்களை பகிரவும்.',
+            contactLabel: 'தொலைபேசி இலக்கம் அல்லது மின்னஞ்சல் (விருப்பமானது)',
             contactPlaceholder: 'உங்கள் தொடர்பு தகவல்',
             helperText: 'இந்தத் தகவல் நிர்வாகியுடன் பகிரப்படும்.',
             permissionQuestion: 'இந்த புகைப்படத்தை நாங்கள் பயன்படுத்தலாமா என்பதைக் குறிப்பிடுங்கள்:',
@@ -72,11 +90,17 @@ const PhotoInformation = () => {
             success: 'வெற்றி',
             submissionSuccess: 'புகைப்பட தகவல் வெற்றிகரமாக சேமிக்கப்பட்டது!',
             submissionFailed: 'சமர்ப்பிப்பு தோல்வியடைந்தது',
-            tryAgain: 'பின்னர் மீண்டும் முயற்சிக்கவும்.'
+            tryAgain: 'பின்னர் மீண்டும் முயற்சிக்கவும்.',
+            networkIssue: 'நெட்வொர்க் சிக்கல்',
+            networkError: 'இணைப்பை நிறுவ முடியவில்லை. தயவுசெய்து உங்கள் இணைய இணைப்பை சரிபார்க்கவும் மற்றும் மீண்டும் முயற்சிக்கவும்.',
+            validationError: 'சரிபடுத்தல் பிழை',
+            invalidEmail: 'தயவுசெய்து சரியான மின்னஞ்சல் முகவரி உள்ளிடவும்.',
+            invalidPhone: 'தயவுசெய்து சரியான தொலைபேசி இலக்கத்தை உள்ளிடவும் (குறைந்தபட்சம் 10 இலக்கங்கள்).',
+            invalidContact: 'தயவுசெய்து சரியான மின்னஞ்சல் முகவரி அல்லது தொலைபேசி இலக்கத்தை உள்ளிடவும்.',
+            contactRequired: 'புகைப்பட வரவு அல்லது பயன்பாட்டு அனுமதி வழங்கும் போது தொடர்பு தகவல் தேவை.'
         }
     };
 
-    // Load saved language preference
     useEffect(() => {
         loadLanguage();
     }, []);
@@ -84,20 +108,71 @@ const PhotoInformation = () => {
     const loadLanguage = async () => {
         try {
             const savedLanguage = await AsyncStorage.getItem('userLanguage');
-            if (savedLanguage) {
-                setCurrentLanguage(savedLanguage);
-            }
+            if (savedLanguage) setCurrentLanguage(savedLanguage);
         } catch (error) {
             console.error('Error loading language:', error);
         }
     };
 
-    // Get current translations
     const t = translations[currentLanguage] || translations.en;
 
-    const handleSubmit = async () => {
-        setIsSubmitting(true);
+    // Validation functions
+    const validateEmail = (email: string): boolean => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
 
+    const validatePhone = (phone: string): boolean => {
+        const phoneRegex = /^\d{10,}$/;
+        return phoneRegex.test(phone.replace(/[^\d]/g, ''));
+    };
+
+    const validateContact = (contact: string, isRequired: boolean): string | null => {
+        // Check if contact is required
+        if (isRequired && (!contact || contact.trim() === '')) {
+            return t.contactRequired;
+        }
+
+        // If not required and empty, validation passes
+        if (!contact || contact.trim() === '') {
+            return null;
+        }
+
+        const trimmedContact = contact.trim();
+        const isEmail = trimmedContact.includes('@');
+        const isPhone = /^\d/.test(trimmedContact);
+
+        if (isEmail) {
+            if (!validateEmail(trimmedContact)) {
+                return t.invalidEmail;
+            }
+        } else if (isPhone) {
+            if (!validatePhone(trimmedContact)) {
+                return t.invalidPhone;
+            }
+        } else {
+            return t.invalidContact;
+        }
+
+        return null; // Valid
+    };
+
+    const handleSubmit = async () => {
+        // Determine if contact info is required
+        // Contact is required if photo credit is provided OR user allows photo usage
+        const isContactRequired = (photoCredit && photoCredit.trim() !== '') || canUsePhoto === 'Yes';
+
+        // Validate contact info based on requirement
+        const contactValidationError = validateContact(contactInfo, isContactRequired);
+        if (contactValidationError) {
+            setErrorAlertType('error');
+            setErrorAlertTitle(t.validationError);
+            setErrorAlertMessage(contactValidationError);
+            setIsErrorAlertVisible(true);
+            return;
+        }
+
+        setIsSubmitting(true);
         try {
             const photoInfo = {
                 contactInfo: contactInfo.trim() || undefined,
@@ -105,14 +180,9 @@ const PhotoInformation = () => {
                 photoCredit: photoCredit.trim() || undefined
             };
 
-            console.log('Submitting photo information:', photoInfo);
-            console.log('Observation type:', observationType);
-
-            // Get the observation ID
             const observationId = observationData?._id || observationData?.id;
 
             if (observationId) {
-                // Call the appropriate API based on observation type
                 switch (observationType) {
                     case 'plant':
                         await plantApi.updatePlantPhotoInfo(observationId, photoInfo);
@@ -124,36 +194,47 @@ const PhotoInformation = () => {
                         await animalApi.updateAnimalPhotoInfo(observationId, photoInfo);
                         break;
                     case 'humanActivity':
-                        // Human activity doesn't have a backend yet, just log
-                        console.log('Human activity photo info (no backend):', photoInfo);
+                        // Log actual observation data values
+                        console.log('=== Human Activity Observation Submitted ===');
+                        console.log('Type: Human Activity');
+                        console.log('Photo Credit:', photoCredit || 'Not provided');
+                        console.log('Contact:', contactInfo || 'Not provided');
+                        console.log('Can Use Photo:', canUsePhoto);
+                        console.log('Observation Date:', observationData?.date || 'N/A');
+                        console.log('Time of Day:', observationData?.timeOfDay || 'N/A');
+                        console.log('Description:', observationData?.description || 'N/A');
+                        console.log('=====================================');
                         break;
                     default:
-                        console.log('Unknown observation type:', observationType);
+                        // Log actual observation data values for unknown types
+                        console.log('=== Observation Submitted ===');
+                        console.log('Type:', observationType);
+                        console.log('Photo Credit:', photoCredit || 'Not provided');
+                        console.log('Contact:', contactInfo || 'Not provided');
+                        console.log('Can Use Photo:', canUsePhoto);
+                        if (observationData) {
+                            console.log('Date:', observationData.date || 'N/A');
+                            console.log('Time of Day:', observationData.timeOfDay || 'N/A');
+                            console.log('Description:', observationData.description || 'N/A');
+                        }
+                        console.log('============================');
                 }
             }
 
-            Alert.alert(
-                t.success,
-                t.submissionSuccess,
-                [
-                    {
-                        text: 'OK',
-                        onPress: () => {
-                            // Navigate to CitizenDashboard
-                            navigation.reset({
-                                index: 0,
-                                routes: [{ name: 'CitizenDashboard' }],
-                            });
-                        },
-                    },
-                ]
-            );
+            setIsAlertVisible(true);
         } catch (error) {
+            // Determine if it's a network error
+            const isNetworkError = error.message && 
+                (error.message.includes('Network') || 
+                 error.message.includes('timeout') ||
+                 error.message.includes('fetch'));
+            
+            setErrorAlertType(isNetworkError ? 'network' : 'error');
+            setErrorAlertTitle(isNetworkError ? t.networkIssue : t.submissionFailed);
+            setErrorAlertMessage(isNetworkError ? t.networkError : (error.message || t.tryAgain));
+            setIsErrorAlertVisible(true);
+            
             console.error('Error submitting photo information:', error);
-            Alert.alert(
-                t.submissionFailed,
-                error.message || t.tryAgain
-            );
         } finally {
             setIsSubmitting(false);
         }
@@ -161,45 +242,48 @@ const PhotoInformation = () => {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <Text style={styles.headerTitle}>{t.headerTitle}</Text>
-                </View>
+            <View style={styles.header}>
+                <Text style={styles.headerTitle}>{t.headerTitle}</Text>
+            </View>
 
-                {/* Form Container */}
-                <View style={styles.formContainer}>
-                    {/* Photo Credits Information Section */}
-                    <View style={styles.section}>
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >
+                <View style={styles.frameContainer}>
+                    <View style={styles.formContainer}>
                         <Text style={styles.sectionTitle}>{t.sectionTitle}</Text>
-                        
-                        <Text style={styles.infoText}>
-                            {t.infoText}
-                        </Text>
 
-                        {/* Contact Information Input */}
+                        <Text style={styles.infoText}>{t.infoText}</Text>
+
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>{t.contactLabel}</Text>
                             <TextInput
                                 style={styles.textInput}
                                 placeholder={t.contactPlaceholder}
-                                placeholderTextColor="#CCC"
+                                placeholderTextColor="#AAA"
                                 value={contactInfo}
                                 onChangeText={setContactInfo}
                             />
-                            <Text style={styles.helperText}>
-                                {t.helperText}
-                            </Text>
+                            <Text style={styles.helperText}>{t.helperText}</Text>
                         </View>
 
-                        {/* Permission Section */}
                         <View style={styles.inputGroup}>
-                            <Text style={styles.questionText}>
-                                {t.permissionQuestion}
-                            </Text>
-                            
+                            <Text style={styles.label}>{t.photoCreditLabel}</Text>
+                            <TextInput
+                                style={styles.textInput}
+                                placeholder={t.photoCreditPlaceholder}
+                                placeholderTextColor="#AAA"
+                                value={photoCredit}
+                                onChangeText={setPhotoCredit}
+                            />
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.questionText}>{t.permissionQuestion}</Text>
                             <View style={styles.radioGroup}>
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     style={styles.radioOption}
                                     onPress={() => setCanUsePhoto('Yes')}
                                     activeOpacity={0.7}
@@ -210,7 +294,7 @@ const PhotoInformation = () => {
                                     <Text style={styles.radioLabel}>{t.yes}</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     style={styles.radioOption}
                                     onPress={() => setCanUsePhoto('No')}
                                     activeOpacity={0.7}
@@ -223,19 +307,6 @@ const PhotoInformation = () => {
                             </View>
                         </View>
 
-                        {/* Photo Credit Input */}
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>{t.photoCreditLabel}</Text>
-                            <TextInput
-                                style={styles.textInput}
-                                placeholder={t.photoCreditPlaceholder}
-                                placeholderTextColor="#CCC"
-                                value={photoCredit}
-                                onChangeText={setPhotoCredit}
-                            />
-                        </View>
-
-                        {/* Submit Button */}
                         <TouchableOpacity
                             style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
                             onPress={handleSubmit}
@@ -251,64 +322,101 @@ const PhotoInformation = () => {
                     </View>
                 </View>
             </ScrollView>
+
+            {/* Success Alert */}
+            <CustomAlert
+                visible={isAlertVisible}
+                onClose={() => {
+                    setIsAlertVisible(false);
+                    navigation.reset({
+                        index: 0,
+                        routes: [{ name: 'CitizenDashboard' }],
+                    });
+                }}
+                type="success"
+                title={t.success}
+                message={t.submissionSuccess}
+                language={currentLanguage as 'en' | 'si' | 'ta'}
+            />
+
+            {/* Error/Network Alert */}
+            <CustomAlert
+                visible={isErrorAlertVisible}
+                onClose={() => setIsErrorAlertVisible(false)}
+                type={errorAlertType}
+                title={errorAlertTitle}
+                message={errorAlertMessage}
+                language={currentLanguage as 'en' | 'si' | 'ta'}
+            />
         </SafeAreaView>
     );
 }
 
-// styles
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#E8E8E8',
-    },
-    container: {
-        flex: 1,
-        backgroundColor: '#E8E8E8',
-    },
-    header: {
-        alignItems: 'center',
-        paddingVertical: 20,
-        paddingHorizontal: 20,
-    },
-    headerTitle: {
-        fontSize: 28,
-        fontFamily: 'JejuHallasan-Regular',
-        color: '#4A7856',
-        fontWeight: 'bold',
-    },
-    formContainer: {
-        paddingHorizontal: 20,
-        paddingBottom: 30,
-    },
-    section: {
         backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        padding: 20,
+    },
+    scrollView: {
+        flex: 1,
+        backgroundColor: '#FFFFFF',
+    },
+    scrollContent: {
+        flexGrow: 1,
+        paddingVertical: 15,
+    },
+    frameContainer: {
+        marginHorizontal: 15,
+        marginVertical: 15,
+        borderWidth: 2,
+        borderColor: '#4A7856',
+        borderRadius: 18,
+        backgroundColor: '#FFFFFF',
+        paddingTop: 20,
+        paddingBottom: 20,
         ...Platform.select({
             ios: {
                 shadowColor: 'black',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.15,
+                shadowRadius: 6,
             },
             android: {
-                elevation: 3,
+                elevation: 7,
             },
         }),
+    },
+    header: {
+        alignItems: 'center',
+        paddingVertical: 15,
+        paddingHorizontal: 20,
+        
+    },
+    headerTitle: {
+        fontSize: 24,
+        fontFamily: 'Times New Roman',
+        color: '#4A7856',
+        fontWeight: 'bold',
+        marginTop: 9,
+    },
+    formContainer: {
+        paddingHorizontal: 20,
+        paddingTop: 10,
+        backgroundColor: '#FFFFFF',
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
         color: '#333',
-        marginBottom: 15,
-        fontFamily: 'JejuHallasan-Regular',
+        marginBottom: 25,
+        fontFamily: 'Times New Roman',
     },
     infoText: {
         fontSize: 14,
         color: '#666',
         lineHeight: 20,
-        marginBottom: 20,
-        fontFamily: 'JejuHallasan-Regular',
+        marginBottom: 30,
+        fontFamily: 'Times New Roman',
     },
     inputGroup: {
         marginBottom: 20,
@@ -316,8 +424,8 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 14,
         color: '#666',
-        marginBottom: 8,
-        fontFamily: 'JejuHallasan-Regular',
+        marginBottom: 10,
+        fontFamily: 'Times New Roman',
     },
     textInput: {
         borderWidth: 1,
@@ -328,24 +436,26 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: '#333',
         backgroundColor: '#FAFAFA',
-        fontFamily: 'JejuHallasan-Regular',
+        fontFamily: 'Times New Roman',
+        textAlign: 'center',
     },
     helperText: {
         fontSize: 12,
         color: '#999',
         marginTop: 6,
-        fontFamily: 'JejuHallasan-Regular',
+        marginBottom: 20,
+        fontFamily: 'Times New Roman',
     },
     questionText: {
         fontSize: 15,
         color: '#666',
         marginBottom: 15,
         fontWeight: '500',
-        fontFamily: 'JejuHallasan-Regular',
+        fontFamily: 'Times New Roman',
     },
     radioGroup: {
         flexDirection: 'row',
-        gap: 30,
+        justifyContent: 'space-around',
     },
     radioOption: {
         flexDirection: 'row',
@@ -370,31 +480,23 @@ const styles = StyleSheet.create({
     radioLabel: {
         fontSize: 15,
         color: '#333',
-        fontFamily: 'JejuHallasan-Regular',
+        fontFamily: 'Times New Roman',
     },
     submitButton: {
         backgroundColor: '#4A7856',
-        borderRadius: 8,
-        paddingVertical: 15,
+        borderRadius: 10,
+        paddingVertical: 16,
         alignItems: 'center',
         marginTop: 10,
-        ...Platform.select({
-            ios: {
-                shadowColor: 'black',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.2,
-                shadowRadius: 4,
-            },
-            android: {
-                elevation: 4,
-            },
-        }),
+        marginBottom: 20,
     },
     submitButtonText: {
         fontSize: 18,
         color: '#FFFFFF',
         fontWeight: 'bold',
-        fontFamily: 'JejuHallasan-Regular',
+        fontFamily: 'Times New Roman',
+        textAlign: 'center'
+        
     },
     submitButtonDisabled: {
         backgroundColor: '#8AAB91',

@@ -20,8 +20,9 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNFS from 'react-native-fs';
-import { animalApi } from '../api/animalApi';
+import { animalApi } from '../../api/animalApi';
 import CustomAlert from '../custom-alert/alert-design';
+import PreviewModal from './PreviewModal';
 
 // Custom Radio Button Component
 const CustomRadioButton = ({ selected, onPress, disabled }) => (
@@ -41,12 +42,17 @@ const CustomRadioButton = ({ selected, onPress, disabled }) => (
 
 // component
 const AnimalDataCollection = () => {
-    const navigation = useNavigation<any>();
+    const navigation = useNavigation();
     const route = useRoute();
     const category = route.params?.category || 'Animal';
     const [currentLanguage, setCurrentLanguage] = useState('en');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isAlertVisible, setIsAlertVisible] = useState(false);
+    const [isErrorAlertVisible, setIsErrorAlertVisible] = useState(false);
+    const [errorAlertType, setErrorAlertType] = useState<'error' | 'network'>('error');
+    const [errorAlertTitle, setErrorAlertTitle] = useState('');
+    const [errorAlertMessage, setErrorAlertMessage] = useState('');
+    const [submittedData, setSubmittedData] = useState(null);
 
     const [animalType, setAnimalType] = useState('');
     const [showAnimalPicker, setShowAnimalPicker] = useState(false);
@@ -56,6 +62,9 @@ const AnimalDataCollection = () => {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [timeOfDay, setTimeOfDay] = useState('');
     const [description, setDescription] = useState('');
+    const [commonName, setCommonName] = useState('');
+    const [scientificName, setScientificName] = useState('');
+    const [showPreview, setShowPreview] = useState(false);
 
     // Translation object
     const translations = {
@@ -83,6 +92,8 @@ const AnimalDataCollection = () => {
             submissionSuccess: 'Animal observation submitted successfully!',
             submissionFailed: 'Submission Failed',
             tryAgain: 'Failed to submit observation. Please try again.',
+            networkIssue: 'Network Issue',
+            networkError: 'Unable to connect. Please check your internet connection and try again.',
             // Animal types
             mammal: 'Mammal',
             bird: 'Bird',
@@ -94,25 +105,33 @@ const AnimalDataCollection = () => {
             dragonfly: 'Dragonfly',
             spider: 'Spider',
             otherInsect: 'Other Insect',
-            crustacean: 'Crustacean',
+            crustacean: 'Crustacean  (Example - Crab)',
             // Time options
             morning: 'Morning',
             noon: 'Noon',
             evening: 'Evening',
-            night: 'Night'
+            night: 'Night',
+            // Identification fields
+            identificationSection: 'If you can identify the observation (Optional)',
+            commonName: 'Common Name',
+            scientificName: 'Scientific Name',
+            commonNamePlaceholder: 'Enter common name',
+            scientificNamePlaceholder: 'Enter scientific name',
+            preview: 'Preview',
+            type: 'Type'
         },
         si: {
             title: 'සතුන්',
-            animalType: 'සත්ව වර්ගය',
-            selectAnimalType: 'සත්ව වර්ගය තෝරන්න',
+            animalType: 'සත්ත්ව කාණ්ඩය',
+            selectAnimalType: 'සත්ත්ව කාණ්ඩය තෝරන්න',
             photo: 'ඡායාරූපය',
             date: 'දිනය',
             timeOfDay: 'දවසේ වේලාව',
             description: 'විස්තරය (අත්‍යවශ්‍ය නොවේ)',
-            submit: 'ඉදිරිපත් කරන්න',
-            submitting: 'ඉදිරිපත් කරමින්...',
+            submit: 'දත්ත ඇතුලත් කිරීම තහවුරු කරන්න',
+            submitting: 'දත්ත ඇතුලත් කිරීම තහවුරු කරමින්...',
             photoPlaceholder: 'ඡායාරූපය ගැනීම/ ඇතුලත් කිරීම මෙහිදී සිදු කරන්න',
-            chooseOption: 'විකල්පයක් තෝරන්න',
+            chooseOption: 'තෝරන්න',
             camera: 'කැමරාව',
             gallery: 'ගැලරිය',
             cancel: 'අවලංගු කරන්න',
@@ -122,40 +141,50 @@ const AnimalDataCollection = () => {
             selectTimeOfDay: 'කරුණාකර දවසේ වේලාව තෝරන්න',
             descriptionPlaceholder: 'ඔබේ නිරීක්ෂණය ගැන අමතර සටහන් එක් කරන්න...',
             success: 'සාර්ථකයි',
-            submissionSuccess: 'සත්ව නිරීක්ෂණය සාර්ථකව ඉදිරිපත් කරන ලදී!',
+            submissionSuccess: 'සත්ත්ව නිරීක්ෂණය සාර්ථකව ඉදිරිපත් කරන ලදී!',
             submissionFailed: 'ඉදිරිපත් කිරීම අසාර්ථක විය',
             tryAgain: 'නිරීක්ෂණය ඉදිරිපත් කිරීමට අසමත් විය. කරුණාකර නැවත උත්සාහ කරන්න.',
+            networkIssue: 'ජාල ගැටලුව',
+            networkError: 'සংযෝගය ස්ථාපිත කිරීමට නොහැකි විය. කරුණාකර ඔබේ අන්තර්ජාල සংযોගය පරීක්ෂා කරන්න සහ නැවත උත්සාහ කරන්න.',
             // Animal types
             mammal: 'ක්ෂීරපායින්',
             bird: 'කුරුල්ලන්',
             reptile: 'උරගයින්',
             amphibian: 'උභයජීවීන්',
-            fish: 'මත්සයයන්',
-            annelidBivalve: 'ගොළුබෙල්ලන් සහ දෙපියලි බෙල්ලන්',
+            fish: 'මත්ස්‍යයන්',
+            annelidBivalve: ' ගොලුබෙල්ලන් සහ දෙපියන්බෙල්ලන්',
             butterflyMoth: 'සමනලුන් හෝ සලබයින්',
-            dragonfly: 'බත් කුරුන් හෝ ඉරවූ කුරුන්',
+            dragonfly: ' බත් කූරන් හෝ ඉරටු කූරන්',
             spider: 'මකුළුවන්',
             otherInsect: 'අනෙකුත් කෘමීන්',
-            crustacean: 'කුස්ටේසියාවන් (උදාහරණ - කකුළුවන්)',
+            crustacean: 'ක්‍රස්ටේසියාවන්  (උදාහරණ - කකුළුවන්)',
             morning: 'උදෑසන',
-            noon: 'මධ්‍යාහ්නය',
+            noon: 'මධ්‍යහනය',
             evening: 'සවස',
-            night: 'රාත්‍රිය'
+            night: 'රාත්‍රිය',
+            // Identification fields
+            identificationSection: 'නිරීක්ෂණය හඳුනාගත්තේ නම් (අත්‍යවශ්‍ය නොවේ) ',
+            commonName: 'පොදු නාමය',
+            scientificName: 'විද්‍යාත්මක  නාමය',
+            commonNamePlaceholder: 'පොදු නාමය ඇතුළත් කරන්න',
+            scientificNamePlaceholder: 'විද්‍යාත්මක  නාමය ඇතුළත් කරන්න',
+            preview: 'පෙරදසුන',
+            type: 'වර්ගය'
         },
         ta: {
             title: 'விலங்குகள்',
             animalType: 'விலங்கு வகை',
             selectAnimalType: 'விலங்கு வகையைத் தேர்ந்தெடுக்கவும்',
             photo: 'புகைப்படம்',
-            date: 'தேதி',
+            date: 'திகதி',
             timeOfDay: 'நாளின் நேரம்',
             description: 'விளக்கம் (விருப்பமானது)',
             submit: 'சமர்ப்பிக்கவும்',
             submitting: 'சமர்ப்பிக்கப்படுகிறது...',
-            photoPlaceholder: 'புகைப்படத்தைப் பதிவேற்ற அல்லது எடுக்க தட்டவும்',
+            photoPlaceholder: 'புகைப்படத்தைப் பதிவேற்ற அழுத்தவும் எடுக்க தட்டவும்',
             chooseOption: 'ஒரு விருப்பத்தைத் தேர்ந்தெடுக்கவும்',
             camera: 'கேமரா',
-            gallery: 'கேலரி',
+            gallery: 'புகைப்படங்கள்',
             cancel: 'ரத்துசெய்',
             requiredField: 'தேவையான புலம்',
             selectAnimalAlert: 'தயவுசெய்து ஒரு விலங்கு வகையைத் தேர்ந்தெடுக்கவும்',
@@ -165,14 +194,16 @@ const AnimalDataCollection = () => {
             success: 'வெற்றி',
             submissionSuccess: 'விலங்கு கவனிப்பு வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது!',
             submissionFailed: 'சமர்ப்பித்தல் தோல்வியடைந்தது',
-            tryAgain: 'கவனிப்பை சமர்ப்பிக்க தோல்வி. மீண்டும் முயற்சிக்கவும்.',
+            tryAgain: 'கவனிப்பை சமர்ப்பிக்க தோல்வி. மீண்டும் முயற்சிக்கவும். ',
+            networkIssue: 'நெட்வொர்க் சிக்கல்',
+            networkError: 'இணைப்பை நிறுவ முடியவில்லை. தயவுசெய்து உங்கள் இணைய இணைப்பை சரிபார்க்கவும் மற்றும் மீண்டும் முயற்சிக்கவும்.',
             // Animal types
             mammal: 'பாலூட்டிகள்',
             bird: 'பறவைகள்',
             reptile: 'ஊர்வன',
             amphibian: 'இருவாழ்விகள்',
             fish: 'மீன்கள்',
-            annelidBivalve: 'வலையிறால்கள் மற்றும் இருவல்விகள்',
+            annelidBivalve: 'புழுக்கள் மற்றும் இருவோட்டுடலிகள்(சிப்பி)',
             butterflyMoth: 'பட்டாம்பூச்சி அல்லது அந்துப்பூச்சி',
             dragonfly: 'தும்பி அல்லது ஊசித்தும்பி',
             spider: 'சிலந்தி',
@@ -181,7 +212,15 @@ const AnimalDataCollection = () => {
             morning: 'காலை',
             noon: 'மதியம்',
             evening: 'மாலை',
-            night: 'இரவு'
+            night: 'இரவு',
+            // Identification fields
+            identificationSection: 'கவனிப்பை அடையாளம் காண முடிந்தால் (விருப்பமானது)',
+            commonName: 'பொதுப் பெயர்',
+            scientificName: 'அறிவியல் பெயர்',
+            commonNamePlaceholder: 'பொதுப் பெயரை உள்ளிடவும்',
+            scientificNamePlaceholder: 'அறிவியல் பெயரை உள்ளிடவும்',
+            preview: 'முன்னோட்டம்',
+            type: 'வகை'
         }
     };
 
@@ -197,7 +236,7 @@ const AnimalDataCollection = () => {
                 setCurrentLanguage(savedLanguage);
             }
         } catch (error) {
-            console.error('Error loading language:', error);
+            // Error silently handled
         }
     };
 
@@ -232,7 +271,10 @@ const AnimalDataCollection = () => {
             const base64 = await RNFS.readFile(cleanUri, 'base64');
             return `data:image/jpeg;base64,${base64}`;
         } catch (error) {
-            console.error('Error converting image to base64:', error);
+            setErrorAlertType('error');
+            setErrorAlertTitle(lang.submissionFailed);
+            setErrorAlertMessage('Failed to process image. Please try again.');
+            setIsErrorAlertVisible(true);
             throw error;
         }
     };
@@ -257,9 +299,12 @@ const AnimalDataCollection = () => {
 
         launchCamera(options, (response) => {
             if (response.didCancel) {
-                console.log('User cancelled camera');
+                // User cancelled, no need to show error
             } else if (response.errorCode) {
-                Alert.alert('Error', 'Failed to open camera: ' + response.errorMessage);
+                setErrorAlertType('error');
+                setErrorAlertTitle(lang.submissionFailed);
+                setErrorAlertMessage('Failed to open camera. Please try again.');
+                setIsErrorAlertVisible(true);
             } else if (response.assets && response.assets[0]) {
                 setPhoto(response.assets[0].uri);
             }
@@ -277,9 +322,12 @@ const AnimalDataCollection = () => {
 
         launchImageLibrary(options, (response) => {
             if (response.didCancel) {
-                console.log('User cancelled gallery');
+                // User cancelled, no need to show error
             } else if (response.errorCode) {
-                Alert.alert('Error', 'Failed to open gallery: ' + response.errorMessage);
+                setErrorAlertType('error');
+                setErrorAlertTitle(lang.submissionFailed);
+                setErrorAlertMessage('Failed to open gallery. Please try again.');
+                setIsErrorAlertVisible(true);
             } else if (response.assets && response.assets[0]) {
                 setPhoto(response.assets[0].uri);
             }
@@ -298,22 +346,36 @@ const AnimalDataCollection = () => {
         setShowAnimalPicker(false);
     };
 
-    const handleSubmit = async () => {
+    const handlePreview = () => {
         if (!animalType) {
-            Alert.alert(lang.requiredField, lang.selectAnimalAlert);
+            setErrorAlertType('error');
+            setErrorAlertTitle(lang.requiredField);
+            setErrorAlertMessage(lang.selectAnimalAlert);
+            setIsErrorAlertVisible(true);
             return;
         }
 
         if (!photo) {
-            Alert.alert(lang.requiredField, lang.uploadPhoto);
+            setErrorAlertType('error');
+            setErrorAlertTitle(lang.requiredField);
+            setErrorAlertMessage(lang.uploadPhoto);
+            setIsErrorAlertVisible(true);
             return;
         }
 
         if (!timeOfDay) {
-            Alert.alert(lang.requiredField, lang.selectTimeOfDay);
+            setErrorAlertType('error');
+            setErrorAlertTitle(lang.requiredField);
+            setErrorAlertMessage(lang.selectTimeOfDay);
+            setIsErrorAlertVisible(true);
             return;
         }
 
+        setShowPreview(true);
+    };
+
+    const handleSubmit = async () => {
+        setShowPreview(false);
         setIsSubmitting(true);
 
         try {
@@ -325,14 +387,28 @@ const AnimalDataCollection = () => {
                 photo: base64Photo,
                 date: date.toISOString().split('T')[0],
                 timeOfDay,
-                description
+                description,
+                commonName: commonName.trim() || undefined,
+                scientificName: scientificName.trim() || undefined
             };
 
-            await animalApi.createAnimal(observationData);
-            setIsAlertVisible(true);
+            const response = await animalApi.createAnimal(observationData);
+
+            if (response.success) {
+                setSubmittedData(response.data);
+                setIsAlertVisible(true);
+            }
         } catch (error) {
-            console.error("Submit error:", error);
-            Alert.alert(lang.submissionFailed, lang.tryAgain);
+            // Determine if it's a network error
+            const isNetworkError = error.message && 
+                (error.message.includes('Network') || 
+                 error.message.includes('timeout') ||
+                 error.message.includes('fetch'));
+            
+            setErrorAlertType(isNetworkError ? 'network' : 'error');
+            setErrorAlertTitle(isNetworkError ? lang.networkIssue : lang.submissionFailed);
+            setErrorAlertMessage(isNetworkError ? lang.networkError : (error.message || lang.tryAgain));
+            setIsErrorAlertVisible(true);
         } finally {
             setIsSubmitting(false);
         }
@@ -369,6 +445,7 @@ const AnimalDataCollection = () => {
                 </View>
 
                 {/* Form Content */}
+                <View style={styles.frameContainer}>
                 <View style={styles.formContainer}>
                     {/* Animal Type Dropdown */}
                     <View style={styles.inputGroup}>
@@ -521,27 +598,51 @@ const AnimalDataCollection = () => {
                         />
                     </View>
 
-                    {/* Submit Button */}
-                    <TouchableOpacity 
+                    {/* Identification Section - Optional */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.sectionTitle}>{lang.identificationSection}</Text>
+
+                        {/* Common Name */}
+                        <Text style={styles.label}>{lang.commonName}</Text>
+                        <TextInput
+                            style={styles.textInput}
+                            placeholder={lang.commonNamePlaceholder}
+                            placeholderTextColor="#AAA"
+                            value={commonName}
+                            onChangeText={setCommonName}
+                            editable={!isSubmitting}
+                        />
+
+                        {/* Scientific Name */}
+                        <Text style={[styles.label, { marginTop: 12 }]}>{lang.scientificName}</Text>
+                        <TextInput
+                            style={styles.textInput}
+                            placeholder={lang.scientificNamePlaceholder}
+                            placeholderTextColor="#AAA"
+                            value={scientificName}
+                            onChangeText={setScientificName}
+                            editable={!isSubmitting}
+                        />
+                    </View>
+
+                    {/* Preview Button */}
+                    <TouchableOpacity
                         style={[
                             styles.submitButton,
                             isSubmitting && styles.submitButtonDisabled
                         ]}
-                        onPress={handleSubmit}
+                        onPress={handlePreview}
                         activeOpacity={0.8}
                         disabled={isSubmitting}
                     >
-                        {isSubmitting ? (
-                            <View style={styles.submitButtonContent}>
-                                <ActivityIndicator color="#FFFFFF" size="small" />
-                                <Text style={[styles.submitButtonText, { marginLeft: 10 }]}>
-                                    {lang.submitting}
-                                </Text>
-                            </View>
-                        ) : (
-                            <Text style={styles.submitButtonText}>{lang.submit}</Text>
-                        )}
+                        <View style={styles.submitButtonContent}>
+                            <Icon name="visibility" size={24} color="#FFFFFF" />
+                            <Text style={[styles.submitButtonText, { marginLeft: 10 }]}>
+                                {lang.preview}
+                            </Text>
+                        </View>
                     </TouchableOpacity>
+                     </View>
                 </View>
             </ScrollView>
 
@@ -584,9 +685,12 @@ const AnimalDataCollection = () => {
                                     </TouchableOpacity>
                                 ))}
                             </View>
+                            
                         </ScrollView>
+                        
                     </View>
                 </View>
+                
             </Modal>
 
             {/* Image Picker Modal */}
@@ -635,15 +739,42 @@ const AnimalDataCollection = () => {
                 visible={isAlertVisible}
                 onClose={() => {
                     setIsAlertVisible(false);
-                    // Reset form
-                    setAnimalType('');
-                    setPhoto(null);
-                    setDate(new Date());
-                    setTimeOfDay('');
-                    setDescription('');
-                    navigation.navigate('CitizenDashboard');
+                    // Navigate to CreditInterface
+                    navigation.navigate('CreditInterface', {
+                        observationData: submittedData,
+                        observationType: 'animal'
+                    });
                 }}
                 language={currentLanguage as 'en' | 'si' | 'ta'}
+            />
+
+            {/* Error/Network Alert */}
+            <CustomAlert
+                visible={isErrorAlertVisible}
+                onClose={() => setIsErrorAlertVisible(false)}
+                type={errorAlertType}
+                title={errorAlertTitle}
+                message={errorAlertMessage}
+                language={currentLanguage as 'en' | 'si' | 'ta'}
+            />
+
+            {/* Preview Modal */}
+            <PreviewModal
+                visible={showPreview}
+                onClose={() => setShowPreview(false)}
+                onConfirm={handleSubmit}
+                title={lang.title}
+                isSubmitting={isSubmitting}
+                language={currentLanguage as 'en' | 'si' | 'ta'}
+                fields={[
+                    { label: lang.animalType, value: animalCategories.find(a => a.value === animalType)?.label || animalType },
+                    { label: lang.photo, value: photo || undefined, isImage: true },
+                    { label: lang.date, value: formatDate(date) },
+                    { label: lang.timeOfDay, value: timeOfDay === 'Morning' ? lang.morning : timeOfDay === 'Noon' ? lang.noon : timeOfDay === 'Evening' ? lang.evening : timeOfDay === 'Night' ? lang.night : timeOfDay },
+                    { label: lang.description, value: description || undefined },
+                    { label: lang.commonName, value: commonName || undefined },
+                    { label: lang.scientificName, value: scientificName || undefined },
+                ]}
             />
         </SafeAreaView>
     );
@@ -676,7 +807,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 32,
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
         color: '#4A7856',
         fontWeight: 'bold',
     },
@@ -691,7 +822,25 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#333',
         marginBottom: 8,
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
+    },
+    sectionTitle: {
+        fontSize: 16,
+        color: '#333',
+        marginBottom: 12,
+        fontFamily: 'Times New Roman',
+        fontWeight: '500',
+    },
+    textInput: {
+        borderWidth: 1,
+        borderColor: '#DDD',
+        borderRadius: 8,
+        paddingHorizontal: 15,
+        paddingVertical: 12,
+        fontSize: 16,
+        color: '#333',
+        backgroundColor: '#FFFFFF',
+        fontFamily: 'Times New Roman',
     },
     required: {
         color: '#E74C3C',
@@ -710,7 +859,7 @@ const styles = StyleSheet.create({
     dropdownText: {
         fontSize: 16,
         color: '#333',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     placeholder: {
         color: '#999',
@@ -732,7 +881,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
         fontSize: 14,
         color: '#999',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     photoContainer: {
         width: '100%',
@@ -780,7 +929,7 @@ const styles = StyleSheet.create({
     dateText: {
         fontSize: 16,
         color: '#333',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     // Custom Radio Button Styles
     customRadio: {
@@ -822,7 +971,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#333',
         marginLeft: 5,
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     textArea: {
         borderWidth: 1,
@@ -833,7 +982,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#333',
         minHeight: 100,
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     submitButton: {
         backgroundColor: '#4A7856',
@@ -860,12 +1009,14 @@ const styles = StyleSheet.create({
     submitButtonContent: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
     },
     submitButtonText: {
         fontSize: 20,
         color: '#FFFFFF',
         fontWeight: 'bold',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
+        textAlign: 'center',
     },
     // Modal Styles
     modalOverlay: {
@@ -903,7 +1054,7 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
         color: '#333',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     modalCloseButton: {
         padding: 5,
@@ -920,7 +1071,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#4A7856',
         marginBottom: 12,
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     animalGrid: {
         flexDirection: 'row',
@@ -943,7 +1094,7 @@ const styles = StyleSheet.create({
     animalOptionText: {
         fontSize: 15,
         color: '#333',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     animalOptionTextSelected: {
         color: '#FFFFFF',
@@ -983,7 +1134,7 @@ const styles = StyleSheet.create({
         color: '#333',
         textAlign: 'center',
         marginBottom: 25,
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     imagePickerOptions: {
         flexDirection: 'row',
@@ -1005,7 +1156,7 @@ const styles = StyleSheet.create({
         color: '#333',
         marginTop: 10,
         fontWeight: '600',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     imagePickerCancelButton: {
         backgroundColor: '#F5F5F5',
@@ -1019,8 +1170,28 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#666',
         fontWeight: '600',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
+    frameContainer: {
+    marginHorizontal: 15,
+    marginBottom: 25,
+    borderWidth: 2,
+    borderColor: '#4A7856',
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    paddingTop: 10,
+    ...Platform.select({
+        ios: {
+            shadowColor: 'black',
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.15,
+            shadowRadius: 6,
+        },
+        android: {
+            elevation: 6,
+        },
+    }),
+},
 });
 
 export default AnimalDataCollection;

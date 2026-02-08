@@ -8,7 +8,7 @@ import {
 import { BarChart } from 'react-native-chart-kit';
 import axios from 'axios';
 import { API_URL } from '../../../config';
-import SQLite from 'react-native-sqlite-storage';
+import { getDatabase } from '../../database/db';
 
 
 const BarChartModel = () => {
@@ -18,42 +18,28 @@ const BarChartModel = () => {
 
   const { width } = Dimensions.get('window');
 
-  const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
   useEffect(() => {
-    retriveEmailFromSQLite();
-    // retriveAllFromDataSQLite();
-  }, []);
-
-  const retriveEmailFromSQLite = () => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT email FROM LoginData LIMIT 1',
-        [],
-        (tx, results) => {
-          if (results.rows.length > 0) {
-            const email = results.rows.item(0).email;
-            setEmail(email);
-            console.log('Retrieved email profile : ', email);
-            return {email};
-          } else {
-            console.log('No email and password stored.');
-            return null;
-          }
-        },
-        error => {
-          console.log('Error querying Users table: ' + error.message);
-        },
-      );
+    getDatabase().then(db => {
+      db.transaction(tx => {
+        tx.executeSql(
+          'SELECT email FROM LoginData LIMIT 1',
+          [],
+          (tx, results) => {
+            if (results.rows.length > 0) {
+              const userEmail = results.rows.item(0).email;
+              setEmail(userEmail);
+              console.log('Retrieved email profile : ', userEmail);
+            } else {
+              console.log('No email and password stored.');
+            }
+          },
+          error => {
+            console.log('Error querying Users table: ' + error.message);
+          },
+        );
+      });
     });
-  };
+  }, []);
 
   // useEffect(() => {
   //   const fetchBirdData = async () => {

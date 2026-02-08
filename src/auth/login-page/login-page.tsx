@@ -1,216 +1,48 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ImageBackground,
-  Platform,
   TouchableOpacity,
   Image,
   Alert,
   Appearance,
 } from 'react-native';
 import {
-  Provider as PaperProvider,
   TextInput,
-  DefaultTheme,
   Button,
   Icon,
 } from 'react-native-paper';
 
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
 import axios from 'axios';
 import {API_URL} from '../../config';
 import ReactNativeBiometrics from 'react-native-biometrics';
-// import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-import * as Keychain from 'react-native-keychain';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import ProfileMenu from '../../bird-module/dashboard-page/menu-page/profile-page';
+
 const GOOGLE_WEB_CLIENT_ID: string =
   '532310046514-217fr842olbptie78ubtgi4mkq84ljo8.apps.googleusercontent.com';
-// const GOOGLE_ANDROID_CLIENT_ID: string = '532310046514-9c13pu3kgf7sqo1latjgrodclq1kl2m9.apps.googleusercontent.com ';
-import SQLite from 'react-native-sqlite-storage';
 
 GoogleSignin.configure({
   webClientId: GOOGLE_WEB_CLIENT_ID,
-  // androidClientId: GOOGLE_ANDROID_CLIENT_ID,
   scopes: ['profile', 'email'],
 });
 
-const theme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    primary: '#56FF64',
-    text: 'red',
-    placeholder: 'white',
-    surface: 'rgba(217, 217, 217, 0.7)',
-  },
-};
-
-const GoogleLogin = async () => {
-  await GoogleSignin.hasPlayServices();
-  const userInfo = await GoogleSignin.signIn();
-  return userInfo;
-};
-
-const LoginPage = ({route}) => {
+const LoginPage = ({route}: any) => {
   const [theme, setTheme] = useState(Appearance.getColorScheme());
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [isFingerPrintEnable, setFingerPrintEnable] = useState(false);
-  const [db, setDb] = useState<any>(null);
-  const [dbReady, setDbReady] = useState(false);
 
   // Get the email from route parameters
   const userNewEmail = route?.params?.email || null;
 
   const handleLogin2 = () => {
     navigation.navigate('ForgetPasswordPage');
-  };
-
-  // const handleGoogleLogin = async () => {
-  //     setLoading(true);
-  //     try {
-  //       const response = await GoogleLogin();  // Perform Google login using GoogleSignin
-  //       const { idToken } = response;
-
-  //       if (idToken) {
-  //         // Send the ID token to your backend
-  //         const backendResponse = await axios.post(`${API_URL}/google-signin`, {
-  //           token: idToken,
-  //         });
-
-  //         // Extract token and user info from the backend response
-  //         const { token, user } = backendResponse.data;
-
-  //         // Store the JWT token (optional, you can use SecureStore or AsyncStorage)
-  //         // SecureStore.setItemAsync('token', token);
-
-  //         console.log('Login successful', user);
-  //         navigation.navigate('Welcome');
-  //       }
-  //     } catch (error) {
-  //       console.error('Error during Google Sign-In', error);
-  //       setError('Google Sign-In failed.');
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  // Initialize SQLite database
-  useEffect(() => {
-    const initDb = () => {
-      const database = SQLite.openDatabase(
-        {name: 'user_db.db', location: 'default'},
-        () => {
-          console.log('Database opened successfully');
-          setDb(database);
-          setDbReady(true);
-        },
-        error => {
-          console.error('Error opening database: ', error);
-        },
-      );
-    };
-    initDb();
-  }, []);
-
-  useEffect(() => {
-    if (dbReady && db) {
-      createFailedSubmissionsTable();
-      createTable();
-      createTableLoginData();
-      showData();
-    }
-  }, [dbReady, db]);
-
-  const createFailedSubmissionsTable = () => {
-    db.transaction(tx => {
-      tx.executeSql(
-        `CREATE TABLE IF NOT EXISTS failed_submissions (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          formData TEXT
-        )`,
-        [],
-        () => {
-          console.log('Failed submissions table created successfully.');
-        },
-        error => {
-          console.error('Error creating failed submissions table:', error);
-        },
-      );
-    });
-  };
-
-  const createTable = () => {
-    db.transaction(tx => {
-      tx.executeSql(
-        `CREATE TABLE IF NOT EXISTS Users (
-          id INTEGER PRIMARY KEY AUTOINCREMENT, 
-          email TEXT, 
-          password TEXT, 
-          pin INTEGER, 
-          isGoogleLogin INTEGER CHECK(isGoogleLogin IN (0, 1)),
-          emailConfirm INTEGER CHECK(emailConfirm IN (0, 1)), -- 0 for no, 1 for yes
-          userConfirm INTEGER CHECK(userConfirm IN (0, 1)), -- 0 for no, 1 for yes
-          policyConfirm INTEGER CHECK(policyConfirm IN (0, 1)), -- 0 for no, 1 for yes
-          name TEXT, 
-          area TEXT, 
-          fingerPrint INTEGER CHECK(fingerPrint IN (0, 1)), -- 0 for no, 1 for yes
-          userImageUrl TEXT
-        )`,
-        [],
-        () => {
-          console.log('User Table created successfully ');
-        },
-        error => {
-          console.log('Error creating table: ' + error.message);
-        },
-      );
-    });
-  };
-
-  const createTableLoginData = () => {
-    db.transaction(tx => {
-      tx.executeSql(
-        `CREATE TABLE IF NOT EXISTS LoginData (
-          id INTEGER PRIMARY KEY AUTOINCREMENT, 
-          email TEXT NOT NULL,
-          name TEXT
-        )`,
-        [],
-        () => {
-          console.log('Table email created successfully');
-        },
-        error => {
-          console.log('Error creating table: ' + error.message);
-        },
-      );
-    });
-  };
-
-  const showData = () => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT email FROM Users',
-        [],
-        (tx, results) => {
-          if (results.rows.length > 0) {
-            console.log('Results: C ', results.rows.item(0)); // This should give you an array of the rows
-          } else {
-            console.log('No data found.');
-          }
-        },
-        error => {
-          console.log('Error retrieving data: ', error);
-        },
-      );
-    });
   };
 
   const handleGoogleLogin = async () => {
@@ -232,14 +64,14 @@ const LoginPage = ({route}) => {
       }
     } catch (error) {
       console.error('Google Sign-In failed', error);
-      setError('Google Sign-In failed.');
+      Alert.alert('Error', 'Google Sign-In failed.');
     } finally {
       setLoading(false);
     }
   };
 
   //google signing detail registeration
-  const handleSignUp = (email, name, photo) => {
+  const handleSignUp = (email: string, name: string, photo: string) => {
     const userData = {
       email,
       name,
@@ -252,13 +84,12 @@ const LoginPage = ({route}) => {
         console.log('status ', res.data.status);
         if (res.data.status === 'ok') {
           console.log('A');
-          // Save the user info to SQLite or any other storage
-          saveGoogleUserToSQLite(email, name, photo);
           Alert.alert('Success', 'Registered in successfully');
+          navigation.navigate('PrivacyPolicy', {email, name});
         } else if (res.data.status === 'google') {
           console.log('D');
-          // Alert.alert('Success', 'Already Registered user');
-          saveLastUserToSQLite(email, name, photo);
+          Alert.alert('Success', 'Logged in successfully');
+          navigation.navigate('Welcome', {email});
         } else if (res.data.status === 'notgoogle') {
           console.log('E');
           Alert.alert('Success', 'User Registered method Error');
@@ -274,169 +105,48 @@ const LoginPage = ({route}) => {
       });
   };
 
-  //   google login Save data in SQLite
-  const saveGoogleUserToSQLite = (email, name, photo) => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT * FROM Users',
-        [],
-        (tx, results) => {
-          if (results.rows.length > 0) {
-            tx.executeSql(
-              `INSERT INTO Users (email, password, pin, isGoogleLogin, emailConfirm, userConfirm, policyConfirm, name, area, fingerPrint, userImageUrl) 
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-              [email, null, 0, 1, 1, 0, 0, name, null, 0, photo],
-              () => {
-                console.log('AC 1', name);
-                irnudildb(email, name);
-              },
-              error => {
-                console.log('Error saving user to SQLite: ' + error.message);
-              },
-            );
-          } else {
-            // If no row exists, insert a new one
-            tx.executeSql(
-              `INSERT INTO Users (email, password, pin, isGoogleLogin, emailConfirm, userConfirm, policyConfirm, name, area, fingerPrint, userImageUrl) 
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-              [email, null, 0, 1, 1, 0, 0, name, null, 0, photo],
-              () => {
-                console.log('AB 1', name );
-                irnundildb(email, name);
-              },
-              error => {
-                console.log('Error saving user to SQLite: ' + error.message);
-              },
-            );
-          }
-        },
-        error => {
-          console.log('Error querying Users table: ' + error.message);
-        },
-      );
-    });
-  };
-
-  // Save data in SQLite
-  const saveLastUserToSQLite = (email, name, photo) => {
-    console.log('DF');
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT email FROM LoginData',
-        [],
-        (tx, results) => {
-          console.log('result A', results.rows.item(0));
-          console.log('Number of rows: ', results.rows.length);
-          if (results.rows.length > 0) {
-            const emailLocal = results.rows.item(0).email;
-            console.log('emailLocal ', emailLocal, email);
-            if (email === emailLocal) {
-              // console.log('DFHJ');
-              // Alert.alert('Success', 'Logged in successfully');
-              // navigation.navigate('Welcome', {email});
-              handleLocalAdminApproved(email, name);
-            } else {
-              // If no row exists, insert a new one
-              tx.executeSql(
-                `INSERT INTO Users (email, password, pin, isGoogleLogin, emailConfirm, userConfirm, policyConfirm, name, area, fingerPrint, userImageUrl) 
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [email, null, 0, 1, 1, 0, 0, name, null, 0, photo],
-                () => {
-                  console.log('DFHI 1');
-                  // navigation.navigate('SetPin', {email, name});
-                  ruuldildb(email, name);
-                },
-                error => {
-                  console.log('Error saving user to SQLite: ' + error.message);
-                },
-              );
-            }
-          } else {
-            // If no row exists, insert a new one
-            tx.executeSql(
-              `INSERT INTO Users (email, password, pin, isGoogleLogin, emailConfirm, userConfirm, policyConfirm, name, area, fingerPrint, userImageUrl) 
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-              [email, null, 0, 1, 1, 0, 0, name, null, 0, photo],
-              () => {
-                console.log('DFG 1');
-                irnundildb(email, name);
-              },
-              error => {
-                console.log('Error saving user to SQLite: ' + error.message);
-              },
-            );
-          }
-        },
-        error => {
-          console.log('Error querying Users table: ' + error.message);
-        },
-      );
-    });
-  };
 
   const handleLogin = () => {
     if (!validateFields()) {
       return;
     }
 
+    setLoading(true);
     const userData = {
       email: email,
       password: password,
     };
 
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT email FROM Users where email=?',
-        [email],
-        (tx, results) => {
-          if (results.rows.length > 0) {
-            console.log('B');
-            checkLocalStoredData();
-          } else {
-            // check if user already registered, but email not confirmed and there are no any data in sqlite
-            console.log('A');
-            axios
-              .post(`${API_URL}/login`, userData)
-              .then(res => {
-                console.log('Response:', res.data);
-                if (res.data.status === 'ok') {
-                  console.log('H');
-                  // Save user to SQLite after backend success
-                  saveUserToSQLiteLogin(email, password);
-                } else if (res.data.status === 'google') {
-                  console.log('E');
-                  Alert.alert('Error', 'The registration method is invalid');
-                } else if (res.data.status === 'notConfirmed') {
-                  console.log('G');
-                  handleSendCode();
-                  Alert.alert('Error', 'Please Confirm Email First!');
-                } else if (res.data.status === 'notApproved') {
-                  console.log('H');
-                  handleApproved();
-                  Alert.alert('Error', 'Wait for Admin Approval!');
-                } else {
-                  console.log('C');
-                  Alert.alert('Error', res.data.data);
-                }
-              })
-              .catch(error => {
-                console.error('Error:', error);
-                Alert.alert('Failed', 'Please Sign Up First');
-              });
-          }
-        },
-        error => {
-          console.log('Error querying Users table: ' + error.message);
-        },
-      );
-    });
+    axios
+      .post(`${API_URL}/login`, userData)
+      .then(res => {
+        setLoading(false);
+        console.log('Response:', res.data);
+        if (res.data.status === 'ok') {
+          Alert.alert('Success', 'Logged in successfully');
+          navigation.navigate('Welcome', {email});
+        } else if (res.data.status === 'google') {
+          Alert.alert('Error', 'The registration method is invalid');
+        } else if (res.data.status === 'notConfirmed') {
+          handleSendCode();
+          Alert.alert('Error', 'Please Confirm Email First!');
+        } else if (res.data.status === 'notApproved') {
+          handleApproved();
+          Alert.alert('Error', 'Wait for Admin Approval!');
+        } else {
+          Alert.alert('Error', res.data.data);
+        }
+      })
+      .catch(error => {
+        setLoading(false);
+        console.error('Error:', error);
+        Alert.alert('Failed', 'Please Sign Up First');
+      });
   };
 
   const handleLoginCitizen = () => {
     navigation.navigate('CitizenForm');
-     
-    }
-
+  };
 
   const handleApproved = () => {
     if (!email) {
@@ -445,51 +155,7 @@ const LoginPage = ({route}) => {
     }
     console.log('email is: ', email);
 
-    navigation.navigate('GetAdminApprove', {email, name}); // Need to Change Name
-  };
-
-  const verifyLoginMethod = (email, userData) => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT isGoogleLogin FROM Users WHERE email = ?',
-        [email],
-        (tx, results) => {
-          if (results.rows.length > 0) {
-            const isGoogleLogin = results.rows.item(0).isGoogleLogin;
-            console.log('google status ', isGoogleLogin);
-            if (isGoogleLogin === 0) {
-              axios
-                .post(`${API_URL}/login`, userData)
-                .then(res => {
-                  console.log('Response:', res.data);
-                  if (res.data.status === 'ok') {
-                    Alert.alert('Success', 'Logged in successfully');
-                    navigation.navigate('Welcome', {email});
-                  } else {
-                    Alert.alert('Error', res.data.data);
-                  }
-                })
-                .catch(error => {
-                  console.error('Error:', error);
-                  Alert.alert(
-                    'Error',
-                    'Please enter correct Username or Password!',
-                  );
-                });
-            } else {
-              Alert.alert('Error', 'The registration method is invalid');
-              // navigation.navigate('VerifyEmail', {email});
-            }
-          } else {
-            console.error('Error:', error);
-            Alert.alert('Failed', 'Please Sign Up First');
-          }
-        },
-        error => {
-          console.log('Error querying Users table: ' + error.message);
-        },
-      );
-    });
+    navigation.navigate('GetAdminApprove', {email});
   };
 
   // Get the email from route parameters
@@ -508,52 +174,9 @@ const LoginPage = ({route}) => {
       // Navigate to the ConfirmEmail screen and pass the code
       navigation.navigate('VerifyEmail', {email, confirmationCode});
     } catch (err) {
-      setError('Failed to send confirmation email.');
+      console.error('Failed to send confirmation email.');
     }
   };
-
-  // Save data in SQLite
-  const saveUserToSQLiteLogin = (email, password) => {
-    db.transaction(tx => {
-      tx.executeSql(
-        `INSERT INTO Users (email, password, pin, isGoogleLogin, emailConfirm, userConfirm, policyConfirm, name, area, fingerPrint, userImageUrl) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [email, password, 0, 0, 0, 0, 0, 0, null, null, 0], // Default values: 0 for pin, emailConfirm, fingerPrint and null for name, area
-        (tx, result) => {
-          console.log('User saved to SQLite successfully');
-          const name = 'null';
-          irnundildb(email, name);
-        },
-        error => {
-          console.log('Error saving user to SQLite: ' + error.message);
-        },
-      );
-    });
-  };
-
-  // Retrieving the email
-  const retrieveEmailSecurely = async () => {
-    try {
-      const credentials = await Keychain.getGenericPassword();
-      if (credentials) {
-        const email = credentials.username;
-        setUserEmail(email);
-        retrieveFingerPrintStateSQLite(email);
-        console.log('Retrieved email:', email);
-        // console.log('Retrieved PIN:', pinPW);
-        return {email};
-      } else {
-        console.log('No email found Keychain');
-        return null;
-      }
-    } catch (error) {
-      console.error('Failed to retrieve email securely', error);
-    }
-  };
-
-  useEffect(() => {
-    retrieveEmailSecurely(); // Call it when the Login page loads
-  }, []);
 
   const validateFields = () => {
     if (!email.trim()) {
@@ -597,25 +220,6 @@ const LoginPage = ({route}) => {
     GoogleSignin.signOut(); // Optional: Sign out to start fresh for testing
   }, []);
 
-  const signIn = async () => {
-    try {
-      await GoogleSignin.hasPlayServices();
-      const userInfo = await GoogleSignin.signIn();
-      navigation.navigate('Welcome', {email});
-      console.log(userInfo); // You can send this to your backend for verification
-    } catch (error) {
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        // User cancelled the login flow
-      } else if (error.code === statusCodes.IN_PROGRESS) {
-        // Operation in progress already
-      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        // Play services not available or outdated
-      } else {
-        console.error(error);
-      }
-    }
-  };
-
   const handleBiometricAuth = async () => {
     const rnBiometrics = new ReactNativeBiometrics();
 
@@ -642,7 +246,7 @@ const LoginPage = ({route}) => {
         } else {
           Alert.alert('Biometric sensor not available on this device.');
         }
-      } catch (error) {
+      } catch (error: any) {
         // Log the exact error for debugging purposes
         console.error('Biometric error:', error);
         Alert.alert(
@@ -653,182 +257,6 @@ const LoginPage = ({route}) => {
     };
 
     checkBiometrics();
-  };
-
-  // Function to retrieve email from SQLite
-  const retrieveFingerPrintStateSQLite = userSetEmail => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT fingerPrint FROM Users WHERE email=?', // Select the latest entry
-        [userSetEmail],
-        (tx, results) => {
-          if (results.rows.length > 0) {
-            const fingerPrint = results.rows.item(0).fingerPrint;
-            if (fingerPrint === 0) {
-              setFingerPrintEnable(false);
-            } else if (fingerPrint === 1) {
-              setFingerPrintEnable(true);
-            }
-          } else {
-            console.log('No user found in SQLite');
-          }
-        },
-        error => {
-          console.log('Error retrieving user from SQLite: ' + error.message);
-        },
-      );
-    });
-  };
-
-  const checkLocalStoredData = () => {
-    const userData = {
-      email: email,
-      password: password,
-    };
-
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT emailConfirm, userConfirm FROM Users WHERE email = ?',
-        [email],
-        (tx, results) => {
-          if (results.rows.length > 0) {
-            console.log('R');
-            const emailConfirm = results.rows.item(0).emailConfirm;
-            const userConfirm = results.rows.item(1).userConfirm;
-            console.log(emailConfirm, userConfirm);
-            if (emailConfirm === 1 && userConfirm === 1) {
-              verifyLoginMethod(email, userData);
-            } else if (emailConfirm === 1 && userConfirm === 0) {
-              navigation.navigate('GetAdminApprove', {email, name}); // Need to Change Name
-
-            } else {
-              // Navigate to ConfirmEmail page if email is not confirmed
-              handleSendCode();
-              Alert.alert('Error', 'Please Confirm Email First!');
-              // navigation.navigate('VerifyEmail', {email});
-            }
-          } else {
-            // check if user already registered, but email not confirmed and there are no any data in sqlite
-            console.log('Q');
-            axios
-              .post(`${API_URL}/login`, userData)
-              .then(res => {
-                console.log('Response:', res.data);
-                if (res.data.status === 'ok') {
-                  console.log('H');
-                  // Save user to SQLite after backend success
-                  saveUserToSQLiteLogin(email, password);
-                } else if (res.data.status === 'google') {
-                  console.log('M');
-                  Alert.alert('Error', 'The registration method is invalid');
-                } else if (res.data.status === 'notConfirmed') {
-                  console.log('P');
-                  handleSendCode();
-                  Alert.alert('Error', 'Please Confirm Email First!');
-                } else {
-                  console.log('L');
-                  Alert.alert('Error', res.data.data);
-                }
-              })
-              .catch(error => {
-                console.error('Error:', error);
-                Alert.alert('Failed', 'Please Sign Up First');
-              });
-          }
-        },
-        error => {
-          console.log('Error querying Users table: ' + error.message);
-        },
-      );
-    });
-  };
-
-  const handleLocalAdminApproved = (email, name) => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT userConfirm FROM Users WHERE email = ?',
-        [email],
-        (tx, results) => {
-          if (results.rows.length > 0) {
-            console.log('R');
-            const userConfirm = results.rows.item(0).userConfirm;
-            console.log(userConfirm);
-            if (userConfirm === 1) {
-              console.log('DFHJ');
-              Alert.alert('Success', 'Logged in successfully');
-              navigation.navigate('Welcome', {email});
-            } else {
-              navigation.navigate('GetAdminApprove', {email, name}); 
-            }
-          } else {
-            console.log('error to getting data from Users db ', results);
-          }
-        },
-        error => {
-          console.log('Error querying Users table: ' + error.message);
-        },
-      );
-    });
-  }
-
-  // Insert Register New User data in Local Data Base
-  const irnudildb = (email, name) => {
-    db.transaction(tx => {
-      tx.executeSql(
-        `UPDATE LoginData SET email = ? WHERE id=1`,
-        [email],
-        (tx, result) => {
-          console.log('AC 2', name);
-          navigation.navigate('PrivacyPolicy', {email, name});
-        },
-        error => {
-          console.log('Error saving user to SQLite: ' + error.message);
-        },
-      );
-    });
-  };
-
-  // Insert Register New User No data in Local Data Base
-  const irnundildb = (email, name) => {
-    db.transaction(
-      tx => {
-        tx.executeSql(
-          `INSERT INTO LoginData (email, name) VALUES (?, ?)`,
-          [email, name],
-          (tx, result) => {
-            console.log('AB 2');
-            console.log('result ', result);
-            navigation.navigate('PrivacyPolicy', {email, name});
-          },
-          error => {
-            console.log('Error saving user to SQLite: ' + error.message);
-          },
-        );
-      },
-      error => {
-        console.log('Transaction error: ', error);
-      },
-      () => {
-        console.log('Transaction committed');
-      },
-    );
-  };
-
-  // Registered user Update Login data in local DB
-  const ruuldildb = (email, name) => {
-    db.transaction(tx => {
-      tx.executeSql(
-        `UPDATE LoginData SET email = ? WHERE id=1`,
-        [email],
-        (tx, result) => {
-          console.log('DFHI 2');
-          navigation.navigate('Welcome', {email});
-        },
-        error => {
-          console.log('Error saving user to SQLite: ' + error.message);
-        },
-      );
-    });
   };
 
   useEffect(() => {
@@ -906,6 +334,7 @@ const LoginPage = ({route}) => {
           <Button
             mode="contained"
             onPress={handleLogin}
+            loading={loading}
             style={[styles.button_signup, {borderRadius: 8}]}
             buttonColor="#516E9E"
             textColor="white"
@@ -938,6 +367,7 @@ const LoginPage = ({route}) => {
           <Button
             mode="contained"
             onPress={handleGoogleLogin}
+            loading={loading}
             style={[styles.button_google, {borderRadius: 8}]}
             buttonColor="white"
             textColor="black"

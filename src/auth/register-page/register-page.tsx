@@ -14,7 +14,6 @@ import axios from 'axios';
 import {API_URL} from '../../config';
 import CustomAlert from '../custom-alert/alert-design';
 import * as Keychain from 'react-native-keychain';
-import SQLite from 'react-native-sqlite-storage';
 
 const RegisterPage = () => {
   const [theme, setTheme] = useState(Appearance.getColorScheme());
@@ -26,18 +25,6 @@ const RegisterPage = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  // SQLite Database
-  const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened');
-    },
-    err => {
-      console.error('Database error: ', err);
-    },
-  );
 
   // const handleSignUp = () => {
   //   if (!validateFields()) {
@@ -80,28 +67,28 @@ const RegisterPage = () => {
     if (!validateFields()) {
       return;
     }
-  
+
     const userData = {
       email: email,
       password: password,
       confirmPassword: confirmPassword,
     };
-  
+
     setLoading(true);
-  
+
     axios
       .post(`${API_URL}/registering`, userData)
       .then(res => {
         setLoading(false);
-        const { status, data, isAccount, isDelete } = res.data;
-  
+        const { status, data } = res.data;
+
         if (status === 'ok') {
-          console.log('isAccount:', isAccount, 'isDelete:', isDelete);
-          saveUserToSQLite(email, password); // Save new user in SQLite
+          // Registration successful, send verification email
+          console.log('Registration successful');
+          handleSendCode();
         } else {
-          // Handle user already exists case
-          console.log('isAccount:', isAccount, 'isDelete:', isDelete);
-          Alert.alert('Error', data); // Display error message from backend
+          // Handle user already exists or other errors
+          Alert.alert('Error', data);
         }
       })
       .catch(error => {
@@ -110,46 +97,9 @@ const RegisterPage = () => {
         Alert.alert('Error', 'Error registering user. Please try again.');
       });
   };
-  
-  // Save data in SQLite
-  const saveUserToSQLite = (email, password) => {
-    db.transaction(tx => {
-      tx.executeSql(
-        `INSERT INTO Users (email, password, pin, isGoogleLogin, emailConfirm, userConfirm, policyConfirm, name, area, fingerPrint, userImageUrl) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [email, password, 0, 0, 0, 0, 0, null, null, 0, null], // Default values: 0 for pin, emailConfirm, fingerPrint and null for name, area
-        (tx, result) => {
-          console.log('User saved to SQLite successfully');
-          saveUserLoginDataSQLite(email);
-        },
-        error => {
-          console.log('Error saving user to SQLite: ' + error.message);
-        },
-      );
-    });
-  };
-
-  // Save data in SQLite
-  const saveUserLoginDataSQLite = (email) => {
-    db.transaction(tx => {
-      tx.executeSql(
-        `INSERT INTO LoginData (email, name) 
-       VALUES (?, ?)`,
-        [email, null], 
-        (tx, result) => {
-          console.log('loginData saved to SQLite successfully');
-          handleSendCode(); // Send confirmation email
-         
-        },
-        error => {
-          console.log('Error saving LoginData to SQLite: ' + error.message);
-        },
-      );
-    });
-  };
 
 
-  // Get the email from route parameters
+  // Send verification code to email
   const handleSendCode = async () => {
     const userData = {
       email: email,
@@ -165,12 +115,9 @@ const RegisterPage = () => {
       // Navigate to the ConfirmEmail screen and pass the code
       navigation.navigate('VerifyEmail', {email, confirmationCode});
     } catch (err) {
-      setError('Failed to send confirmation email.');
+      console.error('Failed to send confirmation email:', err);
+      Alert.alert('Error', 'Failed to send confirmation email. Please try again.');
     }
-  };
-
-  const handleSetPin = () => {
-    navigation.navigate('SetPin', {email});
   };
 
   const validateFields = () => {
@@ -207,17 +154,8 @@ const RegisterPage = () => {
 
   const [isAlertVisible, setIsAlertVisible] = useState(false);
 
-  const showAlert = () => {
-    setIsAlertVisible(true);
-  };
-
   const hideAlert = () => {
     setIsAlertVisible(false);
-  };
-
-  // Storing credentials securely
-  const saveCredentials = async () => {
-    await Keychain.setGenericPassword('username', 'password');
   };
 
   useEffect(() => {

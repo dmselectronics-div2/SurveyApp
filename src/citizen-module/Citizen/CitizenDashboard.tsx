@@ -18,26 +18,28 @@ const CitizenDashboard = () => {
             plants: 'Plants',
             nature: 'Nature',
             animals: 'Animals',
-            humanActivity: 'Human Activity',
+            humanActivity: 'Threats & Human Activities',
             home: 'Home',
             feed: 'Feed',
             explore: 'Explore',
             highlights: 'Highlights',
+            viewData: 'View Submitted Data',
             adTitle: 'Special Offer!',
             adMessage: 'Discover amazing deals and offers',
             clickHere: 'Click Here'
         },
         si: {
             title1: 'කරුණාකර ඔබේ',
-            title2: 'නිරීක්ෂණ උඩුගත කරන්න',
+            title2: 'නිරීක්ෂණ ඇතුලත් කරන්න',
             plants: 'ශාක',
-            nature: 'ස්වභාවධර්මය',
+            nature: 'පරිසරය',
             animals: 'සතුන්',
-            humanActivity: 'මානව ක්‍රියාකාරකම්',
+            humanActivity: 'තර්ජන සහ මානව ක්‍රියාකාරකම්',
             home: 'මුල් පිටුව',
             feed: 'පෝෂණය',
             explore: 'ගවේෂණය',
             highlights: 'විශේෂාංග',
+            viewData: 'ඉදිරිපත් කළ දත්ත බලන්න',
             adTitle: 'විශේෂ දීමනාව!',
             adMessage: 'විශිෂ්ට දීමනා සොයා ගන්න',
             clickHere: 'මෙතන ක්ලික් කරන්න'
@@ -48,11 +50,12 @@ const CitizenDashboard = () => {
             plants: 'தாவரங்கள்',
             nature: 'இயற்கை',
             animals: 'விலங்குகள்',
-            humanActivity: 'மனித செயல்பாடு',
+            humanActivity: 'அச்சுறுத்தல்கள் மற்றும் மனித செயற்பாடுகள்',
             home: 'முகப்பு',
             feed: 'ஊட்டம்',
             explore: 'ஆராயுங்கள்',
             highlights: 'சிறப்பம்சங்கள்',
+            viewData: 'சமர்ப்பிக்கப்பட்ட தரவைப் பார்க்கவும்',
             adTitle: 'சிறப்பு சலுகை!',
             adMessage: 'அற்புதமான சலுகைகளைக் கண்டறியுங்கள்',
             clickHere: 'இங்கே கிளிக் செய்யவும்'
@@ -79,7 +82,7 @@ const CitizenDashboard = () => {
     const t = translations[currentLanguage] || translations.en;
 
     const handleBackPress = () => {
-        navigation.navigate('ModuleSelector');
+        navigation.navigate('CitizenLanguageSelection');
     };
 
     const handleCategoryPress = (category) => {
@@ -187,6 +190,16 @@ const CitizenDashboard = () => {
                     </TouchableOpacity>
                 </View>
 
+                {/* View Submitted Data Button */}
+                <TouchableOpacity
+                    style={styles.viewDataButton}
+                    onPress={() => navigation.navigate('CitizenDataTable' as never)}
+                    activeOpacity={0.8}
+                >
+                    <Icon name="list-alt" size={24} color="#FFFFFF" />
+                    <Text style={styles.viewDataButtonText}>{t.viewData}</Text>
+                </TouchableOpacity>
+
                 {/* Advertisement Section */}
                 {/* <View style={styles.adContainer}>
                     <View style={styles.adContent}>
@@ -257,6 +270,10 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#FFFFFF',
+        borderWidth: 3,
+        borderColor: '#4A7856',
+        borderRadius: 15,
+        margin: 10,
     },
     header: {
         paddingHorizontal: 20,
@@ -272,10 +289,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 20,
         marginBottom: 30,
+        textAlign: 'center',
+        fontSize:5,
     },
     title: {
         fontSize: 28,
-        fontFamily: 'JejuHallasan-Regular',
+        fontFamily: 'Times New Roman',
         color: '#4A7856',
         fontWeight: 'bold',
         textAlign: 'center',
@@ -319,12 +338,14 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         alignItems: 'center',
     },
-    cardText: {
-        fontSize: 20,
-        fontFamily: 'JejuHallasan-Regular',
-        color: '#FFFFFF',
-        fontWeight: 'bold',
-    },
+  cardText: {
+    fontSize: 16,         
+    fontFamily: 'Times New Roman',
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    textAlign: 'center',   
+},
+
     bottomNav: {
         flexDirection: 'row',
         justifyContent: 'space-around',
@@ -344,7 +365,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#666',
         marginTop: 4,
-        fontFamily: 'JejuHallasan-Regular',
+        fontFamily: 'Times New Roman',
     },
     adContainer: {
         marginHorizontal: 20,
@@ -371,13 +392,13 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         color: '#2E7D32',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     adMessage: {
         fontSize: 12,
         color: '#4A7856',
         marginTop: 2,
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     adButton: {
         backgroundColor: '#4A7856',
@@ -389,7 +410,24 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 14,
         fontWeight: '600',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
+    },
+    viewDataButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#4A7856',
+        marginHorizontal: 20,
+        marginBottom: 15,
+        paddingVertical: 14,
+        borderRadius: 12,
+        gap: 10,
+    },
+    viewDataButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+        fontFamily: 'Times New Roman',
     },
 });
 

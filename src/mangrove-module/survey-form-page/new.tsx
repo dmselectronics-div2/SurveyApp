@@ -15,21 +15,36 @@ import {
   Image,
 } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import {
   TextInput,
   Button,
   Provider as PaperProvider,
+  DefaultTheme,
 } from 'react-native-paper';
-import DateTimePicker from '@react-native-community/datetimepicker';
+
+// Custom theme with green primary color for react-native-paper components
+const customTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: '#4A7856',
+    accent: '#4A7856',
+    onSurfaceVariant: '#4A7856',
+    outline: '#4A7856',
+  },
+};
+// Custom time/date picker - no native module required
 import Icon from 'react-native-vector-icons/FontAwesome';
 import GetLocation from 'react-native-get-location';
 import { Dimensions } from 'react-native';
 import { API_URL } from '../../config';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
 import axios from 'axios';
 import { Modal, FlatList } from 'react-native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+
 
 // Define habitat type constants for consistency and to prevent errors
 const HABITAT_TYPES = {
@@ -102,20 +117,50 @@ const habitatTypeOptions = [
 ];
 
 const vegetationOptions = [
-  { label: 'Mature mixed mangroves', value: 'Mature mixed mangroves' },
-  { label: 'Avicennia sp.dominant mature mangroves', value: 'dominant mature mangroves' },
-  { label: 'Rhizophora sp.dominant mature mangroves', value: 'dominant mature mangroves ' },
-  { label: 'Mixed saplings below 5m restored ', value: ' Mixed saplings below 5m restored ' },
-  { label: 'Avicennia sp.saplings below 5m restored ', value: ' saplings below 5m restored ' },
-  { label: 'Rhizophora sp. saplings below 5m restored', value: ' saplings below 5m restored' },
-  { label: 'Mixed seedlings below 1 m restored ', value: ' Mixed seedlings below 1 m restored ' },
-  { label: 'Avicennia sp. dominant seedlings below 1m restored ', value: 'Avicennia sp. dominant seedlings below 1m restored ' },
-  { label: 'Rhizophora dominant seedlings below 1m restored', value: 'Rhizophora dominant seedlings below 1m restored' },
-  { label: 'Salt marsh Vegetation', value: 'Salt marsh Vegetation' },
-  { label: 'Barren Land', value: 'Barren Land' },
-  { label: 'Grassland', value: 'Grassland' },
-  { label: 'Other', value: 'Other' },
+  { label: 'Mature mixed mangroves', value: 'Mature mixed mangroves', scientificPart: '' },
+  { label: 'Avicennia sp. dominant mature mangroves', value: 'Avicennia sp. dominant mature mangroves', scientificPart: 'Avicennia sp.' },
+  { label: 'Rhizophora sp. dominant mature mangroves', value: 'Rhizophora sp. dominant mature mangroves', scientificPart: 'Rhizophora sp.' },
+  { label: 'Mixed saplings below 5m restored', value: 'Mixed saplings below 5m restored', scientificPart: '' },
+  { label: 'Avicennia sp. saplings below 5m restored', value: 'Avicennia sp. saplings below 5m restored', scientificPart: 'Avicennia sp.' },
+  { label: 'Rhizophora sp. saplings below 5m restored', value: 'Rhizophora sp. saplings below 5m restored', scientificPart: 'Rhizophora sp.' },
+  { label: 'Mixed seedlings below 1m restored', value: 'Mixed seedlings below 1m restored', scientificPart: '' },
+  { label: 'Avicennia sp. dominant seedlings below 1m restored', value: 'Avicennia sp. dominant seedlings below 1m restored', scientificPart: 'Avicennia sp.' },
+  { label: 'Rhizophora sp. dominant seedlings below 1m restored', value: 'Rhizophora sp. dominant seedlings below 1m restored', scientificPart: 'Rhizophora sp.' },
+  { label: 'Salt marsh Vegetation', value: 'Salt marsh Vegetation', scientificPart: '' },
+  { label: 'Barren Land', value: 'Barren Land', scientificPart: '' },
+  { label: 'Grassland', value: 'Grassland', scientificPart: '' },
+  { label: 'Other', value: 'Other', scientificPart: '' },
 ];
+
+// Helper function to render vegetation item with italic scientific names
+const renderVegetationItem = (item: any, selected?: boolean) => {
+  if (item.scientificPart) {
+    const parts = item.label.split(item.scientificPart);
+    return (
+      <View style={{
+        padding: 12,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        backgroundColor: selected ? '#E8F5E9' : 'transparent',
+      }}>
+        <Text style={{ fontStyle: 'italic', fontFamily: 'Times New Roman', fontSize: 14, color: '#333' }}>
+          {item.scientificPart}
+        </Text>
+        <Text style={{ fontFamily: 'Times New Roman', fontSize: 14, color: '#333' }}>
+          {parts[1] || ''}
+        </Text>
+      </View>
+    );
+  }
+  return (
+    <View style={{
+      padding: 12,
+      backgroundColor: selected ? '#E8F5E9' : 'transparent',
+    }}>
+      <Text style={{ fontFamily: 'Times New Roman', fontSize: 14, color: '#333' }}>{item.label}</Text>
+    </View>
+  );
+};
 
 const microhabitatOptions = [
   { label: 'Shallow water sandy bottom', value: 'Shallow water sandy bottom' },
@@ -194,7 +239,9 @@ const GastropodBivalveForm = () => {
   // State for basic information
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [teamMembers, setTeamMembers] = useState('');
+  const [teamName, setTeamName] = useState('');
+  const [teamMembers, setTeamMembers] = useState<string[]>([]);
+  const [newMemberName, setNewMemberName] = useState('');
   const [timeOfDataCollection, setTimeOfDataCollection] = useState(null);
   const [isTimeOfDataFocused, setIsTimeOfDataFocused] = useState(false);
 
@@ -203,6 +250,13 @@ const GastropodBivalveForm = () => {
   const [showHighTidePicker, setShowHighTidePicker] = useState(false);
   const [timeOfSampling, setTimeOfSampling] = useState(new Date());
   const [showSamplingTimePicker, setShowSamplingTimePicker] = useState(false);
+
+  // Custom picker temp state
+  const [tempSelectedHour, setTempSelectedHour] = useState(0);
+  const [tempSelectedMinute, setTempSelectedMinute] = useState(0);
+  const [tempSelectedDay, setTempSelectedDay] = useState(1);
+  const [tempSelectedMonth, setTempSelectedMonth] = useState(0);
+  const [tempSelectedYear, setTempSelectedYear] = useState(new Date().getFullYear());
 
   // Location state
   const [location, setLocation] = useState(null);
@@ -225,7 +279,11 @@ const GastropodBivalveForm = () => {
   // Quadrat information (for Quadrat sampling)
   const [quadratId, setQuadratId] = useState('');
   const [quadratObservedBy, setQuadratObservedBy] = useState('');
+  const [isObservedByFocused, setIsObservedByFocused] = useState(false);
+  const [customObservedBy, setCustomObservedBy] = useState('');
   const [dataEnteredBy, setDataEnteredBy] = useState('');
+  const [isDataEnteredByFocused, setIsDataEnteredByFocused] = useState(false);
+  const [customDataEnteredBy, setCustomDataEnteredBy] = useState('');
   const [quadratSize, setQuadratSize] = useState('');
   const [quadratLocation, setQuadratLocation] = useState(null);
   const [isQuadratLocationFocused, setIsQuadratLocationFocused] = useState(false);
@@ -314,28 +372,213 @@ const GastropodBivalveForm = () => {
   // Error state
   const [errors, setErrors] = useState({});
 
+  // Edit mode state
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editItemId, setEditItemId] = useState(null);
+
   // Navigation
   const navigation = useNavigation();
+  const route = useRoute();
 
-  // Handle date picker change
-  const handleDateChange = (event, selectedDate) => {
-    const currentDate = selectedDate || date;
-    setShowDatePicker(Platform.OS === 'ios');
-    setDate(currentDate);
+  // Check if we're in edit mode and populate form data
+  useEffect(() => {
+    if (route.params?.editData) {
+      const data = route.params.editData;
+      setIsEditMode(true);
+      setEditItemId(data._id);
+
+      // Populate basic information
+      if (data.select_date) setDate(new Date(data.select_date));
+      if (data.teamMembers && data.teamMembers !== 'N/A') {
+        if (Array.isArray(data.teamMembers)) {
+          setTeamMembers(data.teamMembers);
+        } else if (typeof data.teamMembers === 'string') {
+          setTeamMembers(data.teamMembers.split(',').map((m: string) => m.trim()).filter(Boolean));
+        }
+      }
+      if (data.time_of_data_collection && data.time_of_data_collection !== 'N/A') setTimeOfDataCollection(data.time_of_data_collection);
+
+      // Parse time strings to Date objects
+      const parseTime = (timeStr) => {
+        if (!timeStr || timeStr === 'N/A') return new Date();
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        const date = new Date();
+        date.setHours(hours || 0, minutes || 0, 0, 0);
+        return date;
+      };
+
+      if (data.nearest_high_tide_time) setNearestHighTideTime(parseTime(data.nearest_high_tide_time));
+      if (data.time_of_sampling) setTimeOfSampling(parseTime(data.time_of_sampling));
+
+      // Location
+      if (data.Location && data.Location !== 'N/A') {
+        if (['Anawilundawa', 'Pubudugama'].includes(data.Location)) {
+          setLocation(data.Location);
+        } else {
+          setLocation('Other');
+          setCustomLocation(data.Location);
+        }
+      }
+      if (data.latitude) setLatitude(String(data.latitude));
+      if (data.longitude) setLongitude(String(data.longitude));
+
+      // Weather
+      if (data.selectedWeatherConditions && data.selectedWeatherConditions !== 'N/A') {
+        const weatherOptions = ['Extreamely Dry Weather', 'Dry', 'Wet', 'Extreamely Wet', 'Remark'];
+        if (weatherOptions.includes(data.selectedWeatherConditions)) {
+          setWeatherCondition(data.selectedWeatherConditions);
+        } else {
+          setWeatherCondition('Remark');
+          setWeatherRemark(data.selectedWeatherConditions);
+        }
+      }
+      if (data.weatherRemark && data.weatherRemark !== 'N/A') setWeatherRemark(data.weatherRemark);
+
+      // Sampling layer and method
+      if (data.SamplingLayer && data.SamplingLayer !== 'N/A') setSamplingLayer(data.SamplingLayer);
+      if (data.samplingMethod && data.samplingMethod !== 'N/A') setSamplingMethod(data.samplingMethod);
+
+      // Quadrat information
+      if (data.quadratId && data.quadratId !== 'N/A') setQuadratId(data.quadratId);
+      if (data.quadratObservedBy && data.quadratObservedBy !== 'N/A') setQuadratObservedBy(data.quadratObservedBy);
+      if (data.dataEnteredBy && data.dataEnteredBy !== 'N/A') setDataEnteredBy(data.dataEnteredBy);
+      if (data.quadrat_size_m) setQuadratSize(String(data.quadrat_size_m));
+      if (data.quadratLocation && data.quadratLocation !== 'N/A') {
+        const standardLocations = ['Main Canel', 'Sub Canel', 'Land Area', 'Control Area'];
+        if (standardLocations.includes(data.quadratLocation)) {
+          setQuadratLocation(data.quadratLocation);
+        } else {
+          setQuadratLocation('Other');
+          setCustomQuadratLocation(data.quadratLocation);
+        }
+      }
+
+      // Transect information
+      if (data.transectId && data.transectId !== 'N/A') setTransectId(data.transectId);
+      if (data.transectObservedBy && data.transectObservedBy !== 'N/A') setTransectObservedBy(data.transectObservedBy);
+      if (data.transectDataEnteredBy && data.transectDataEnteredBy !== 'N/A') setTransectDataEnteredBy(data.transectDataEnteredBy);
+      if (data.transectSize) setTransectSize(String(data.transectSize));
+      if (data.transectLatitude) setTransectLatitude(String(data.transectLatitude));
+      if (data.transectLongitude) setTransectLongitude(String(data.transectLongitude));
+      if (data.endPointLatitude) setEndPointLatitude(String(data.endPointLatitude));
+      if (data.endPointLongitude) setEndPointLongitude(String(data.endPointLongitude));
+
+      // Peterson Grab information
+      if (data.grabId && data.grabId !== 'N/A') setGrabId(data.grabId);
+      if (data.grabObservedBy && data.grabObservedBy !== 'N/A') setGrabObservedBy(data.grabObservedBy);
+      if (data.grabDataEnteredBy && data.grabDataEnteredBy !== 'N/A') setGrabDataEnteredBy(data.grabDataEnteredBy);
+      if (data.grabSize) setGrabSize(String(data.grabSize));
+      if (data.grabLatitude) setGrabLatitude(String(data.grabLatitude));
+      if (data.grabLongitude) setGrabLongitude(String(data.grabLongitude));
+
+      // Soil Core information
+      if (data.coreId && data.coreId !== 'N/A') setCoreId(data.coreId);
+      if (data.coreObservedBy && data.coreObservedBy !== 'N/A') setCoreObservedBy(data.coreObservedBy);
+      if (data.coreDataEnteredBy && data.coreDataEnteredBy !== 'N/A') setCoreDataEnteredBy(data.coreDataEnteredBy);
+      if (data.coreDepth) setCoreDepth(String(data.coreDepth));
+      if (data.sieveSize) setSieveSize(String(data.sieveSize));
+      if (data.coreLatitude) setCoreLatitude(String(data.coreLatitude));
+      if (data.coreLongitude) setCoreLongitude(String(data.coreLongitude));
+
+      // Habitat information
+      if (data.plot_habitat_type && data.plot_habitat_type !== 'N/A') {
+        const standardHabitats = ['Pristine mangroves', 'Degraded mangroves', 'Restored mangroves', 'Control', 'Control Area'];
+        if (standardHabitats.includes(data.plot_habitat_type)) {
+          setHabitatType(data.plot_habitat_type);
+        } else {
+          setHabitatType('Other');
+          setCustomHabitatType(data.plot_habitat_type);
+        }
+      }
+      if (data.if_restored_year_of_restoration && data.if_restored_year_of_restoration !== 'N/A') {
+        setRestorationYear(String(data.if_restored_year_of_restoration));
+      }
+
+      // Vegetation
+      if (data.plot_vegetation && data.plot_vegetation !== 'N/A') {
+        const standardVegetations = vegetationOptions.map(v => v.value);
+        if (standardVegetations.includes(data.plot_vegetation)) {
+          setVegetation(data.plot_vegetation);
+        } else {
+          setVegetation('Other');
+          setCustomVegetation(data.plot_vegetation);
+        }
+      }
+
+      // Microhabitat
+      if (data.quadrat_microhabitat && data.quadrat_microhabitat !== 'N/A') {
+        const standardMicrohabitats = microhabitatOptions.map(m => m.value);
+        if (standardMicrohabitats.includes(data.quadrat_microhabitat)) {
+          setMicrohabitat(data.quadrat_microhabitat);
+        } else {
+          setMicrohabitat('Other');
+          setCustomMicrohabitat(data.quadrat_microhabitat);
+        }
+      }
+
+      // Species clumping
+      if (data.species_seen_clumped && data.species_seen_clumped !== 'N/A') setSpeciesClumped(data.species_seen_clumped);
+      if (data.species_seen_clumped_what && data.species_seen_clumped_what !== 'N/A') setSpeciesSeenClumpedWhat(data.species_seen_clumped_what);
+      if (data.clumped_species_name && data.clumped_species_name !== 'N/A') setClumpedSpeciesName(data.clumped_species_name);
+      if (data.clumped_where && data.clumped_where !== 'N/A') setClumpedWhere(data.clumped_where);
+      if (data.clumped_count) setClumpedCount(String(data.clumped_count));
+
+      // Species on root
+      if (data.species_seen_on_root && data.species_seen_on_root !== 'N/A') setSpeciesOnRoot(data.species_seen_on_root);
+      if (data.species_on_root_where && data.species_on_root_where !== 'N/A') setSpeciesOnRootWhere(data.species_on_root_where);
+      if (data.species_on_root_what && data.species_on_root_what !== 'N/A') setSpeciesOnRootWhat(data.species_on_root_what);
+
+      // Water information
+      if (data.is_in_water && data.is_in_water !== 'N/A') setIsInWater(data.is_in_water);
+      if (data.water_status && data.water_status !== 'N/A') setWaterStatus(data.water_status);
+      if (data.water_depth) setWaterDepth(String(data.water_depth));
+
+      // Species counts
+      const counts = {};
+      [...gastropodSpecies, ...bivalveSpecies].forEach(species => {
+        if (data[species.id] !== undefined && data[species.id] !== null) {
+          counts[species.id] = String(data[species.id]);
+        }
+      });
+      if (Object.keys(counts).length > 0) setSpeciesCounts(counts);
+
+      // Remarks and image
+      if (data.remark && data.remark !== 'N/A') setRemark(data.remark);
+      if (data.imageUri) setImageUri(data.imageUri);
+    }
+  }, [route.params?.editData]);
+
+  // Handle date picker confirm
+  const handleDateConfirm = (selectedDate) => {
+    setShowDatePicker(false);
+    setDate(selectedDate);
   };
 
-  // Handle high tide time picker change
-  const handleHighTideTimeChange = (event, selectedTime) => {
-    const currentTime = selectedTime || nearestHighTideTime;
-    setShowHighTidePicker(Platform.OS === 'ios');
-    setNearestHighTideTime(currentTime);
+  // Handle date picker cancel
+  const handleDateCancel = () => {
+    setShowDatePicker(false);
   };
 
-  // Handle sampling time picker change
-  const handleSamplingTimeChange = (event, selectedTime) => {
-    const currentTime = selectedTime || timeOfSampling;
-    setShowSamplingTimePicker(Platform.OS === 'ios');
-    setTimeOfSampling(currentTime);
+  // Handle high tide time picker confirm
+  const handleHighTideTimeConfirm = (selectedTime) => {
+    setShowHighTidePicker(false);
+    setNearestHighTideTime(selectedTime);
+  };
+
+  // Handle high tide time picker cancel
+  const handleHighTideTimeCancel = () => {
+    setShowHighTidePicker(false);
+  };
+
+  // Handle sampling time picker confirm
+  const handleSamplingTimeConfirm = (selectedTime) => {
+    setShowSamplingTimePicker(false);
+    setTimeOfSampling(selectedTime);
+  };
+
+  // Handle sampling time picker cancel
+  const handleSamplingTimeCancel = () => {
+    setShowSamplingTimePicker(false);
   };
 
   // Handle species count change
@@ -360,6 +603,26 @@ const GastropodBivalveForm = () => {
     if (value === '' || /^\d*$/.test(value)) {
       setter(value);
     }
+  };
+
+  // Add team member to the list
+  const addTeamMember = () => {
+    if (newMemberName.trim() && !teamMembers.includes(newMemberName.trim())) {
+      setTeamMembers([...teamMembers, newMemberName.trim()]);
+      setNewMemberName('');
+    }
+  };
+
+  // Remove team member from the list
+  const removeTeamMember = (index: number) => {
+    setTeamMembers(teamMembers.filter((_, i) => i !== index));
+  };
+
+  // Get team member options for dropdowns (including "Other" option)
+  const getTeamMemberOptions = () => {
+    const options = teamMembers.map(member => ({ label: member, value: member }));
+    options.push({ label: 'Other', value: 'Other' });
+    return options;
   };
 
   // Add text to notes
@@ -638,15 +901,21 @@ const GastropodBivalveForm = () => {
     setIsSubmitting(true);
 
     try {
-      // Generate a unique survey number using timestamp
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const seconds = String(now.getSeconds()).padStart(2, '0');
-      const surveyNo = `${year}${month}${day}${hours}${minutes}${seconds}`;
+      // Generate a unique survey number using timestamp (only for new submissions)
+      let surveyNo;
+      const params = route.params as any;
+      if (isEditMode && params?.editData?.survey_no) {
+        surveyNo = params.editData.survey_no; // Keep original survey number
+      } else {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        surveyNo = `${year}${month}${day}${hours}${minutes}${seconds}`;
+      }
 
       // Format time
       const formatTime = (date) => {
@@ -803,23 +1072,35 @@ const GastropodBivalveForm = () => {
         return;
       }
 
-      console.log(`Sending POST request to ${API_URL}/submit-bivalvi-form`);
-      const response = await axios.post(`${API_URL}/submit-bivalvi-form`, formData);
-      console.log('API response:', JSON.stringify(response.data, null, 2));
+      let response;
+      if (isEditMode && editItemId) {
+        // Update existing entry
+        console.log(`Sending PUT request to ${API_URL}/bivalvi-form-entry/${editItemId}`);
+        response = await axios.put(`${API_URL}/bivalvi-form-entry/${editItemId}`, formData);
+        console.log('API response:', JSON.stringify(response.data, null, 2));
+      } else {
+        // Create new entry
+        console.log(`Sending POST request to ${API_URL}/submit-bivalvi-form`);
+        response = await axios.post(`${API_URL}/submit-bivalvi-form`, formData);
+        console.log('API response:', JSON.stringify(response.data, null, 2));
+      }
 
       // Upload image if available
-      if (imageUri && response.data && response.data._id) {
-        const uploadResponse = await uploadImageToServer(imageUri, response.data._id);
+      const entryId = isEditMode ? editItemId : response.data?._id;
+      if (imageUri && entryId) {
+        const uploadResponse = await uploadImageToServer(imageUri, entryId);
         console.log('Image upload response:', uploadResponse);
       }
 
       Alert.alert(
         'Success',
-        'Form data submitted successfully!',
+        isEditMode ? 'Form data updated successfully!' : 'Form data submitted successfully!',
         [{
           text: 'OK',
           onPress: () => {
             resetForm();
+            setIsEditMode(false);
+            setEditItemId(null);
             navigation.navigate('MangroveDataTable');
           }
         }]
@@ -991,7 +1272,7 @@ const GastropodBivalveForm = () => {
   };
 
   return (
-    <PaperProvider>
+    <PaperProvider theme={customTheme}>
       {/* Loading overlay */}
       {isSubmitting && (
         <RNModal
@@ -1021,16 +1302,28 @@ const GastropodBivalveForm = () => {
             </View>
           )}
 
-          <TouchableOpacity 
-            style={styles.backButtonContainer}
-            onPress={() => navigation.navigate('ModuleSelector')}
-          >
-            <Icon name="arrow-left" size={20} color="#333" />
-            <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              style={styles.backButtonContainer}
+              onPress={() => (navigation as any).navigate('ModuleSelector')}
+            >
+              <Icon name="arrow-left" size={20} color="#333" />
+              <Text style={styles.backButtonText}>Back</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.nextButtonContainer}
+              onPress={() => (navigation as any).navigate('MangroveDataTable')}
+            >
+              <Text style={styles.nextButtonText}>Next</Text>
+              <Icon name="arrow-right" size={20} color="#333" />
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.formContainer}>
-            <Text style={styles.formTitle}>Gastropod and Bivalve Data Collection</Text>
+            <Text style={styles.formTitle}>
+              {isEditMode ? 'Edit Gastropod and Bivalve Data' : 'Gastropod and Bivalve Data Collection'}
+            </Text>
 
             {/* Basic Information Section */}
             <View style={styles.sectionContainer}>
@@ -1049,26 +1342,59 @@ const GastropodBivalveForm = () => {
                   <Icon name="calendar" size={20} color="#333" />
                 </TouchableOpacity>
                 {errors.date && <Text style={styles.errorText}>{errors.date}</Text>}
-                {showDatePicker && (
-                  <DateTimePicker
-                    value={date}
-                    mode="date"
-                    display="default"
-                    onChange={handleDateChange}
-                  />
-                )}
+                <DateTimePickerModal
+                  isVisible={showDatePicker}
+                  mode="date"
+                  date={date}
+                  onConfirm={handleDateConfirm}
+                  onCancel={handleDateCancel}
+                />
+              </View>
+
+              {/* Team Name */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Team Name</Text>
+                <TextInput
+                  style={[styles.textInput, errors.teamName && styles.inputError]}
+                  value={teamName}
+                  onChangeText={setTeamName}
+                  placeholder="Enter team name"
+                  activeUnderlineColor="#4A7856"
+                  underlineColor="#DDD"
+                  selectionColor="#4A7856"
+                />
               </View>
 
               {/* Team Members */}
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Team Members</Text>
-                <TextInput
-                  style={[styles.textInput, errors.teamMembers && styles.inputError]}
-                  value={teamMembers}
-                  onChangeText={setTeamMembers}
-                  placeholder="Enter team members"
-                  multiline
-                />
+                <View style={styles.teamMemberInputRow}>
+                  <TextInput
+                    style={[styles.textInput, { flex: 1, marginRight: 10 }]}
+                    value={newMemberName}
+                    onChangeText={setNewMemberName}
+                    placeholder="Enter member name"
+                    activeUnderlineColor="#4A7856"
+                    underlineColor="#DDD"
+                    selectionColor="#4A7856"
+                  />
+                  <TouchableOpacity style={styles.addMemberButton} onPress={addTeamMember}>
+                    <Icon name="plus" size={20} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+                {/* Display team members list */}
+                {teamMembers.length > 0 && (
+                  <View style={styles.teamMembersList}>
+                    {teamMembers.map((member, index) => (
+                      <View key={index} style={styles.teamMemberChip}>
+                        <Text style={styles.teamMemberChipText}>{member}</Text>
+                        <TouchableOpacity onPress={() => removeTeamMember(index)}>
+                          <Icon name="times" size={16} color="#FFFFFF" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
                 {errors.teamMembers && <Text style={styles.errorText}>{errors.teamMembers}</Text>}
               </View>
 
@@ -1111,15 +1437,14 @@ const GastropodBivalveForm = () => {
                   </Text>
                   <Icon name="clock-o" size={20} color="#333" />
                 </TouchableOpacity>
-                {showHighTidePicker && (
-                  <DateTimePicker
-                    value={nearestHighTideTime}
-                    mode="time"
-                    is24Hour={true}
-                    display="default"
-                    onChange={handleHighTideTimeChange}
-                  />
-                )}
+                <DateTimePickerModal
+                  isVisible={showHighTidePicker}
+                  mode="time"
+                  date={nearestHighTideTime}
+                  is24Hour={true}
+                  onConfirm={handleHighTideTimeConfirm}
+                  onCancel={handleHighTideTimeCancel}
+                />
               </View>
 
               {/* Time of Sampling */}
@@ -1134,15 +1459,14 @@ const GastropodBivalveForm = () => {
                   </Text>
                   <Icon name="clock-o" size={20} color="#333" />
                 </TouchableOpacity>
-                {showSamplingTimePicker && (
-                  <DateTimePicker
-                    value={timeOfSampling}
-                    mode="time"
-                    is24Hour={true}
-                    display="default"
-                    onChange={handleSamplingTimeChange}
-                  />
-                )}
+                <DateTimePickerModal
+                  isVisible={showSamplingTimePicker}
+                  mode="time"
+                  date={timeOfSampling}
+                  is24Hour={true}
+                  onConfirm={handleSamplingTimeConfirm}
+                  onCancel={handleSamplingTimeCancel}
+                />
               </View>
             </View>
 
@@ -1328,37 +1652,100 @@ const GastropodBivalveForm = () => {
                 {/* Quadrat Observed By */}
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Quadrat Observed By</Text>
-                  <TextInput
-                    style={[styles.textInput, errors.quadratObservedBy && styles.inputError]}
+                  <Dropdown
+                    style={[styles.dropdown, isObservedByFocused && styles.dropdownFocused, errors.quadratObservedBy && styles.inputError]}
+                    placeholderStyle={styles.placeholderStyle}
+                    selectedTextStyle={styles.selectedTextStyle}
+                    inputSearchStyle={styles.inputSearchStyle}
+                    iconStyle={styles.iconStyle}
+                    itemTextStyle={styles.dropdownItemStyle}
+                    containerStyle={styles.dropdownContainerStyle}
+                    data={getTeamMemberOptions()}
+                    maxHeight={300}
+                    labelField="label"
+                    valueField="value"
+                    placeholder="Select observer"
                     value={quadratObservedBy}
-                    onChangeText={setQuadratObservedBy}
-                    placeholder="Enter observer name"
+                    onFocus={() => setIsObservedByFocused(true)}
+                    onBlur={() => setIsObservedByFocused(false)}
+                    onChange={item => {
+                      setQuadratObservedBy(item.value);
+                      setIsObservedByFocused(false);
+                      if (item.value !== 'Other') {
+                        setCustomObservedBy('');
+                      }
+                    }}
                   />
+                  {quadratObservedBy === 'Other' && (
+                    <TextInput
+                      style={[styles.textInput, { marginTop: 10 }]}
+                      value={customObservedBy}
+                      onChangeText={setCustomObservedBy}
+                      placeholder="Enter observer name"
+                      activeUnderlineColor="#4A7856"
+                      underlineColor="#DDD"
+                      selectionColor="#4A7856"
+                    />
+                  )}
                   {errors.quadratObservedBy && <Text style={styles.errorText}>{errors.quadratObservedBy}</Text>}
                 </View>
 
                 {/* Data Entered By */}
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Data Entered By</Text>
-                  <TextInput
-                    style={[styles.textInput, errors.dataEnteredBy && styles.inputError]}
+                  <Dropdown
+                    style={[styles.dropdown, isDataEnteredByFocused && styles.dropdownFocused, errors.dataEnteredBy && styles.inputError]}
+                    placeholderStyle={styles.placeholderStyle}
+                    selectedTextStyle={styles.selectedTextStyle}
+                    inputSearchStyle={styles.inputSearchStyle}
+                    iconStyle={styles.iconStyle}
+                    itemTextStyle={styles.dropdownItemStyle}
+                    containerStyle={styles.dropdownContainerStyle}
+                    data={getTeamMemberOptions()}
+                    maxHeight={300}
+                    labelField="label"
+                    valueField="value"
+                    placeholder="Select data entry person"
                     value={dataEnteredBy}
-                    onChangeText={setDataEnteredBy}
-                    placeholder="Enter data entry person"
+                    onFocus={() => setIsDataEnteredByFocused(true)}
+                    onBlur={() => setIsDataEnteredByFocused(false)}
+                    onChange={item => {
+                      setDataEnteredBy(item.value);
+                      setIsDataEnteredByFocused(false);
+                      if (item.value !== 'Other') {
+                        setCustomDataEnteredBy('');
+                      }
+                    }}
                   />
+                  {dataEnteredBy === 'Other' && (
+                    <TextInput
+                      style={[styles.textInput, { marginTop: 10 }]}
+                      value={customDataEnteredBy}
+                      onChangeText={setCustomDataEnteredBy}
+                      placeholder="Enter data entry person"
+                      activeUnderlineColor="#4A7856"
+                      underlineColor="#DDD"
+                      selectionColor="#4A7856"
+                    />
+                  )}
                   {errors.dataEnteredBy && <Text style={styles.errorText}>{errors.dataEnteredBy}</Text>}
                 </View>
 
                 {/* Quadrat Size */}
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Size of the Quadrat (m)</Text>
-                  <TextInput
-                    style={[styles.textInput, errors.quadratSize && styles.inputError]}
-                    value={quadratSize}
-                    onChangeText={(value) => validateNumericInput(value, setQuadratSize)}
-                    placeholder="Enter quadrat size"
-                    keyboardType="numeric"
-                  />
+                  <Text style={styles.inputLabel}>Size of the Quadrat</Text>
+                  <View style={styles.inputWithSuffix}>
+                    <TextInput
+                      style={[styles.textInputWithSuffix, errors.quadratSize && styles.inputError]}
+                      value={quadratSize}
+                      onChangeText={(value) => validateNumericInput(value, setQuadratSize)}
+                      placeholder="Enter quadrat size"
+                      keyboardType="numeric"
+                    />
+                    <View style={styles.suffixContainer}>
+                      <Text style={styles.suffixText}>m</Text>
+                    </View>
+                  </View>
                   {errors.quadratSize && <Text style={styles.errorText}>{errors.quadratSize}</Text>}
                 </View>
 
@@ -1820,7 +2207,6 @@ const GastropodBivalveForm = () => {
                     selectedTextStyle={styles.selectedTextStyle}
                     inputSearchStyle={styles.inputSearchStyle}
                     iconStyle={styles.iconStyle}
-                    itemTextStyle={styles.dropdownItemStyle}
                     containerStyle={styles.dropdownContainerStyle}
                     data={vegetationOptions}
                     maxHeight={300}
@@ -1837,6 +2223,7 @@ const GastropodBivalveForm = () => {
                         setCustomVegetation('');
                       }
                     }}
+                    renderItem={(item, selected) => renderVegetationItem(item, selected)}
                   />
                   {errors.vegetation && <Text style={styles.errorText}>{errors.vegetation}</Text>}
                 </View>
@@ -2125,14 +2512,19 @@ const GastropodBivalveForm = () => {
 
 
                     <View style={styles.inputContainer}>
-                      <Text style={styles.inputLabel}>Depth of the Water (cm)</Text>
-                      <TextInput
-                        style={[styles.textInput, errors.waterDepth && styles.inputError]}
-                        value={waterDepth}
-                        onChangeText={(value) => validateNumericInput(value, setWaterDepth)}
-                        placeholder="Enter water depth"
-                        keyboardType="numeric"
-                      />
+                      <Text style={styles.inputLabel}>Depth of the Water</Text>
+                      <View style={styles.inputWithSuffix}>
+                        <TextInput
+                          style={[styles.textInputWithSuffix, errors.waterDepth && styles.inputError]}
+                          value={waterDepth}
+                          onChangeText={(value) => validateNumericInput(value, setWaterDepth)}
+                          placeholder="Enter water depth"
+                          keyboardType="numeric"
+                        />
+                        <View style={styles.suffixContainer}>
+                          <Text style={styles.suffixText}>cm</Text>
+                        </View>
+                      </View>
                       {errors.waterDepth && <Text style={styles.errorText}>{errors.waterDepth}</Text>}
                     </View>
                   </View>
@@ -2149,7 +2541,7 @@ const GastropodBivalveForm = () => {
                 <Text style={styles.subSectionTitle}>Gastropods</Text>
                 {gastropodSpecies.map((species) => (
                   <View key={species.id} style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>{species.name}</Text>
+                    <Text style={styles.scientificName}>{species.name}</Text>
                     <TextInput
                       style={styles.textInput}
                       value={speciesCounts[species.id] || ''}
@@ -2164,7 +2556,7 @@ const GastropodBivalveForm = () => {
                 <Text style={styles.subSectionTitle}>Bivalves</Text>
                 {bivalveSpecies.map((species) => (
                   <View key={species.id} style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>{species.name}</Text>
+                    <Text style={styles.scientificName}>{species.name}</Text>
                     <TextInput
                       style={styles.textInput}
                       value={speciesCounts[species.id] || ''}
@@ -2224,11 +2616,11 @@ const GastropodBivalveForm = () => {
                 mode="contained"
                 onPress={handleSubmit}
                 style={[styles.submitButton, { borderRadius: 6 }]}
-                buttonColor="green"
+                buttonColor="#4A7856"
                 textColor="white"
                 labelStyle={styles.button_label}
               >
-                Submit
+                {isEditMode ? 'Update' : 'Submit'}
               </Button>
               <Button
                 mode="outlined"
@@ -2255,49 +2647,80 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
   },
   backButtonContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 12,
-    marginTop: 8,
+  },
+  nextButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
   backButtonText: {
     fontSize: 16,
-    color: '#333',
+    color: '#4A7856',
     marginLeft: 8,
     fontWeight: '500',
+    fontFamily: 'Times New Roman',
+  },
+  nextButtonText: {
+    fontSize: 16,
+    color: '#4A7856',
+    marginRight: 8,
+    fontWeight: '500',
+    fontFamily: 'Times New Roman',
   },
   formContainer: {
-    padding: 16,
+    padding: 20,
+    backgroundColor: '#FFFFFF',
   },
   formTitle: {
-    color: '#F2F2F2',
-    fontSize: 24,
+    color: '#4A7856',
+    fontSize: 32,
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    fontFamily: 'Times New Roman',
   },
   sectionContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E8F5E9',
+    ...Platform.select({
+      ios: {
+        shadowColor: 'black',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 16,
-    color: '#333',
+    color: '#4A7856',
+    fontFamily: 'Times New Roman',
   },
   subSectionContainer: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#F5F5F5',
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
@@ -2307,43 +2730,56 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 12,
-    color: '#555',
+    color: '#333',
+    fontFamily: 'Times New Roman',
   },
   inputContainer: {
     marginBottom: 16,
   },
   inputLabel: {
-    fontSize: 14,
-    marginBottom: 6,
-    color: '#555',
+    fontSize: 16,
+    marginBottom: 8,
+    color: '#333',
+    fontFamily: 'Times New Roman',
+  },
+  scientificName: {
+    fontSize: 16,
+    marginBottom: 8,
+    color: '#333',
+    fontFamily: 'Times New Roman',
+    fontStyle: 'italic',
   },
   textInput: {
     height: 50,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#DDD',
     borderRadius: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 15,
     fontSize: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: '#FFFFFF',
+    color: '#333',
+    fontFamily: 'Times New Roman',
   },
   dropdown: {
     height: 50,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#DDD',
     borderRadius: 8,
-    paddingHorizontal: 12,
-    backgroundColor: 'white',
+    paddingHorizontal: 15,
+    backgroundColor: '#FFFFFF',
   },
   dropdownFocused: {
-    borderColor: '#2196F3',
+    borderColor: '#4A7856',
   },
   placeholderStyle: {
     fontSize: 16,
-    color: '#aaa',
+    color: '#AAA',
+    fontFamily: 'Times New Roman',
   },
   selectedTextStyle: {
     fontSize: 16,
     color: '#333',
+    fontFamily: 'Times New Roman',
   },
   iconStyle: {
     width: 24,
@@ -2352,72 +2788,78 @@ const styles = StyleSheet.create({
   inputSearchStyle: {
     height: 40,
     fontSize: 16,
+    fontFamily: 'Times New Roman',
   },
   dropdownContainerStyle: {
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#DDD',
   },
   dropdownItemStyle: {
-    color: '#000',
+    color: '#333',
+    fontFamily: 'Times New Roman',
   },
   dateInput: {
     height: 50,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#DDD',
     borderRadius: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 15,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
   },
   dateText: {
     fontSize: 16,
     color: '#333',
+    fontFamily: 'Times New Roman',
   },
   rowContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   inputError: {
-    borderColor: 'red',
+    borderColor: '#E74C3C',
   },
   errorText: {
-    color: 'red',
+    color: '#E74C3C',
     fontSize: 12,
     marginTop: 4,
+    fontFamily: 'Times New Roman',
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 16,
+    marginTop: 20,
     marginBottom: 32,
   },
   resetButton: {
-    padding: 12,
-    backgroundColor: '#e63946',
-    borderRadius: 10,
+    padding: 15,
+    backgroundColor: '#E74C3C',
+    borderRadius: 8,
     alignItems: 'center',
     width: '48%',
   },
   submitButton: {
-    padding: 12,
-    backgroundColor: '#77B254',
-    borderRadius: 10,
+    padding: 15,
+    backgroundColor: '#4A7856',
+    borderRadius: 8,
     alignItems: 'center',
     width: '48%',
   },
   submitText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 18,
+    fontFamily: 'Times New Roman',
   },
   resetText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 18,
+    fontFamily: 'Times New Roman',
   },
   // Modal styles
   modalOverlay: {
@@ -2427,57 +2869,77 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    padding: 25,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    width: '80%',
-    elevation: 5,
+    width: '85%',
+    ...Platform.select({
+      ios: {
+        shadowColor: 'black',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   modalText: {
     marginTop: 16,
     fontSize: 16,
+    fontFamily: 'Times New Roman',
+    color: '#333',
   },
   // Network banner styles
   networkBanner: {
-    backgroundColor: '#f44336',
-    padding: 10,
+    backgroundColor: '#E74C3C',
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   networkBannerText: {
-    color: '#fff',
+    color: '#FFFFFF',
     marginLeft: 8,
     fontSize: 14,
     textAlign: 'center',
+    fontFamily: 'Times New Roman',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     margin: 20,
     padding: 20,
-    borderRadius: 10,
+    borderRadius: 15,
     maxHeight: '50%',
   },
   yearOption: {
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
+    borderBottomColor: '#E0E0E0',
   },
   yearText: {
     fontSize: 18,
     textAlign: 'center',
+    fontFamily: 'Times New Roman',
+    color: '#333',
   },
   imageUploadButton: {
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    padding: 10,
+    backgroundColor: '#E8F5E9',
+    padding: 15,
     borderRadius: 8,
     marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#4A7856',
+    borderStyle: 'dashed',
   },
   uploadButtonText: {
-    color: '#007BFF',
+    color: '#4A7856',
+    fontFamily: 'Times New Roman',
+    fontWeight: '600',
   },
   imagePreview: {
     width: 100,
@@ -2508,7 +2970,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#007bff',
+    backgroundColor: '#4A7856',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 15,
@@ -2576,24 +3038,28 @@ const styles = StyleSheet.create({
   button_label: {
     fontSize: 16,
     fontWeight: 'bold',
+    fontFamily: 'Times New Roman',
   },
   cameraButton: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#0088ff',
+    backgroundColor: '#4A7856',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
     alignSelf: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    ...Platform.select({
+      ios: {
+        shadowColor: 'black',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
   },
   photoText: {
     fontSize: 16,
@@ -2601,6 +3067,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
     marginBottom: 5,
     color: '#333',
+    fontFamily: 'Times New Roman',
   },
   photoIconsContainer: {
     flexDirection: 'row',
@@ -2616,6 +3083,78 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontSize: 12,
     color: '#666',
+    fontFamily: 'Times New Roman',
+  },
+  // Quadrat size input with meter suffix
+  inputWithSuffix: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  textInputWithSuffix: {
+    flex: 1,
+    height: 50,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+    borderRightWidth: 0,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    backgroundColor: '#FFFFFF',
+    color: '#333',
+    fontFamily: 'Times New Roman',
+  },
+  suffixContainer: {
+    height: 50,
+    paddingHorizontal: 15,
+    backgroundColor: '#E8F5E9',
+    borderWidth: 1,
+    borderColor: '#4A7856',
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  suffixText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#4A7856',
+    fontFamily: 'Times New Roman',
+  },
+  // Team member styles
+  teamMemberInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  addMemberButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    backgroundColor: '#4A7856',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  teamMembersList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 10,
+    gap: 8,
+  },
+  teamMemberChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4A7856',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  teamMemberChipText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: 'Times New Roman',
+    marginRight: 8,
   },
 });
 

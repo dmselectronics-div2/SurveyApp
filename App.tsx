@@ -75,6 +75,9 @@ import HumanActivityDataCollection from './src/citizen-module/Citizen/HumanActiv
 import WelcomeSinhala from './src/citizen-module/start-pages/WelcomeSinhala';
 import WelcomeTamil from './src/citizen-module/start-pages/WelcomeTamil';
 import WelcomeEnglish from './src/citizen-module/start-pages/WelcomeEnglish';
+import OptionSelection from './src/citizen-module/start-pages/OptionSelection';
+import CreditInterface from './src/citizen-module/Citizen/CreditInterface';
+import CitizenDataTable from './src/citizen-module/Citizen/CitizenDataTable';
 
 // Mangrove Module Components
 import MangroveNew from './src/mangrove-module/survey-form-page/new';
@@ -153,9 +156,9 @@ const App = () => {
     return () => listener.remove();
   }, []);
 
-  // Set the initial route to StartPage (onboarding screens)
+  // Set the initial route to ModuleSelector
   useEffect(() => {
-    setInitialRoute('StartPage');
+    setInitialRoute('ModuleSelector');
   }, []);
 
   // Return null or a loader until the initial route is determined
@@ -232,11 +235,14 @@ const App = () => {
           <Stack.Screen name="WelcomeSinhala" component={WelcomeSinhala} />
           <Stack.Screen name="WelcomeTamil" component={WelcomeTamil} />
           <Stack.Screen name="WelcomeEnglish" component={WelcomeEnglish} />
+          <Stack.Screen name="OptionSelection" component={OptionSelection} />
           <Stack.Screen name="CitizenDashboard" component={CitizenDashboard} />
           <Stack.Screen name="PlantDataCollection" component={PlantDataCollection} />
           <Stack.Screen name="AnimalDataCollection" component={AnimalDataCollection} />
           <Stack.Screen name="NatureDataCollection" component={NatureDataCollection} />
           <Stack.Screen name="HumanActivityDataCollection" component={HumanActivityDataCollection} />
+          <Stack.Screen name="CreditInterface" component={CreditInterface} />
+          <Stack.Screen name="CitizenDataTable" component={CitizenDataTable} />
 
           {/* ============== MANGROVE MODULE SCREENS ============== */}
           <Stack.Screen name="MangroveNew" component={MangroveNew} />

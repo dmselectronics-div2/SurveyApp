@@ -20,8 +20,9 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNFS from 'react-native-fs';
-import { natureApi } from '../api/natureApi';
+import { natureApi } from '../../api/natureApi';
 import CustomAlert from '../custom-alert/alert-design';
+import PreviewModal from './PreviewModal';
 
 // Custom Radio Button Component
 const CustomRadioButton = ({ selected, onPress, disabled }) => (
@@ -41,12 +42,17 @@ const CustomRadioButton = ({ selected, onPress, disabled }) => (
 
 // component
 const NatureDataCollection = () => {
-    const navigation = useNavigation<any>();
+    const navigation = useNavigation();
     const route = useRoute();
     const category = route.params?.category || 'Nature';
     const [currentLanguage, setCurrentLanguage] = useState('en');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isAlertVisible, setIsAlertVisible] = useState(false);
+    const [isErrorAlertVisible, setIsErrorAlertVisible] = useState(false);
+    const [errorAlertType, setErrorAlertType] = useState<'error' | 'network'>('error');
+    const [errorAlertTitle, setErrorAlertTitle] = useState('');
+    const [errorAlertMessage, setErrorAlertMessage] = useState('');
+    const [submittedData, setSubmittedData] = useState(null);
 
     const [natureType, setNatureType] = useState('');
     const [showNaturePicker, setShowNaturePicker] = useState(false);
@@ -55,7 +61,7 @@ const NatureDataCollection = () => {
     const [date, setDate] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [timeOfDay, setTimeOfDay] = useState('');
-    const [description, setDescription] = useState('');
+    const [showPreview, setShowPreview] = useState(false);
 
     // Translation object
     const translations = {
@@ -66,7 +72,6 @@ const NatureDataCollection = () => {
             photo: 'Photo',
             date: 'Date',
             timeOfDay: 'Time of Day',
-            description: 'Description (Optional)',
             submit: 'Submit',
             submitting: 'Submitting...',
             photoPlaceholder: 'Tap to upload or capture a photo',
@@ -83,6 +88,8 @@ const NatureDataCollection = () => {
             submissionSuccess: 'Nature observation submitted successfully!',
             submissionFailed: 'Submission Failed',
             tryAgain: 'Failed to submit observation. Please try again.',
+            networkIssue: 'Network Issue',
+            networkError: 'Unable to connect. Please check your internet connection and try again.',
             // Nature types
             naturalEvents: 'Natural events',
             aesthetics: 'Aesthetics',
@@ -91,56 +98,60 @@ const NatureDataCollection = () => {
             morning: 'Morning',
             noon: 'Noon',
             evening: 'Evening',
-            night: 'Night'
+            night: 'Night',
+            preview: 'Preview',
+            type: 'Type'
         },
         si: {
-            title: 'ස්වභාවධර්මය',
-            category: 'කාණ්ඩය',
-            selectCategory: 'කාණ්ඩය තෝරන්න',
+            title: 'පරිසරය',
+            category: ' කාණ්ඩය',
+            selectCategory: ' කාණ්ඩය තෝරන්න',
             photo: 'ඡායාරූපය',
             date: 'දිනය',
             timeOfDay: 'දවසේ වේලාව',
-            description: 'විස්තරය (අත්‍යවශ්‍ය නොවේ)',
-            submit: 'ඉදිරිපත් කරන්න',
-            submitting: 'ඉදිරිපත් කරමින්...',
+            submit: 'දත්ත ඇතුලත් කිරීම තහවුරු කරන්න',
+            submitting: 'දත්ත ඇතුලත් කිරීම තහවුරු කරමින්...',
             photoPlaceholder: 'ඡායාරූපය ගැනීම/ ඇතුලත් කිරීම මෙහිදී සිදු කරන්න',
-            chooseOption: 'විකල්පයක් තෝරන්න',
+            chooseOption: ' තෝරන්න',
             camera: 'කැමරාව',
             gallery: 'ගැලරිය',
             cancel: 'අවලංගු කරන්න',
             requiredField: 'අවශ්‍ය ක්ෂේත්‍රය',
             selectCategoryAlert: 'කරුණාකර කාණ්ඩයක් තෝරන්න',
-            uploadPhoto: 'කරුණාකර ඡායාරූපයක් උඩුගත කරන්න',
+            uploadPhoto: 'කරුණාකර ඡායාරූපයක් ඇතුලත්  කරන්න',
             selectTimeOfDay: 'කරුණාකර දවසේ වේලාව තෝරන්න',
             descriptionPlaceholder: 'ඔබේ නිරීක්ෂණය ගැන අමතර සටහන් එක් කරන්න...',
             success: 'සාර්ථකයි',
             submissionSuccess: 'ස්වභාවධර්ම නිරීක්ෂණය සාර්ථකව ඉදිරිපත් කරන ලදී!',
             submissionFailed: 'ඉදිරිපත් කිරීම අසාර්ථක විය',
             tryAgain: 'නිරීක්ෂණය ඉදිරිපත් කිරීමට අසමත් විය. කරුණාකර නැවත උත්සාහ කරන්න.',
+            networkIssue: 'ජාල ගැටලුව',
+            networkError: 'සංයෝගය ස්ථාපිත කිරීමට නොහැකි විය. කරුණාකර ඔබේ අන්තර්ජාල සංයෝගය පරීක්ෂා කරන්න සහ නැවත උත්සාහ කරන්න.',
             // Nature types
-            naturalEvents: 'ස්වාභාවික සිදුවීම්',
-            aesthetics: 'සෞන්දර්යය',
-            other: 'වෙනත්',
+            naturalEvents: 'ස්වභාවික සංසිද්ධි',
+            aesthetics: 'සෞන්දර්යාත්මක අවස්ථා',
+            other: 'වෙනත් අවස්ථා',
             // Time options
             morning: 'උදෑසන',
-            noon: 'මධ්‍යාහ්නය',
+            noon: 'මධ්‍යහනය',
             evening: 'සවස',
-            night: 'රාත්‍රිය'
+            night: 'රාත්‍රිය',
+            preview: 'පෙරදසුන',
+            type: 'වර්ගය'
         },
         ta: {
             title: 'இயற்கை',
             category: 'வகை',
             selectCategory: 'வகையைத் தேர்ந்தெடுக்கவும்',
             photo: 'புகைப்படம்',
-            date: 'தேதி',
+            date: 'திகதி',
             timeOfDay: 'நாளின் நேரம்',
-            description: 'விளக்கம் (விருப்பமானது)',
             submit: 'சமர்ப்பிக்கவும்',
             submitting: 'சமர்ப்பிக்கப்படுகிறது...',
-            photoPlaceholder: 'புகைப்படத்தைப் பதிவேற்ற அல்லது எடுக்க தட்டவும்',
+            photoPlaceholder: 'புகைப்படத்தைப் பதிவேற்ற அழுத்தவும் எடுக்க தட்டவும்',
             chooseOption: 'ஒரு விருப்பத்தைத் தேர்ந்தெடுக்கவும்',
             camera: 'கேமரா',
-            gallery: 'கேலரி',
+            gallery: 'புகைப்படங்கள்',
             cancel: 'ரத்துசெய்',
             requiredField: 'தேவையான புலம்',
             selectCategoryAlert: 'தயவுசெய்து ஒரு வகையைத் தேர்ந்தெடுக்கவும்',
@@ -151,6 +162,8 @@ const NatureDataCollection = () => {
             submissionSuccess: 'இயற்கை கவனிப்பு வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது!',
             submissionFailed: 'சமர்ப்பித்தல் தோல்வியடைந்தது',
             tryAgain: 'கவனிப்பை சமர்ப்பிக்க தோல்வி. மீண்டும் முயற்சிக்கவும்.',
+            networkIssue: 'நெட்வொர்க் சிக்கல்',
+            networkError: 'இணைப்பை நிறுவ முடியவில்லை. தயவுசெய்து உங்கள் இணைய இணைப்பை சரிபார்க்கவும் மற்றும் மீண்டும் முயற்சிக்கவும்.',
             // Nature types
             naturalEvents: 'இயற்கை நிகழ்வுகள்',
             aesthetics: 'அழகியல்',
@@ -159,7 +172,9 @@ const NatureDataCollection = () => {
             morning: 'காலை',
             noon: 'மதியம்',
             evening: 'மாலை',
-            night: 'இரவு'
+            night: 'இரவு',
+            preview: 'முன்னோட்டம்',
+            type: 'வகை'
         }
     };
 
@@ -175,7 +190,7 @@ const NatureDataCollection = () => {
                 setCurrentLanguage(savedLanguage);
             }
         } catch (error) {
-            console.error('Error loading language:', error);
+            // Error silently handled
         }
     };
 
@@ -202,7 +217,10 @@ const NatureDataCollection = () => {
             const base64 = await RNFS.readFile(cleanUri, 'base64');
             return `data:image/jpeg;base64,${base64}`;
         } catch (error) {
-            console.error('Error converting image to base64:', error);
+            setErrorAlertType('error');
+            setErrorAlertTitle(t.submissionFailed);
+            setErrorAlertMessage('Failed to process image. Please try again.');
+            setIsErrorAlertVisible(true);
             throw error;
         }
     };
@@ -227,9 +245,12 @@ const NatureDataCollection = () => {
 
         launchCamera(options, (response) => {
             if (response.didCancel) {
-                console.log('User cancelled camera');
+                // User cancelled, no need to show error
             } else if (response.errorCode) {
-                Alert.alert('Error', 'Failed to open camera: ' + response.errorMessage);
+                setErrorAlertType('error');
+                setErrorAlertTitle(t.submissionFailed);
+                setErrorAlertMessage('Failed to open camera. Please try again.');
+                setIsErrorAlertVisible(true);
             } else if (response.assets && response.assets[0]) {
                 setPhoto(response.assets[0].uri);
             }
@@ -247,9 +268,12 @@ const NatureDataCollection = () => {
 
         launchImageLibrary(options, (response) => {
             if (response.didCancel) {
-                console.log('User cancelled gallery');
+                // User cancelled, no need to show error
             } else if (response.errorCode) {
-                Alert.alert('Error', 'Failed to open gallery: ' + response.errorMessage);
+                setErrorAlertType('error');
+                setErrorAlertTitle(t.submissionFailed);
+                setErrorAlertMessage('Failed to open gallery. Please try again.');
+                setIsErrorAlertVisible(true);
             } else if (response.assets && response.assets[0]) {
                 setPhoto(response.assets[0].uri);
             }
@@ -268,27 +292,40 @@ const NatureDataCollection = () => {
         setShowNaturePicker(false);
     };
 
-    const handleSubmit = async () => {
+    const handlePreview = () => {
         // Validation
         if (!natureType) {
-            Alert.alert(lang.requiredField, lang.selectCategoryAlert);
+            setErrorAlertType('error');
+            setErrorAlertTitle(lang.requiredField);
+            setErrorAlertMessage(lang.selectCategoryAlert);
+            setIsErrorAlertVisible(true);
             return;
         }
 
         if (!photo) {
-            Alert.alert(lang.requiredField, lang.uploadPhoto);
+            setErrorAlertType('error');
+            setErrorAlertTitle(lang.requiredField);
+            setErrorAlertMessage(lang.uploadPhoto);
+            setIsErrorAlertVisible(true);
             return;
         }
 
         if (!timeOfDay) {
-            Alert.alert(lang.requiredField, lang.selectTimeOfDay);
+            setErrorAlertType('error');
+            setErrorAlertTitle(lang.requiredField);
+            setErrorAlertMessage(lang.selectTimeOfDay);
+            setIsErrorAlertVisible(true);
             return;
         }
 
+        setShowPreview(true);
+    };
+
+    const handleSubmit = async () => {
+        setShowPreview(false);
         setIsSubmitting(true);
 
         try {
-            console.log('Converting image to base64...');
             const base64Image = await convertImageToBase64(photo);
 
             const natureData = {
@@ -296,21 +333,31 @@ const NatureDataCollection = () => {
                 photo: base64Image,
                 date: date.toISOString().split('T')[0],
                 timeOfDay,
-                description: description.trim() || undefined,
             };
 
-            console.log('Submitting nature observation to backend...');
+            const response = await natureApi.createNature(natureData);
 
-            await natureApi.createNature(natureData);
-
-            // Show success alert - if API didn't throw, submission was successful
-            setIsAlertVisible(true);
+            if (response.success) {
+                setSubmittedData(response.data);
+                setIsAlertVisible(true);
+            }
         } catch (error) {
-            console.error('Error submitting nature observation:', error);
-            Alert.alert(
-                lang.submissionFailed,
-                error.message || lang.tryAgain
-            );
+            // Determine if it's a network error
+            const isNetworkError = error.message && 
+                (error.message.includes('Network') || 
+                 error.message.includes('timeout') ||
+                 error.message.includes('fetch'));
+            
+            // Remove field list from error message if present
+            let errorMessage = error.message || lang.tryAgain;
+            if (errorMessage && errorMessage.includes('(')) {
+                errorMessage = errorMessage.split('(')[0].trim();
+            }
+            
+            setErrorAlertType(isNetworkError ? 'network' : 'error');
+            setErrorAlertTitle(isNetworkError ? lang.networkIssue : lang.submissionFailed);
+            setErrorAlertMessage(isNetworkError ? lang.networkError : errorMessage);
+            setIsErrorAlertVisible(true);
         } finally {
             setIsSubmitting(false);
         }
@@ -346,6 +393,7 @@ const NatureDataCollection = () => {
                 </View>
 
                 {/* Form Content */}
+                <View style={styles.frameContainer}>
                 <View style={styles.formContainer}>
                     {/* Category Dropdown */}
                     <View style={styles.inputGroup}>
@@ -482,43 +530,24 @@ const NatureDataCollection = () => {
                         </View>
                     </View>
 
-                    {/* Description */}
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>{lang.description}</Text>
-                        <TextInput
-                            style={styles.textArea}
-                            placeholder={lang.descriptionPlaceholder}
-                            placeholderTextColor="#AAA"
-                            multiline
-                            numberOfLines={4}
-                            value={description}
-                            onChangeText={setDescription}
-                            textAlignVertical="top"
-                            editable={!isSubmitting}
-                        />
-                    </View>
-
-                    {/* Submit Button */}
-                    <TouchableOpacity 
+                    {/* Preview Button */}
+                    <TouchableOpacity
                         style={[
                             styles.submitButton,
                             isSubmitting && styles.submitButtonDisabled
                         ]}
-                        onPress={handleSubmit}
+                        onPress={handlePreview}
                         activeOpacity={0.8}
                         disabled={isSubmitting}
                     >
-                        {isSubmitting ? (
-                            <View style={styles.submitButtonContent}>
-                                <ActivityIndicator color="#FFFFFF" size="small" />
-                                <Text style={[styles.submitButtonText, { marginLeft: 10 }]}>
-                                    {lang.submitting}
-                                </Text>
-                            </View>
-                        ) : (
-                            <Text style={styles.submitButtonText}>{lang.submit}</Text>
-                        )}
+                        <View style={styles.submitButtonContent}>
+                            <Icon name="visibility" size={24} color="#FFFFFF" />
+                            <Text style={[styles.submitButtonText, { marginLeft: 10 }]}>
+                                {lang.preview}
+                            </Text>
+                        </View>
                     </TouchableOpacity>
+                </View>
                 </View>
             </ScrollView>
 
@@ -615,15 +644,39 @@ const NatureDataCollection = () => {
                 visible={isAlertVisible}
                 onClose={() => {
                     setIsAlertVisible(false);
-                    // Reset form
-                    setNatureType('');
-                    setPhoto(null);
-                    setDate(new Date());
-                    setTimeOfDay('');
-                    setDescription('');
-                    navigation.navigate('CitizenDashboard');
+                    // Navigate to CreditInterface
+                    navigation.navigate('CreditInterface', {
+                        observationData: submittedData,
+                        observationType: 'nature'
+                    });
                 }}
                 language={currentLanguage as 'en' | 'si' | 'ta'}
+            />
+
+            {/* Error/Network Alert */}
+            <CustomAlert
+                visible={isErrorAlertVisible}
+                onClose={() => setIsErrorAlertVisible(false)}
+                type={errorAlertType}
+                title={errorAlertTitle}
+                message={errorAlertMessage}
+                language={currentLanguage as 'en' | 'si' | 'ta'}
+            />
+
+            {/* Preview Modal */}
+            <PreviewModal
+                visible={showPreview}
+                onClose={() => setShowPreview(false)}
+                onConfirm={handleSubmit}
+                title={lang.title}
+                isSubmitting={isSubmitting}
+                language={currentLanguage as 'en' | 'si' | 'ta'}
+                fields={[
+                    { label: lang.category, value: natureTypes.find(n => n.value === natureType)?.label || natureType },
+                    { label: lang.photo, value: photo || undefined, isImage: true },
+                    { label: lang.date, value: formatDate(date) },
+                    { label: lang.timeOfDay, value: timeOfDay === 'Morning' ? lang.morning : timeOfDay === 'Noon' ? lang.noon : timeOfDay === 'Evening' ? lang.evening : timeOfDay === 'Night' ? lang.night : timeOfDay },
+                ]}
             />
         </SafeAreaView>
     );
@@ -656,7 +709,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 32,
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
         color: '#4A7856',
         fontWeight: 'bold',
     },
@@ -671,7 +724,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#333',
         marginBottom: 8,
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     required: {
         color: '#E74C3C',
@@ -690,7 +743,7 @@ const styles = StyleSheet.create({
     dropdownText: {
         fontSize: 16,
         color: '#333',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     placeholder: {
         color: '#999',
@@ -712,7 +765,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
         fontSize: 14,
         color: '#999',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     photoContainer: {
         width: '100%',
@@ -760,7 +813,7 @@ const styles = StyleSheet.create({
     dateText: {
         fontSize: 16,
         color: '#333',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     // Custom Radio Button Styles
     customRadio: {
@@ -802,7 +855,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#333',
         marginLeft: 5,
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     textArea: {
         borderWidth: 1,
@@ -813,7 +866,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#333',
         minHeight: 100,
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     submitButton: {
         backgroundColor: '#4A7856',
@@ -840,12 +893,14 @@ const styles = StyleSheet.create({
     submitButtonContent: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
     },
     submitButtonText: {
         fontSize: 20,
         color: '#FFFFFF',
         fontWeight: 'bold',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
+        textAlign: 'center',
     },
     // Modal Styles
     modalOverlay: {
@@ -872,7 +927,7 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
         color: '#333',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     modalCloseButton: {
         padding: 5,
@@ -903,7 +958,7 @@ const styles = StyleSheet.create({
     natureOptionText: {
         fontSize: 16,
         color: '#333',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     natureOptionTextSelected: {
         color: '#FFFFFF',
@@ -943,7 +998,7 @@ const styles = StyleSheet.create({
         color: '#333',
         textAlign: 'center',
         marginBottom: 25,
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     imagePickerOptions: {
         flexDirection: 'row',
@@ -965,7 +1020,7 @@ const styles = StyleSheet.create({
         color: '#333',
         marginTop: 10,
         fontWeight: '600',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
     imagePickerCancelButton: {
         backgroundColor: '#F5F5F5',
@@ -979,8 +1034,29 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#666',
         fontWeight: '600',
-        fontFamily: 'serif',
+        fontFamily: 'Times New Roman',
     },
+    frameContainer: {
+    marginHorizontal: 15,
+    marginBottom: 25,
+    borderWidth: 2,
+    borderColor: '#4A7856',
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    paddingTop: 10,
+    ...Platform.select({
+        ios: {
+            shadowColor: 'black',
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.15,
+            shadowRadius: 6,
+        },
+        android: {
+            elevation: 6,
+        },
+    }),
+},
+
 });
 
 export default NatureDataCollection;

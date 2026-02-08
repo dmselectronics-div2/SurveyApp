@@ -129,18 +129,18 @@ const MainDashboardPage = () => {
             </Text>
             <ScrollView horizontal={true} style={styles.scrollContainer}>
               <View style={styles.pieChartContainer}>
-                <Pressable onPress={clickPieChart}>
+                <TouchableOpacity activeOpacity={0.7} onPress={clickPieChart}>
                   <PieChartModelMain />
-                </Pressable>
-                <Pressable onPress={clickPieChart1}>
+                </TouchableOpacity>
+                <TouchableOpacity activeOpacity={0.7} onPress={clickPieChart1}>
                   <PieChartModelMain1 />
-                </Pressable>
-                <Pressable onPress={clickPieChart2}>
+                </TouchableOpacity>
+                <TouchableOpacity activeOpacity={0.7} onPress={clickPieChart2}>
                   <PieChartModelMain2 />
-                </Pressable>
-                <Pressable onPress={clickPieChart3}>
+                </TouchableOpacity>
+                <TouchableOpacity activeOpacity={0.7} onPress={clickPieChart3}>
                   <PieChartModelMain3 />
-                </Pressable>
+                </TouchableOpacity>
               </View>
             </ScrollView>
           </View>

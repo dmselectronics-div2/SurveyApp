@@ -19,7 +19,7 @@ import MyDataTable from '../data-table/display-table';
 import SearchPage from '../Search-page/search-page';
 import SearchOption from '../Search-page/search-option';
 import {Appearance} from 'react-native';
-import SQLite from 'react-native-sqlite-storage';
+import { getDatabase } from '../database/db';
 import * as Keychain from 'react-native-keychain';
 import SurveyComponent from '../survey-drafts/add-new-survey';
 
@@ -45,15 +45,6 @@ const BottomNav = () => {
   const [avatarUri, setAvatarUri] = useState('');
 
   // Open the SQLite database
-  const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
 
   const [routes] = useState([
     {
@@ -117,81 +108,42 @@ const BottomNav = () => {
     navigation.navigate('EditCount'); // Replace with your actual navigation logic
   };
 
-  // Function to retrieve email from SQLite
-  const retrieveNameFromSQLite = userEmail => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT userImageUrl FROM Users WHERE email = ?',
-        [userEmail],
-        (tx, results) => {
-          if (results.rows.length > 0) {
-            const retrieveImage = results.rows.item(0).userImageUrl;
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const db = await getDatabase();
 
+        // Get email from LoginData
+        const [loginResults] = await db.executeSql('SELECT email FROM LoginData', []);
+        if (loginResults.rows.length > 0) {
+          const emailLocal = loginResults.rows.item(0).email;
+          console.log('emailLocal ', emailLocal);
+
+          // Get avatar from Users
+          const [userResults] = await db.executeSql(
+            'SELECT userImageUrl FROM Users WHERE email = ?',
+            [emailLocal],
+          );
+          if (userResults.rows.length > 0) {
+            const retrieveImage = userResults.rows.item(0).userImageUrl;
             if (retrieveImage) {
-              setAvatarUri(retrieveImage); // Use the image from the database if it exists
+              setAvatarUri(retrieveImage);
             } else {
-              setAvatarUri('../../assets/image/prof.jpg'); // Default to a local placeholder if no image is found
+              setAvatarUri('../../assets/image/prof.jpg');
             }
           } else {
             console.log('No user found in SQLite');
           }
-        },
-        error => {
-          console.error('Error retrieving user from SQLite: ', error.message);
-        },
-      );
-    });
-  };
-
-  const saveLastUserToSQLite = () => {
-    console.log('DF');
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT email FROM LoginData',
-        [],
-        (tx, results) => {
-          console.log('result A', results.rows.item(0));
-          console.log('Number of rows: ', results.rows.length);
-          if (results.rows.length > 0) {
-            const emailLocal = results.rows.item(0).email;
-            console.log('emailLocal ', emailLocal);
-            retrieveNameFromSQLite(emailLocal);
-          } else {
-            // If no row exists, insert a new one
-            console.log('No Email ')
-          }
-        },
-        error => {
-          console.log('Error querying Users table: ' + error.message);
-        },
-      );
-    });
-  };
-
-  // Retrieving the email
-  const retrieveEmailSecurely = async () => {
-    try {
-      const credentials = await Keychain.getGenericPassword();
-
-      if (credentials) {
-        const email = credentials.username; // This will give you the email
-        setEmail(email);
-        console.log('Retrieved email profile : ', email);
-        retrieveNameFromSQLite(email);
-        return {email}; 
-      } else {
-        console.log('No email and password stored.');
-        return null;
+        } else {
+          console.log('No Email');
+        }
+      } catch (error: any) {
+        console.log('Error querying database: ' + error.message);
       }
-    } catch (error) {
-      console.error('Failed to retrieve email and password', error);
-    }
-  };
-
-  useEffect(() => {
-    // retrieveEmailSecurely();
-    saveLastUserToSQLite();
+    };
+    loadUserData();
   }, []);
+
 
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({colorScheme}) => {
