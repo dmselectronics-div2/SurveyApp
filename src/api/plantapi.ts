@@ -1,51 +1,103 @@
-import axios from '../citizen-module/api/axios';
+import axios from 'axios';
+import { API_URL } from '../config';
 
-interface PhotoInfo {
-  contactInfo?: string;
-  canUsePhoto: boolean;
-  photoCredit?: string;
-}
-
-interface PlantObservation {
-  plantType: string;
-  photo: string;
-  date: string;
-  timeOfDay: string;
-  description?: string;
-  latitude?: number;
-  longitude?: number;
-}
+const apiClient = axios.create({
+  baseURL: `${API_URL}/api`,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 export const plantApi = {
-  // Submit a new plant observation
-  submitPlantObservation: async (data: PlantObservation) => {
-    const response = await axios.post('/citizen/plants', data);
-    return response.data;
+  createPlant: async (plantData: {
+    plantCategory: string;
+    plantType: string;
+    photo: string;
+    date: string;
+    timeOfDay: string;
+    description?: string;
+    commonName?: string;
+    scientificName?: string;
+  }) => {
+    try {
+      const response = await apiClient.post('/plants', plantData);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('Plant API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to submit plant observation');
+    }
   },
 
-  // Get all plant observations
-  getPlantObservations: async () => {
-    const response = await axios.get('/citizen/plants');
-    return response.data;
+  getAllPlants: async () => {
+    try {
+      const response = await apiClient.get('/plants');
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('Plant API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to fetch plants');
+    }
   },
 
-  // Get a single plant observation
-  getPlantObservation: async (id: string) => {
-    const response = await axios.get(`/citizen/plants/${id}`);
-    return response.data;
+  getPlantById: async (id: string) => {
+    try {
+      const response = await apiClient.get(`/plants/${id}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('Plant API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to fetch plant');
+    }
   },
 
-  // Update plant photo information
-  updatePlantPhotoInfo: async (id: string, photoInfo: PhotoInfo) => {
-    const response = await axios.patch(`/citizen/plants/${id}/photo-info`, photoInfo);
-    return response.data;
+  updatePlant: async (id: string, plantData: any) => {
+    try {
+      const response = await apiClient.put(`/plants/${id}`, plantData);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('Plant API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to update plant');
+    }
   },
 
-  // Delete a plant observation
-  deletePlantObservation: async (id: string) => {
-    const response = await axios.delete(`/citizen/plants/${id}`);
-    return response.data;
+  deletePlant: async (id: string) => {
+    try {
+      const response = await apiClient.delete(`/plants/${id}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('Plant API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to delete plant');
+    }
+  },
+
+  updatePlantPhotoInfo: async (id: string, photoInfo: {
+    contactInfo?: string;
+    canUsePhoto: boolean;
+    photoCredit?: string;
+  }) => {
+    try {
+      const response = await apiClient.put(`/plants/${id}`, photoInfo);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('Plant API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to update plant photo info');
+    }
   },
 };
-
-export default plantApi;

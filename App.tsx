@@ -66,6 +66,7 @@ import BirdPieChartModel2 from './src/bird-module/dashboard-page/pie-charts/dive
 import BirdPieChartModel3 from './src/bird-module/dashboard-page/pie-charts/diversity indices3';
 
 // Citizen Module Components
+import CitizenStartPage from './src/citizen-module/start-pages/start-page';
 import CitizenDashboard from './src/citizen-module/Citizen/CitizenDashboard';
 import LanguageSelection from './src/citizen-module/LanguageSelection/LanguageOption';
 import PlantDataCollection from './src/citizen-module/Citizen/PlantDataCollection';
@@ -85,6 +86,9 @@ import MangroveDataTableComponent from './src/mangrove-module/data-table/MyDataT
 
 // Config
 import {GOOGLE_WEB_CLIENT_ID} from './src/config';
+
+// Database
+import {initDatabase} from './src/assets/sql_lite/db_connection';
 
 // Configure Google Sign-In
 GoogleSignin.configure({
@@ -156,9 +160,22 @@ const App = () => {
     return () => listener.remove();
   }, []);
 
-  // Set the initial route to ModuleSelector
+  // Initialize SQLite Database
   useEffect(() => {
-    setInitialRoute('ModuleSelector');
+    const setupDatabase = async () => {
+      try {
+        await initDatabase();
+        console.log('Database initialized successfully');
+      } catch (error) {
+        console.error('Failed to initialize database:', error);
+      }
+    };
+    setupDatabase();
+  }, []);
+
+  // Set the initial route to CitizenStartPage
+  useEffect(() => {
+    setInitialRoute('CitizenStartPage');
   }, []);
 
   // Return null or a loader until the initial route is determined
@@ -231,6 +248,7 @@ const App = () => {
           <Stack.Screen name="PieChartModel3" component={BirdPieChartModel3} />
 
           {/* ============== CITIZEN MODULE SCREENS ============== */}
+          <Stack.Screen name="CitizenStartPage" component={CitizenStartPage} />
           <Stack.Screen name="CitizenLanguageSelection" component={LanguageSelection} />
           <Stack.Screen name="WelcomeSinhala" component={WelcomeSinhala} />
           <Stack.Screen name="WelcomeTamil" component={WelcomeTamil} />

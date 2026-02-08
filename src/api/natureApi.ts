@@ -1,51 +1,103 @@
-import axios from '../citizen-module/api/axios';
+import axios from 'axios';
+import { API_URL } from '../config';
 
-interface PhotoInfo {
-  contactInfo?: string;
-  canUsePhoto: boolean;
-  photoCredit?: string;
-}
-
-interface NatureObservation {
-  natureType: string;
-  photo: string;
-  date: string;
-  timeOfDay: string;
-  description?: string;
-  latitude?: number;
-  longitude?: number;
-}
+const apiClient = axios.create({
+  baseURL: `${API_URL}/api`,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 export const natureApi = {
-  // Submit a new nature observation
-  submitNatureObservation: async (data: NatureObservation) => {
-    const response = await axios.post('/citizen/nature', data);
-    return response.data;
+  createNature: async (natureData: {
+    natureCategory: string;
+    natureType: string;
+    photo: string;
+    date: string;
+    timeOfDay: string;
+    description?: string;
+    commonName?: string;
+    scientificName?: string;
+  }) => {
+    try {
+      const response = await apiClient.post('/nature', natureData);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('Nature API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to submit nature observation');
+    }
   },
 
-  // Get all nature observations
-  getNatureObservations: async () => {
-    const response = await axios.get('/citizen/nature');
-    return response.data;
+  getAllNature: async () => {
+    try {
+      const response = await apiClient.get('/nature');
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('Nature API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to fetch nature observations');
+    }
   },
 
-  // Get a single nature observation
-  getNatureObservation: async (id: string) => {
-    const response = await axios.get(`/citizen/nature/${id}`);
-    return response.data;
+  getNatureById: async (id: string) => {
+    try {
+      const response = await apiClient.get(`/nature/${id}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('Nature API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to fetch nature observation');
+    }
   },
 
-  // Update nature photo information
-  updateNaturePhotoInfo: async (id: string, photoInfo: PhotoInfo) => {
-    const response = await axios.patch(`/citizen/nature/${id}/photo-info`, photoInfo);
-    return response.data;
+  updateNature: async (id: string, natureData: any) => {
+    try {
+      const response = await apiClient.put(`/nature/${id}`, natureData);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('Nature API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to update nature observation');
+    }
   },
 
-  // Delete a nature observation
-  deleteNatureObservation: async (id: string) => {
-    const response = await axios.delete(`/citizen/nature/${id}`);
-    return response.data;
+  deleteNature: async (id: string) => {
+    try {
+      const response = await apiClient.delete(`/nature/${id}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('Nature API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to delete nature observation');
+    }
+  },
+
+  updateNaturePhotoInfo: async (id: string, photoInfo: {
+    contactInfo?: string;
+    canUsePhoto: boolean;
+    photoCredit?: string;
+  }) => {
+    try {
+      const response = await apiClient.put(`/nature/${id}`, photoInfo);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('Nature API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to update nature photo info');
+    }
   },
 };
-
-export default natureApi;

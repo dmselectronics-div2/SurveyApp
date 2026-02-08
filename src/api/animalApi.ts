@@ -1,51 +1,103 @@
-import axios from '../citizen-module/api/axios';
+import axios from 'axios';
+import { API_URL } from '../config';
 
-interface PhotoInfo {
-  contactInfo?: string;
-  canUsePhoto: boolean;
-  photoCredit?: string;
-}
-
-interface AnimalObservation {
-  animalType: string;
-  photo: string;
-  date: string;
-  timeOfDay: string;
-  description?: string;
-  latitude?: number;
-  longitude?: number;
-}
+const apiClient = axios.create({
+  baseURL: `${API_URL}/api`,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 export const animalApi = {
-  // Submit a new animal observation
-  submitAnimalObservation: async (data: AnimalObservation) => {
-    const response = await axios.post('/citizen/animals', data);
-    return response.data;
+  createAnimal: async (animalData: {
+    animalCategory: string;
+    animalType: string;
+    photo: string;
+    date: string;
+    timeOfDay: string;
+    description?: string;
+    commonName?: string;
+    scientificName?: string;
+  }) => {
+    try {
+      const response = await apiClient.post('/animals', animalData);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('Animal API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to submit animal observation');
+    }
   },
 
-  // Get all animal observations
-  getAnimalObservations: async () => {
-    const response = await axios.get('/citizen/animals');
-    return response.data;
+  getAllAnimals: async () => {
+    try {
+      const response = await apiClient.get('/animals');
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('Animal API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to fetch animals');
+    }
   },
 
-  // Get a single animal observation
-  getAnimalObservation: async (id: string) => {
-    const response = await axios.get(`/citizen/animals/${id}`);
-    return response.data;
+  getAnimalById: async (id: string) => {
+    try {
+      const response = await apiClient.get(`/animals/${id}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('Animal API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to fetch animal');
+    }
   },
 
-  // Update animal photo information
-  updateAnimalPhotoInfo: async (id: string, photoInfo: PhotoInfo) => {
-    const response = await axios.patch(`/citizen/animals/${id}/photo-info`, photoInfo);
-    return response.data;
+  updateAnimal: async (id: string, animalData: any) => {
+    try {
+      const response = await apiClient.put(`/animals/${id}`, animalData);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('Animal API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to update animal');
+    }
   },
 
-  // Delete an animal observation
-  deleteAnimalObservation: async (id: string) => {
-    const response = await axios.delete(`/citizen/animals/${id}`);
-    return response.data;
+  deleteAnimal: async (id: string) => {
+    try {
+      const response = await apiClient.delete(`/animals/${id}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('Animal API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to delete animal');
+    }
+  },
+
+  updateAnimalPhotoInfo: async (id: string, photoInfo: {
+    contactInfo?: string;
+    canUsePhoto: boolean;
+    photoCredit?: string;
+  }) => {
+    try {
+      const response = await apiClient.put(`/animals/${id}`, photoInfo);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error('Animal API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to update animal photo info');
+    }
   },
 };
-
-export default animalApi;
