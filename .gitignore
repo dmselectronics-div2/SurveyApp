@@ -84,3 +84,4 @@ coverage/
 # Backend
 SurveyAppBackend/node_modules/
 SurveyAppBackend/.env
+android/app/build/
