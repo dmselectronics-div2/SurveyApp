@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 
 const ModuleSelector: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -34,7 +35,7 @@ const ModuleSelector: React.FC = () => {
       title: 'Survey',
       description: 'Citizen & Scientist observation with monitoring data collection',
       icon: 'account-group',
-      screen: 'WelcomeSinhala',
+      screen: 'OptionSelection',
     },
   ];
 
@@ -48,6 +49,16 @@ const ModuleSelector: React.FC = () => {
       style={styles.backgroundImage}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <View style={styles.overlay}>
+        {/* Top Navigation Bar */}
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            style={styles.topButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}>
+            <MaterialIcon name="arrow-back" size={28} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+
         {/* Header */}
         <View style={styles.titleContainer}>
           <View style={styles.decorativeLine} />
@@ -87,6 +98,35 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.25)',
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingTop: Platform.OS === 'ios' ? 20 : 15,
+    paddingBottom: 10,
+  },
+  topButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(74, 120, 86, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    ...Platform.select({
+      ios: {
+        shadowColor: 'black',
+        shadowOffset: {width: 0, height: 2},
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   titleContainer: {
     flexDirection: 'row',

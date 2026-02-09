@@ -33,7 +33,7 @@ const OptionSelection = () => {
     };
 
     const handleHomePress = () => {
-        navigation.navigate('WelcomeSinhala'); // Navigate to Home screen
+        navigation.navigate('CitizenStartPage'); // Navigate to Home screen
     };
 
     const handleLanguagePress = () => {

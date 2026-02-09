@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text } from 'react-native';
 import CustomDropdown from '../reusable-components/dropdown';
+import { API_URL } from '../../config';
 
 
 const HabitatScreen = () => {
@@ -13,7 +14,7 @@ const HabitatScreen = () => {
 
       <CustomDropdown
         tableName="habitat_types"
-        apiEndpoint="http://82.180.155.215:5001/habitats"
+        apiEndpoint={`${API_URL}/habitats`}
         placeholder="Select Habitat Type"
         value={habitat}
         setValue={setHabitat}

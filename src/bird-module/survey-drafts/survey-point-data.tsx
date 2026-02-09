@@ -540,7 +540,7 @@ const SurveyPointData = ({ route }) => {
                 <View style={{ marginHorizontal: 20, width: '90%' }}>
                 <CustomDropdown
                   tableName="habitat_types"
-                  apiEndpoint="http://82.180.155.215:5001/habitats"
+                  apiEndpoint={`${API_URL}/habitats`}
                   placeholder="Select Habitat Type"
                   value={value1}
                   setValue={setValue1}

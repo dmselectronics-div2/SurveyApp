@@ -41,7 +41,7 @@ const StartPage = () => {
     }, []);
 
     const handlePress = () => {
-        navigation.navigate('WelcomeSinhala');
+        (navigation as any).navigate('PrivacyPolicy', {fromCitizen: true});
     };
 
     return (
@@ -123,6 +123,8 @@ const styles = StyleSheet.create({
         marginBottom: 30,
         borderWidth: 3,
         borderColor: '#1a4a5e',
+        justifyContent: 'center',
+        alignItems: 'center',
         ...Platform.select({
             ios: {
                 shadowColor: '#4A7856',
@@ -136,10 +138,8 @@ const styles = StyleSheet.create({
         }),
     },
     logoIcon: {
-        width: 230,
-        height: 230,
-        marginTop: -40,
-        marginLeft: -40,
+        width: 210,
+        height: 210,
     },
     text: {
         color: '#FFFFFF',

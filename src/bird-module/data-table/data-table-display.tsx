@@ -116,7 +116,7 @@ const MyCitizenTable = ({ startDate, endDate }) => {
   };
   
 
-  const placeholderImage = 'https://example.com/placeholder.png';
+  const placeholderImage = undefined;
 
   const columns = [
     { key: 'latitude', displayName: 'Latitude' },

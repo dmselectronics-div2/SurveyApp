@@ -7,6 +7,7 @@ import {
   ImageBackground,
   Appearance,
   Alert,
+  Platform,
 } from 'react-native';
 import {Button, Checkbox} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
@@ -22,6 +23,7 @@ const PrivacyPolicy = ({navigation, route}) => {
 
   const email = route?.params?.email || null;
   const gName = route?.params?.name || null;
+  const fromCitizen = route?.params?.fromCitizen || false;
 
   // SQLite Database
   const db = SQLite.openDatabase(
@@ -36,16 +38,21 @@ const PrivacyPolicy = ({navigation, route}) => {
 
   const handleAgree = () => {
     if (!checked) {
-      updateDisAgreePolicyAgreeInSQLite(email);
+      if (!fromCitizen) {
+        updateDisAgreePolicyAgreeInSQLite(email);
+      }
       Alert.alert(
         'Privacy Policy Required',
         'You must agree to our Privacy Policy to use this app.',
       );
       return;
     } else if (checked) {
-      console.log('email is: ', email, ' Name is: ', gName);
-      updatePolicyAgreeInSQLite(email, gName);
-      // navigation.navigate('SetPin', {email, gName});
+      if (fromCitizen) {
+        navigation.navigate('WelcomeSinhala');
+      } else {
+        console.log('email is: ', email, ' Name is: ', gName);
+        updatePolicyAgreeInSQLite(email, gName);
+      }
     } else {
       Alert.alert('Error');
     }
@@ -148,196 +155,182 @@ const PrivacyPolicy = ({navigation, route}) => {
   const isDarkMode = theme === 'dark';
 
   return (
-    <ImageBackground
-      source={require('./../../assets/image/imageD.jpg')}
-      style={styles.backgroundImage}>
+    <View style={styles.backgroundContainer}>
       <ScrollView
-        contentContainerStyle={[
-          styles.container,
-          {
-            backgroundColor: isDarkMode
-              ? 'rgba(17, 17, 17, 0.8)'
-              : 'rgba(217, 217, 217, 0.7)',
-          },
-        ]}>
-        <Text style={[styles.title, {color: isDarkMode ? 'white' : 'black'}]}>
-          Privacy Policy
-        </Text>
-
-        <Text
-          style={[
-            styles.sectionTitle,
-            {color: isDarkMode ? 'white' : 'black'},
-          ]}>
-          1. Introduction
-        </Text>
-        <Text
-          style={[styles.sectionText, {color: isDarkMode ? 'white' : 'black'}]}>
-          Welcome to mangrove application. Your privacy is critically important
-          to us.
-        </Text>
-
-        <Text
-          style={[
-            styles.sectionTitle,
-            {color: isDarkMode ? 'white' : 'black'},
-          ]}>
-          2. Information We Collect
-        </Text>
-        <Text
-          style={[styles.sectionText, {color: isDarkMode ? 'white' : 'black'}]}>
-          We collect personal information that you provide to us, such as your
-          name, email address, and other data you input into the app.
-        </Text>
-
-        <Text
-          style={[
-            styles.sectionTitle,
-            {color: isDarkMode ? 'white' : 'black'},
-          ]}>
-          3. How We Use Your Information
-        </Text>
-        <Text
-          style={[styles.sectionText, {color: isDarkMode ? 'white' : 'black'}]}>
-          We use your information to provide, operate, and maintain our
-          services, as well as to improve our offerings.
-        </Text>
-
-        <Text
-          style={[
-            styles.sectionTitle,
-            {color: isDarkMode ? 'white' : 'black'},
-          ]}>
-          4. Sharing Your Information
-        </Text>
-        <Text
-          style={[styles.sectionText, {color: isDarkMode ? 'white' : 'black'}]}>
-          We do not share your personal information with third parties except as
-          necessary to provide our services or as required by law.
-        </Text>
-
-        <Text
-          style={[
-            styles.sectionTitle,
-            {color: isDarkMode ? 'white' : 'black'},
-          ]}>
-          5. Data Security
-        </Text>
-        <Text
-          style={[styles.sectionText, {color: isDarkMode ? 'white' : 'black'}]}>
-          We implement security measures to protect your data, but no method of
-          transmission over the internet is 100% secure.
-        </Text>
-
-        <Text
-          style={[
-            styles.sectionTitle,
-            {color: isDarkMode ? 'white' : 'black'},
-          ]}>
-          6. Your Rights
-        </Text>
-        <Text
-          style={[styles.sectionText, {color: isDarkMode ? 'white' : 'black'}]}>
-          You have the right to access, update, or delete your personal
-          information. Contact us if you wish to exercise these rights.
-        </Text>
-
-        <Text
-          style={[
-            styles.sectionTitle,
-            {color: isDarkMode ? 'white' : 'black'},
-          ]}>
-          7. Changes to This Policy
-        </Text>
-        <Text
-          style={[styles.sectionText, {color: isDarkMode ? 'white' : 'black'}]}>
-          We may update this Privacy Policy from time to time. Any changes will
-          be communicated via the app or our website.
-        </Text>
-
-        <Text
-          style={[
-            styles.sectionTitle,
-            {color: isDarkMode ? 'white' : 'black'},
-          ]}>
-          8. Contact Us
-        </Text>
-        <Text
-          style={[styles.sectionText, {color: isDarkMode ? 'white' : 'black'}]}>
-          If you have any questions or concerns about this Privacy Policy,
-          please contact us at dmselectronics.division02@gmail.com
-        </Text>
-        <View style={{flexDirection: 'row', alignItems: 'center'}}>
-          <Checkbox
-            status={checked ? 'checked' : 'unchecked'}
-            onPress={() => {
-              setChecked(!checked);
-            }}
-          />
-          <Text
-            style={[styles.agreeText, {color: isDarkMode ? 'white' : 'black'}]}>
-            I have read and agree to the Privacy Policy
+        contentContainerStyle={styles.scrollContent}>
+        <View style={styles.card}>
+          <Text style={styles.title}>
+            Privacy Policy
           </Text>
+
+          <Text style={styles.sectionTitle}>
+            1. Introduction
+          </Text>
+          <Text style={styles.sectionText}>
+            Welcome to mangrove application. Your privacy is critically important
+            to us.
+          </Text>
+
+          <Text style={styles.sectionTitle}>
+            2. Information We Collect
+          </Text>
+          <Text style={styles.sectionText}>
+            We collect personal information that you provide to us, such as your
+            name, email address, and other data you input into the app.
+          </Text>
+
+          <Text style={styles.sectionTitle}>
+            3. How We Use Your Information
+          </Text>
+          <Text style={styles.sectionText}>
+            We use your information to provide, operate, and maintain our
+            services, as well as to improve our offerings.
+          </Text>
+
+          <Text style={styles.sectionTitle}>
+            4. Sharing Your Information
+          </Text>
+          <Text style={styles.sectionText}>
+            We do not share your personal information with third parties except as
+            necessary to provide our services or as required by law.
+          </Text>
+
+          <Text style={styles.sectionTitle}>
+            5. Data Security
+          </Text>
+          <Text style={styles.sectionText}>
+            We implement security measures to protect your data, but no method of
+            transmission over the internet is 100% secure.
+          </Text>
+
+          <Text style={styles.sectionTitle}>
+            6. Your Rights
+          </Text>
+          <Text style={styles.sectionText}>
+            You have the right to access, update, or delete your personal
+            information. Contact us if you wish to exercise these rights.
+          </Text>
+
+          <Text style={styles.sectionTitle}>
+            7. Changes to This Policy
+          </Text>
+          <Text style={styles.sectionText}>
+            We may update this Privacy Policy from time to time. Any changes will
+            be communicated via the app or our website.
+          </Text>
+
+          <Text style={styles.sectionTitle}>
+            8. Contact Us
+          </Text>
+          <Text style={styles.sectionText}>
+            If you have any questions or concerns about this Privacy Policy,
+            please contact us at dmselectronics.division02@gmail.com
+          </Text>
+
+          <View style={styles.checkboxRow}>
+            <Checkbox
+              status={checked ? 'checked' : 'unchecked'}
+              onPress={() => {
+                setChecked(!checked);
+              }}
+              color="#4A7856"
+              uncheckedColor="#4A7856"
+            />
+            <View style={{flex: 1}}>
+              <Text style={styles.agreeText}>
+                I have read and accept the Privacy Policy
+              </Text>
+              <Text style={styles.agreeSubText}>
+                You must accept the Privacy Policy to continue.
+              </Text>
+            </View>
+          </View>
+
+          <Button
+            mode="contained"
+            style={styles.agreeButton}
+            onPress={handleAgree}
+            buttonColor="#4A7856"
+            textColor="white"
+            labelStyle={styles.button_label}>
+            Submit
+          </Button>
         </View>
-        <Button
-          mode="contained"
-          style={styles.agreeButton}
-          onPress={handleAgree}
-          buttonColor="#516E9E"
-          textColor="white"
-          labelStyle={styles.button_label}>
-          Next
-        </Button>
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  backgroundImage: {
+  backgroundContainer: {
     flex: 1,
-    resizeMode: 'cover',
+    backgroundColor: '#7A8B6F',
   },
-  container: {
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
     padding: 20,
-    backgroundColor: 'rgba(173, 170, 177, 0.8)',
-    margin: 20,
-    marginBottom: 20,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 4},
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#333',
+    marginBottom: 16,
+    color: '#333333',
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginVertical: 10,
-    color: '#444',
+    marginVertical: 8,
+    color: '#333333',
   },
   sectionText: {
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 15,
-    color: '#555',
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: 12,
+    color: '#555555',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    paddingTop: 12,
   },
   agreeText: {
-    fontSize: 16,
-    lineHeight: 24,
-    // marginBottom: 15,
-    color: '#555',
-    fontStyle: 'italic',
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333333',
+  },
+  agreeSubText: {
+    fontSize: 12,
+    color: '#888888',
+    marginTop: 2,
   },
   agreeButton: {
     marginTop: 20,
     alignSelf: 'center',
-    // backgroundColor: 'blue',
-    marginBottom: 20,
+    borderRadius: 20,
+    marginBottom: 10,
   },
   button_label: {
-    fontSize: 18,
+    fontSize: 16,
   },
 });
 

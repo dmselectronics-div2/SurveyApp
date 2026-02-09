@@ -226,7 +226,7 @@ const CitizenForm = () => {
                               text: 'OK',
                               onPress: () => {
                                 console.log('Form submitted successfully');
-                                navigation.navigate('Login'); // Navigate to login page after successful submission
+                                navigation.navigate('LoginPage'); // Navigate to login page after successful submission
                               }
                             }
                           ],

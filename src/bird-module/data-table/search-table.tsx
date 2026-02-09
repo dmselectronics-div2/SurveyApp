@@ -226,7 +226,7 @@ const MypureTable = ({ startDate, endDate, rowData }) => {
     };
     
 
-  const placeholderImage = 'https://example.com/placeholder.png';
+  const placeholderImage = undefined;
 
   
     const requestStoragePermission = async () => {
@@ -339,7 +339,7 @@ const columns = [
                   source={{
                       uri: isLocalImage 
                           ? birdObservationImage 
-                          : birdObservationImage || value || 'https://example.com/placeholder.png',
+                          : birdObservationImage || value || undefined,
                   }}
                   style={styles.thumbnail}
               />

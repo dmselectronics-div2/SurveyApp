@@ -1370,7 +1370,7 @@ const uploadPathToServer = async (uri, addedId) => {
           [{ text: 'OK', onPress: () => console.log('Form submitted successfully') }],
           { cancelable: false }
         );
-        navigation.navigate('BottomNav');
+        navigation.navigate('BirdBottomNav');
         resetForm();
       })
       .catch(error => {
@@ -1516,7 +1516,7 @@ const uploadPathToServer = async (uri, addedId) => {
                             text: 'OK',
                             onPress: () => {
                               console.log('Form submitted successfully');
-                              navigation.navigate('BottomNav');
+                              navigation.navigate('BirdBottomNav');
                               resetForm();
                             }
                           }

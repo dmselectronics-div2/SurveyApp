@@ -41,7 +41,7 @@ const StartPageA = () => {
     }, []);
 
     const handlePress = () => {
-        navigation.navigate('OptionSelection');
+        navigation.navigate('ModuleSelector');
     };
 
     return (

@@ -12,11 +12,6 @@ const WelcomeSinhala = () => {
     const pulseAnim = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
-        // Add back button handler
-        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-            return true; // Prevents the default back button action
-        });
-
         // Start pulse animation
         const pulse = Animated.loop(
             Animated.sequence([
@@ -35,7 +30,6 @@ const WelcomeSinhala = () => {
         pulse.start();
 
         return () => {
-            backHandler.remove();
             pulse.stop();
         };
     }, []);

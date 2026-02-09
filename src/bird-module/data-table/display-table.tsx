@@ -326,7 +326,7 @@ const MyDataTable = ({ point, startDate, endDate }) => {
                    source={{
                        uri: isLocalImage 
                            ? birdObservationImage 
-                           : birdObservationImage || value || 'https://example.com/placeholder.png',
+                           : birdObservationImage || value || undefined,
                    }}
                    style={styles.thumbnail}
                />
