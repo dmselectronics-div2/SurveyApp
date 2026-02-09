@@ -11,10 +11,7 @@ import {useEffect, useState} from 'react';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 
 // Auth Components (shared across all modules)
-import StartPage from './src/auth/start-pages/start-page';
-import StartPageA from './src/auth/start-pages/start-page-A';
-import StartPageB from './src/auth/start-pages/start-page-B';
-import StartPageC from './src/auth/start-pages/start-page-C';
+
 import RegisterPage from './src/auth/register-page/register-page';
 import VerifyEmail from './src/auth/register-page/veryfy-email';
 import VerifyFingerPrint from './src/auth/register-page/verify-fingerprint';
@@ -28,7 +25,7 @@ import ForgetPasswordPage from './src/auth/login-page/forgot-pasword';
 import VerifyFPEmail from './src/auth/login-page/veryfy-fogotPW-email';
 import ResetPassword from './src/auth/login-page/reset-password';
 import SetNewPin from './src/auth/login-page/re-add-new-pin';
-import Welcome from './src/auth/welcome-page/welcome';
+
 
 // Module Selector
 import ModuleSelector from './src/module-selector/ModuleSelector';
@@ -193,10 +190,7 @@ const App = () => {
             ...customAnimation,
           }}>
           {/* ============== SHARED AUTH SCREENS ============== */}
-          <Stack.Screen name="StartPage" component={StartPage} />
-          <Stack.Screen name="StartPageA" component={StartPageA} />
-          <Stack.Screen name="StartPageB" component={StartPageB} />
-          <Stack.Screen name="StartPageC" component={StartPageC} />
+          
           <Stack.Screen name="RegisterPage" component={RegisterPage} />
           <Stack.Screen name="VerifyEmail" component={VerifyEmail} />
           <Stack.Screen name="VerifyFingerPrint" component={VerifyFingerPrint} />
@@ -210,7 +204,6 @@ const App = () => {
           <Stack.Screen name="VerifyFPEmail" component={VerifyFPEmail} />
           <Stack.Screen name="ResetPassword" component={ResetPassword} />
           <Stack.Screen name="SetNewPin" component={SetNewPin} />
-          <Stack.Screen name="Welcome" component={Welcome} />
 
           {/* ============== BLU TALLY START PAGE ============== */}
           <Stack.Screen name="BluTallyStartPage" component={BluTallyStartPage} />
