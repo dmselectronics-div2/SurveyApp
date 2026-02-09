@@ -10,7 +10,8 @@ import {
   Alert,
   PermissionsAndroid,
   Appearance,
-  Modal
+  Modal,
+  Platform
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native'; 
@@ -178,36 +179,6 @@ const data11 = [
   { label: 'Sighting', value: 'Sighting' },
   { label: 'Listening', value: 'Listening' },
 ];
-
-const addText = () => {
-  if (text.trim()) {
-    setContent([...content, { type: 'text', text }]);
-    setRemark(prevRemark => prevRemark + text + "\n");
-    setText('');
-  }
-};
-
-
-const openCamera1 = () => {
-  launchCamera({ mediaType: 'photo', quality: 1 }, response => {
-    if (response.assets) {
-      const uri = response.assets[0].uri;
-      setContent([...content, { type: 'image', uri }]);
-      setRemark(prevRemark => prevRemark + `Image URI: ${uri}\n`);
-    }
-  });
-};
-
-const openGallery1 = () => {
-  launchImageLibrary({ mediaType: 'photo', quality: 1 }, response => {
-    if (response.assets) {
-      const uri = response.assets[0].uri;
-      setContent([...content, { type: 'image', uri }]);
-      setRemark(prevRemark => prevRemark + `Image URI: ${uri}\n`); 
-    }
-  });
-};
-
 
 const WeatherConditionModal = ({ visible, onClose, onSelect }) => {
   const [cloudCover, setCloudCover] = useState(null);
@@ -380,10 +351,10 @@ const WeatherConditionModal = ({ visible, onClose, onSelect }) => {
   placeholder="Sunshine"
   value={sunshine}
   onChange={item => {
-    setWind(item.value);
+    setSunshine(item.value);
     updateWeatherSummary(cloudCover, rain, wind, item.value);
   }}
-/> 
+/>
 
          
 
@@ -650,8 +621,36 @@ const DropdownComponent = () => {
   const [birdDataArray, setBirdDataArray] = useState([]);
   
 
-  const [content, setContent] = useState([]);
+  const [content, setContent] = useState<Array<{type: string; text?: string; uri?: string}>>([]);
   const [text1, setText1] = useState('');
+
+  const addText = () => {
+    if (text5.trim()) {
+      setContent([...content, { type: 'text', text: text5 }]);
+      setRemark((prevRemark: string) => prevRemark + text5 + "\n");
+      setText5('');
+    }
+  };
+
+  const openCamera1 = () => {
+    launchCamera({ mediaType: 'photo', quality: 1 }, response => {
+      if (response.assets) {
+        const uri = response.assets[0].uri;
+        setContent([...content, { type: 'image', uri }]);
+        setRemark((prevRemark: string) => prevRemark + `Image URI: ${uri}\n`);
+      }
+    });
+  };
+
+  const openGallery1 = () => {
+    launchImageLibrary({ mediaType: 'photo', quality: 1 }, response => {
+      if (response.assets) {
+        const uri = response.assets[0].uri;
+        setContent([...content, { type: 'image', uri }]);
+        setRemark((prevRemark: string) => prevRemark + `Image URI: ${uri}\n`);
+      }
+    });
+  };
 
   const [value1, setValue1] = useState(selectedItemData?.habitatType || '');
   const [value2, setValue2] = useState(selectedItemData?.point || '');
@@ -694,15 +693,12 @@ const [longitude, setLongitude] = useState(
     },
   );
 
-
-
   useEffect(() => {
     retriveEmailFromSQLite();
     retriveAllFromDataSQLite();
   }, []);
 
   useEffect(() => {
-
     db.transaction(tx => {
       tx.executeSql(
         `CREATE TABLE IF NOT EXISTS bird_survey (
@@ -742,6 +738,15 @@ const [longitude, setLongitude] = useState(
         () => console.log('Table created successfully'),
         error => console.log('Error creating table: ', error),
       );
+      tx.executeSql(
+        `CREATE TABLE IF NOT EXISTS failed_submissions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          formData TEXT
+        );`,
+        [],
+        () => console.log('Failed submissions table created successfully'),
+        error => console.log('Error creating failed_submissions table: ', error),
+      );
     });
   }, []);
 
@@ -775,28 +780,17 @@ const [longitude, setLongitude] = useState(
               const formData = JSON.parse(row.formData);
               console.log('Retrying submission:', formData);
 
-
               axios
                 .post(`${API_URL}/form-entry`, formData)
                 .then(response => {
-                  console.log(
-                    'Form submitted successfully after retry:',
-                    response.data,
-                  );
-
+                  console.log('Form submitted successfully after retry:', response.data);
                   const addedId = response.data._id;
                   const uniqueId = response.data.uniqueId;
                   const imageURI = response.data.imageUri;
-                  console.log(
-                    'added id new is ',
-                    addedId,
-                    ' unique id is ',
-                    uniqueId,
-                  );
+                  console.log('added id new is ', addedId, ' unique id is ', uniqueId);
                   deleteFailedSubmission(row.id);
                   console.log('next upload to image server ');
                   uploadImageToServer(imageURI, addedId);
-
                 })
                 .catch(error => {
                   console.error('Retry failed:', error);
@@ -820,7 +814,6 @@ const [longitude, setLongitude] = useState(
         [id],
         () => {
           console.log('Failed submission removed from the queue.');
-          return;
         },
         error => {
           console.error('Error deleting failed submission:', error);
@@ -1154,41 +1147,35 @@ const [longitude, setLongitude] = useState(
             const email = results.rows.item(0).email;
             setEmail(email);
             console.log('Retrieved email profile : ', email);
-            return { email };
           } else {
             console.log('No email and password stored.');
-            return null;
           }
         },
-        error => {
-          console.log('Error querying Users table: ' + error.message);
+        (error) => {
+          console.log('Error querying LoginData table: ' + error.message);
+          return true;
         },
       );
     });
   };
 
 
-  const retriveAllFromDataSQLite = () => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT * FROM bird_survey',
-        [],
-        (tx, results) => {
-          if (results.rows.length > 0) {
-            for (let i = 0; i < results.rows.length; i++) {
-              const row = results.rows.item(i);
-              console.log('Bird Survey Data:', row);
-            }
-          } else {
-            console.log('No bird survey data stored.');
-            return null;
-          }
-        },
-        error => {
-          console.log('Error querying Users table: ' + error.message);
-        },
-      );
-    });
+  const retriveAllFromDataSQLite = async () => {
+    try {
+      const database = dbRef.current;
+      if (!database) return;
+      const [results] = await database.executeSql('SELECT * FROM bird_survey', []);
+      if (results.rows.length > 0) {
+        for (let i = 0; i < results.rows.length; i++) {
+          const row = results.rows.item(i);
+          console.log('Bird Survey Data:', row);
+        }
+      } else {
+        console.log('No bird survey data stored.');
+      }
+    } catch (error: any) {
+      console.log('Error querying bird_survey table: ' + error.message);
+    }
   };
 
   const handleUpdate = async () => {
@@ -1369,26 +1356,25 @@ const [longitude, setLongitude] = useState(
   };
 
   // Save failed submission data in a local queue for retry
-  const storeFailedSubmission = formData => {
-    // You can save failed submissions in a separate table/collection in SQLite for later retries
-    db.transaction(tx => {
-      tx.executeSql(
+  const storeFailedSubmission = async (formData: any) => {
+    try {
+      const database = dbRef.current;
+      if (!database) return;
+      await database.executeSql(
         'INSERT INTO failed_submissions (formData) VALUES (?)',
-        [JSON.stringify(formData)],
-        () => {
-          console.log('Failed submission saved locally.');
-        },
-        error => {
-          console.error('Error saving failed submission:', error);
-        },
+        [JSON.stringify(formData)]
       );
-    });
+      console.log('Failed submission saved locally.');
+    } catch (error) {
+      console.error('Error saving failed submission:', error);
+    }
   };
 
-  const saveFormDataSQL = formData => {
-    // Insert the form data into SQLite
-    db.transaction(tx => {
-      tx.executeSql(
+  const saveFormDataSQL = async (formData: any) => {
+    try {
+      const database = dbRef.current;
+      if (!database) return;
+      const [results] = await database.executeSql(
         `INSERT INTO bird_survey (
         email, uniqueId, habitatType, point, pointTag, latitude, longitude, date, observers,
         startTime, endTime, weather, water, season, statusOfVegy, species,
@@ -1408,7 +1394,7 @@ const [longitude, setLongitude] = useState(
           formData.observers,
           formData.startTime,
           formData.endTime,
-          formData.weather, // Fix: Ensure weather is included
+          formData.weather,
           formData.water,
           formData.season,
           formData.statusOfVegy,
@@ -1427,21 +1413,18 @@ const [longitude, setLongitude] = useState(
           formData.windIntensity,
           formData.sunshineIntensity,
           formData.waterLevel,
-        ],
-        (tx, results) => {
-          if (results.rowsAffected > 0) {
-            console.log('Data inserted successfully local db');
-            saveImage(formData.imageUri, formData.uniqueId);
-            resetForm();
-          } else {
-            console.log('Failed to insert data');
-          }
-        },
-        error => {
-          console.log('Error inserting data: ', error);
-        },
+        ]
       );
-    });
+      if (results.rowsAffected > 0) {
+        console.log('Data inserted successfully local db');
+        saveImage(formData.imageUri, formData.uniqueId);
+        resetForm();
+      } else {
+        console.log('Failed to insert data');
+      }
+    } catch (error) {
+      console.log('Error inserting data: ', error);
+    }
   };
 
   const saveImage = async (imageURi, uniqueId) => {
@@ -2357,7 +2340,7 @@ const [longitude, setLongitude] = useState(
                       style={styles.textInput}
                       placeholder="Write your note..."
                       value={text5}
-                      onChangeText={setText}
+                      onChangeText={setText5}
                       multiline
                     />
                     

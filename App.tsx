@@ -86,6 +86,7 @@ import {GOOGLE_WEB_CLIENT_ID} from './src/config';
 
 // Database
 import {initDatabase} from './src/assets/sql_lite/db_connection';
+import {getDatabase as getUserDatabase} from './src/bird-module/database/db';
 
 // Configure Google Sign-In
 GoogleSignin.configure({
@@ -162,7 +163,11 @@ const App = () => {
     const setupDatabase = async () => {
       try {
         await initDatabase();
-        console.log('Database initialized successfully');
+        console.log('BluTally database initialized successfully');
+        
+        // Initialize user_db database
+        await getUserDatabase();
+        console.log('User database initialized successfully');
       } catch (error) {
         console.error('Failed to initialize database:', error);
       }
