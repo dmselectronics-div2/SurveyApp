@@ -93,7 +93,19 @@ const PieChartModel = () => {
         setBirdData(formattedData);
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching bird data:', error);
+        if (error instanceof Error) {
+          const errorMsg = error.message;
+          if (errorMsg.includes('Network Error') || errorMsg.includes('ECONNREFUSED')) {
+            console.error('[Bird Data API] Backend server at', API_URL, 'is not reachable');
+            console.error('[Bird Data API] Make sure the server is running on the correct IP address');
+          } else if (errorMsg.includes('timeout')) {
+            console.error('[Bird Data API] Request timed out after', 15000, 'ms');
+          } else {
+            console.error('Error fetching bird data:', error);
+          }
+        } else {
+          console.error('Error fetching bird data:', error);
+        }
         // Show default "No Data" in case of error (e.g., offline)
         const formattedData = [{
           name: 'No Data (0%)',

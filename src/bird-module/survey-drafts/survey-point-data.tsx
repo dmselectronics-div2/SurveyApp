@@ -10,6 +10,7 @@ import {
   Alert,
   PermissionsAndroid,
   Appearance,
+  Platform,
 } from 'react-native';
 import { Switch } from 'react-native-elements';
 
@@ -37,7 +38,7 @@ import RadioForm, {
   RadioButtonLabel,
 } from 'react-native-simple-radio-button';
 import { API_URL } from '../../config';
-import SQLite from 'react-native-sqlite-storage';
+import { getDatabase } from '../database/db';
 import NetInfo from '@react-native-community/netinfo';
 import RNFS from 'react-native-fs';
 import { useNavigation } from '@react-navigation/native';
@@ -97,6 +98,7 @@ const SurveyPointData = ({ route }) => {
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   const [FormattedLatitude, setFormattedLatitude] = useState(false);
   const [FormattedLongitude, setFormattedLongitude] = useState(false);
+  const [email, setEmail] = useState('');
 
   const [isFocus5, setIsFocus5] = useState(false);
   const [errors, setErrors] = useState({});
@@ -105,42 +107,37 @@ const SurveyPointData = ({ route }) => {
 
 
 
-  const db = SQLite.openDatabase(
-    { name: 'user_db.db', location: 'default' },
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
-
   useEffect(() => {
-    retriveEmailFromSQLite();
-    retriveAllFromDataSQLite();
-  }, []);
-
-  useEffect(() => {
-    // Create the table if it doesn't exist
-    db.transaction(tx => {
-      tx.executeSql(
-        `CREATE TABLE IF NOT EXISTS bird_survey_points (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          email TEXT,
-          uniqueId TEXT,
-          habitatType TEXT,
-          point TEXT,
-          pointTag TEXT,
-          latitude TEXT,
-          longitude TEXT,
-          observers TEXT,
-          radiusOfArea TEXT
-        );`,
-        [],
-        () => console.log('Table created successfully'),
-        error => console.log('Error creating table: ', error),
-      );
-    });
+    const init = async () => {
+      try {
+        const db = await getDatabase();
+        // Create the table if it doesn't exist
+        db.transaction((tx: any) => {
+          tx.executeSql(
+            `CREATE TABLE IF NOT EXISTS bird_survey_points (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              email TEXT,
+              uniqueId TEXT,
+              habitatType TEXT,
+              point TEXT,
+              pointTag TEXT,
+              latitude TEXT,
+              longitude TEXT,
+              observers TEXT,
+              radiusOfArea TEXT
+            );`,
+            [],
+            () => console.log('Table created successfully'),
+            (error: any) => console.log('Error creating table: ', error),
+          );
+        });
+        retriveEmailFromSQLite(db);
+        retriveAllFromDataSQLite(db);
+      } catch (error) {
+        console.error('Error opening database: ', error);
+      }
+    };
+    init();
   }, []);
 
   // if connection back, save form data in cloud
@@ -159,8 +156,9 @@ const SurveyPointData = ({ route }) => {
     };
   }, []);
 
-  const retryFailedSubmissions = () => {
+  const retryFailedSubmissions = async () => {
     console.log('Attempting to retry failed submissions...');
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM failed_submissions',
@@ -211,7 +209,8 @@ const SurveyPointData = ({ route }) => {
     });
   };
 
-  const deleteFailedSubmission = id => {
+  const deleteFailedSubmission = async (id: any) => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'DELETE FROM failed_submissions WHERE id = ?',
@@ -261,8 +260,8 @@ const SurveyPointData = ({ route }) => {
 
 
   // get email from sqlite
-  const retriveEmailFromSQLite = () => {
-    db.transaction(tx => {
+  const retriveEmailFromSQLite = (db: any) => {
+    db.transaction((tx: any) => {
       tx.executeSql(
         'SELECT email FROM LoginData LIMIT 1',
         [],
@@ -285,8 +284,8 @@ const SurveyPointData = ({ route }) => {
   };
 
   // get email from sqlite
-  const retriveAllFromDataSQLite = () => {
-    db.transaction(tx => {
+  const retriveAllFromDataSQLite = (db: any) => {
+    db.transaction((tx: any) => {
       tx.executeSql(
         'SELECT * FROM bird_survey',
         [],
@@ -323,51 +322,13 @@ const SurveyPointData = ({ route }) => {
 
     console.log("Survey Point:", surveyPoint);
 
-    console.log("Submitting Form Data:", formData);
     if (!isFormValid()) {
       Alert.alert('Error', 'Please fill required fields', [{ text: 'OK' }]);
       return;
     }
 
-
     // Navigate to the CommonData screen and pass the surveyPoint array
     navigation.navigate('TeamData', { surveyPoint, teamMembers });
-
-    // Reset the form after submission
-    // resetForm();
-
-
-    if (!email) {
-      console.log("Error: Email not found");
-      Alert.alert("Error", "User email not found.");
-      return;
-    }
-
-    const now = new Date();
-    const uniqueId = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
-
-    console.log('Unique ID is:', uniqueId);
-
-    const formData = {
-      email: email,
-      uniqueId: uniqueId,
-      habitatType: value1,
-      point: value2 || '',
-      pointTag: value3 || '',
-      latitude: latitude || '',
-      longitude: longitude || '',
-      observers: observers || '',
-      radiusOfArea: radius || '',
-      descriptor: descriptor || '',
-    };
-
-    console.log("Submitting Form Data:", formData);
-
-    // Navigate to the CommonData screen and pass the surveyPoint array
-    navigation.navigate('TeamData', { surveyPoint });
-
-    // Reset the form after submission
-    resetForm();
   };
 
 

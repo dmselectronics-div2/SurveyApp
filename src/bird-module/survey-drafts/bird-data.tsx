@@ -36,7 +36,7 @@ import RadioForm, {
   RadioButtonLabel,
 } from 'react-native-simple-radio-button';
 import {API_URL} from '../../config';
-import SQLite from 'react-native-sqlite-storage';
+import { getDatabase } from '../database/db';
 import NetInfo from '@react-native-community/netinfo';
 import RNFS from 'react-native-fs';
 import birdSpecies from './bird-list';
@@ -202,24 +202,15 @@ const openGallery1 = () => {
 };
 
 
-  const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
-
   useEffect(() => {
     retriveEmailFromSQLite();
     retriveAllFromDataSQLite();
   }, []);
 
   useEffect(() => {
-    
-    db.transaction(tx => {
+    const initDb = async () => {
+      const db = await getDatabase();
+      db.transaction(tx => {
       tx.executeSql(
         `CREATE TABLE IF NOT EXISTS bird_survey (
           id INTEGER PRIMARY KEY AUTOINCREMENT,

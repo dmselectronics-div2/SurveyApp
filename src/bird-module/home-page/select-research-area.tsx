@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import {Button, List} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
-import SQLite from 'react-native-sqlite-storage';
+import { getDatabase } from '../database/db';
 import axios from 'axios';
 import { API_URL } from '../../config';
 
@@ -33,19 +33,9 @@ const SelectResearchArea = ({navigation, route}) => {
   const email = route?.params?.email || null;
   const gName = route?.params?.gName || null;
 
-  // SQLite Database
-  const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened');
-    },
-    err => {
-      console.error('Database error: ', err);
-    },
-  );
-
   // Function to update the pin in SQLite
-  const updateAreaInSQLite = AreaName => {
+  const updateAreaInSQLite = async (AreaName) => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'UPDATE Users SET area = ? WHERE email = ?',

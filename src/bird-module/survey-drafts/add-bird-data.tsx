@@ -10,6 +10,7 @@ import {
   Alert,
   PermissionsAndroid,
   Appearance,
+  Platform,
 } from 'react-native';
 
 import {Dropdown} from 'react-native-element-dropdown';
@@ -36,7 +37,7 @@ import RadioForm, {
   RadioButtonLabel,
 } from 'react-native-simple-radio-button';
 import {API_URL} from '../../config';
-import SQLite from 'react-native-sqlite-storage';
+import { getDatabase } from '../database/db';
 import NetInfo from '@react-native-community/netinfo';
 import RNFS from 'react-native-fs';
 import birdSpecies from './bird-list';
@@ -220,63 +221,57 @@ const openGallery1 = () => {
 };
 
 
-  const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
-
   useEffect(() => {
+    const initDb = async () => {
+      try {
+        const db = await getDatabase();
+        db.transaction((tx: any) => {
+          tx.executeSql(
+            `CREATE TABLE IF NOT EXISTS bird_survey (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              email TEXT,
+              uniqueId TEXT,
+              habitatType TEXT,
+              point TEXT,
+              pointTag TEXT,
+              latitude TEXT,
+              longitude TEXT,
+              date TEXT,
+              observers TEXT,
+              startTime TEXT,
+              endTime TEXT,
+              weather TEXT,
+              water TEXT,
+              season TEXT,
+              statusOfVegy TEXT,
+              species TEXT,
+              count TEXT,
+              maturity TEXT,
+              sex TEXT,
+              behaviour TEXT,
+              identification TEXT,
+              status TEXT,
+              radiusOfArea TEXT,
+              remark TEXT,
+              imageUri TEXT,
+              cloudIntensity TEXT,
+              rainIntensity TEXT,
+              windIntensity TEXT,
+              sunshineIntensity TEXT,
+              waterLevel TEXT
+            );`,
+            [],
+            () => console.log('Table created successfully'),
+            (_tx: any, error: any) => console.log('Error creating table: ', error),
+          );
+        });
+      } catch (error) {
+        console.error('Error initializing database:', error);
+      }
+    };
+    initDb();
     retriveEmailFromSQLite();
     retriveAllFromDataSQLite();
-  }, []);
-
-  useEffect(() => {
-    // Create the table if it doesn't exist
-    db.transaction(tx => {
-      tx.executeSql(
-        `CREATE TABLE IF NOT EXISTS bird_survey (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          email TEXT,
-          uniqueId TEXT,
-          habitatType TEXT,
-          point TEXT,
-          pointTag TEXT,
-          latitude TEXT,
-          longitude TEXT,
-          date TEXT,
-          observers TEXT,
-          startTime TEXT,
-          endTime TEXT,
-          weather TEXT,
-          water TEXT,
-          season TEXT,
-          statusOfVegy TEXT,
-          species TEXT,
-          count TEXT,
-          maturity TEXT,
-          sex TEXT,
-          behaviour TEXT,
-          identification TEXT,
-          status TEXT,
-          radiusOfArea TEXT,
-          remark TEXT,
-          imageUri TEXT,
-          cloudIntensity TEXT,
-          rainIntensity TEXT,
-          windIntensity TEXT,
-          sunshineIntensity TEXT,
-          waterLevel TEXT
-        );`,
-        [],
-        () => console.log('Table created successfully'),
-        error => console.log('Error creating table: ', error),
-      );
-    });
   }, []);
 
   // if connection back, save form data in cloud
@@ -295,9 +290,10 @@ const openGallery1 = () => {
     };
   }, []);
 
-  const retryFailedSubmissions = () => {
+  const retryFailedSubmissions = async () => {
     console.log('Attempting to retry failed submissions...');
-    db.transaction(tx => {
+    const db = await getDatabase();
+    db.transaction((tx: any) => {
       tx.executeSql(
         'SELECT * FROM failed_submissions',
         [],
@@ -370,8 +366,9 @@ const openGallery1 = () => {
   };
 
 
-  const deleteFailedSubmission = id => {
-    db.transaction(tx => {
+  const deleteFailedSubmission = async (id: any) => {
+    const db = await getDatabase();
+    db.transaction((tx: any) => {
       tx.executeSql(
         'DELETE FROM failed_submissions WHERE id = ?',
         [id],
@@ -723,8 +720,9 @@ const openGallery1 = () => {
   };
 
   // get email from sqlite
-  const retriveEmailFromSQLite = () => {
-    db.transaction(tx => {
+  const retriveEmailFromSQLite = async () => {
+    const db = await getDatabase();
+    db.transaction((tx: any) => {
       tx.executeSql(
         'SELECT email FROM LoginData LIMIT 1',
         [],
@@ -747,8 +745,9 @@ const openGallery1 = () => {
   };
 
   // get email from sqlite
-  const retriveAllFromDataSQLite = () => {
-    db.transaction(tx => {
+  const retriveAllFromDataSQLite = async () => {
+    const db = await getDatabase();
+    db.transaction((tx: any) => {
       tx.executeSql(
         'SELECT * FROM bird_survey',
         [],

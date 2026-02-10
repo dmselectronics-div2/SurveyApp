@@ -88,6 +88,9 @@ import {GOOGLE_WEB_CLIENT_ID} from './src/config';
 import {initDatabase} from './src/assets/sql_lite/db_connection';
 import {getDatabase as getUserDatabase} from './src/bird-module/database/db';
 
+// Network utilities
+import {runNetworkDiagnostics} from './src/utils/networkUtils';
+
 // Configure Google Sign-In
 GoogleSignin.configure({
   webClientId: GOOGLE_WEB_CLIENT_ID,
@@ -175,6 +178,22 @@ const App = () => {
     setupDatabase();
   }, []);
 
+  // Run network diagnostics
+  useEffect(() => {
+    const runDiagnostics = async () => {
+      try {
+        const diagnostics = await runNetworkDiagnostics();
+        console.log('[App] Network diagnostics:', diagnostics.summary);
+      } catch (error) {
+        console.error('[App] Error running diagnostics:', error);
+      }
+    };
+    
+    // Run diagnostics after a short delay to allow app to settle
+    const timer = setTimeout(runDiagnostics, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Set the initial route to CitizenStartPage
   useEffect(() => {
     setInitialRoute('CitizenStartPage');
@@ -214,6 +233,7 @@ const App = () => {
           <Stack.Screen name="BluTallyStartPage" component={BluTallyStartPage} />
 
           {/* ============== MODULE SELECTOR ============== */}
+          <Stack.Screen name="Welcome" component={ModuleSelector} />
           <Stack.Screen name="ModuleSelector" component={ModuleSelector} />
 
           {/* ============== BIRD MODULE SCREENS ============== */}

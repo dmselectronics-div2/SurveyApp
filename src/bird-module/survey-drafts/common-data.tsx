@@ -12,6 +12,7 @@ import {
   PermissionsAndroid,
   Appearance,
   Modal,
+  Platform,
 } from 'react-native';
 
 import {Dropdown} from 'react-native-element-dropdown';
@@ -38,7 +39,7 @@ import RadioForm, {
   RadioButtonLabel,
 } from 'react-native-simple-radio-button';
 import {API_URL} from '../../config';
-import SQLite from 'react-native-sqlite-storage';
+import { getDatabase } from '../database/db';
 import NetInfo from '@react-native-community/netinfo';
 import RNFS from 'react-native-fs';
 import { useNavigation } from '@react-navigation/native'; 
@@ -670,26 +671,15 @@ const [isWaterModalVisible, setWaterModalVisible] = useState(false);
     };
   }, []);
 
-  const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
-
   useEffect(() => {
-    retriveEmailFromSQLite();
-    retriveAllFromDataSQLite();
-  }, []);
+    const initDb = async () => {
+      try {
+        const database = await getDatabase();
 
-  useEffect(() => {
-    // Create the table if it doesn't exist
-    db.transaction(tx => {
-      tx.executeSql(
-        `CREATE TABLE IF NOT EXISTS bird_survey (
+        // Create bird_survey table
+        database.transaction((tx: any) => {
+          tx.executeSql(
+            `CREATE TABLE IF NOT EXISTS bird_survey (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT,
     uniqueId TEXT,
@@ -718,20 +708,17 @@ const [isWaterModalVisible, setWaterModalVisible] = useState(false);
     waterLevelOnLand TEXT,
     waterLevelOnResources TEXT,
     teamMembers TEXT
-);
-`,
-        [],
-        () => console.log('Table created successfully'),
-        error => console.log('Error creating table: ', error),
-      );
-    });
-  }, []);
+);`,
+            [],
+            () => console.log('bird_survey table created successfully'),
+            (_tx: any, error: any) => console.log('Error creating table: ', error),
+          );
+        });
 
-  useEffect(() => {
-    // Create the table if it doesn't exist
-    db.transaction(tx => {
-      tx.executeSql(
-        `CREATE TABLE IF NOT EXISTS bird_observations (
+        // Create bird_observations table
+        database.transaction((tx: any) => {
+          tx.executeSql(
+            `CREATE TABLE IF NOT EXISTS bird_observations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     uniqueId TEXT,
     species TEXT,
@@ -743,13 +730,20 @@ const [isWaterModalVisible, setWaterModalVisible] = useState(false);
     status TEXT,
     remarks TEXT,
     imageUri TEXT
-);
-`,
-        [],
-        () => console.log('Table created successfully'),
-        error => console.log('Error creating table: ', error),
-      );
-    });
+);`,
+            [],
+            () => console.log('bird_observations table created successfully'),
+            (_tx: any, error: any) => console.log('Error creating table: ', error),
+          );
+        });
+
+        retriveEmailFromSQLite();
+        retriveAllFromDataSQLite();
+      } catch (error) {
+        console.error('Error opening database: ', error);
+      }
+    };
+    initDb();
   }, []);
 
   // if connection back, save form data in cloud
@@ -778,8 +772,9 @@ const handleWeatherSelect = (data) => {
 };
 
 
-  const retryFailedSubmissions = () => {
+  const retryFailedSubmissions = async () => {
     console.log('Attempting to retry failed submissions...');
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM failed_submissions',  // Assuming you have a table for failed submissions
@@ -820,7 +815,8 @@ const handleWeatherSelect = (data) => {
     });
   };
 
- const deleteFailedSubmission = (id) => {
+ const deleteFailedSubmission = async (id) => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'DELETE FROM failed_submissions WHERE id = ?',
@@ -834,7 +830,8 @@ const handleWeatherSelect = (data) => {
       );
     });
   };
-  const storeFailedSubmission = (formData) => {
+  const storeFailedSubmission = async (formData) => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         `INSERT INTO failed_submissions (formData) VALUES (?)`,
@@ -1167,7 +1164,8 @@ const handleWeatherSelect = (data) => {
   };
 
   // get email from sqlite
-  const retriveEmailFromSQLite = () => {
+  const retriveEmailFromSQLite = async () => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT email FROM LoginData LIMIT 1',
@@ -1191,7 +1189,8 @@ const handleWeatherSelect = (data) => {
   };
 
   // get email from sqlite
-  const retriveAllFromDataSQLite = () => {
+  const retriveAllFromDataSQLite = async () => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         `SELECT 
@@ -1434,7 +1433,8 @@ const uploadPathToServer = async (uri, addedId) => {
   }, [surveyPoint, teamMembers, submittedData]);
   
 
-  const saveFormDataSQL = (formData, navigation, resetForm) => {
+  const saveFormDataSQL = async (formData, navigation, resetForm) => {
+    const db = await getDatabase();
     db.transaction((tx) => {
       // Track successful inserts
       let successfulObservations = 0;

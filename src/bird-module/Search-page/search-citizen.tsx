@@ -17,7 +17,7 @@ import MypureTable from '../data-table/search-table';
 import { API_URL } from '../../config';
 import SurveyFormPage from '../Edit-Survey/Edit-survey';
 import SelectEditMode from '../Edit-Survey/Edit-permition';
-import SQLite from 'react-native-sqlite-storage';
+import { getDatabase } from '../database/db';
 import MyCitizenTable from '../data-table/data-table-display';
 
 // Define the themes
@@ -57,19 +57,10 @@ const CitySearchPage = ({ setShowCitizen }) => {
   console.log('Search by date page');
   const [email, setEmail] = useState('');
 
-  const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
-
   console.log('row data are ', rowEmail);
 
-  const showData = () => {
+  const showData = async () => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM Users',
@@ -88,7 +79,8 @@ const CitySearchPage = ({ setShowCitizen }) => {
     });
   };
 
-  const retriveEmailFromSQLite = () => {
+  const retriveEmailFromSQLite = async () => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT email FROM LoginData LIMIT 1',

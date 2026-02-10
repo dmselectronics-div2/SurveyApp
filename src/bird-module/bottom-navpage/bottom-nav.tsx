@@ -114,29 +114,44 @@ const BottomNav = () => {
         const db = await getDatabase();
 
         // Get email from LoginData
-        const [loginResults] = await db.executeSql('SELECT email FROM LoginData', []);
-        if (loginResults.rows.length > 0) {
-          const emailLocal = loginResults.rows.item(0).email;
-          console.log('emailLocal ', emailLocal);
+        db.transaction((tx: any) => {
+          tx.executeSql(
+            'SELECT email FROM LoginData',
+            [],
+            (tx: any, loginResults: any) => {
+              if (loginResults.rows.length > 0) {
+                const emailLocal = loginResults.rows.item(0).email;
+                console.log('emailLocal ', emailLocal);
 
-          // Get avatar from Users
-          const [userResults] = await db.executeSql(
-            'SELECT userImageUrl FROM Users WHERE email = ?',
-            [emailLocal],
+                // Get avatar from Users
+                tx.executeSql(
+                  'SELECT userImageUrl FROM Users WHERE email = ?',
+                  [emailLocal],
+                  (_tx: any, userResults: any) => {
+                    if (userResults.rows.length > 0) {
+                      const retrieveImage = userResults.rows.item(0).userImageUrl;
+                      if (retrieveImage) {
+                        setAvatarUri(retrieveImage);
+                      } else {
+                        setAvatarUri('../../assets/image/prof.jpg');
+                      }
+                    } else {
+                      console.log('No user found in SQLite');
+                    }
+                  },
+                  (error: any) => {
+                    console.log('Error querying Users: ' + error.message);
+                  },
+                );
+              } else {
+                console.log('No Email');
+              }
+            },
+            (error: any) => {
+              console.log('Error querying LoginData: ' + error.message);
+            },
           );
-          if (userResults.rows.length > 0) {
-            const retrieveImage = userResults.rows.item(0).userImageUrl;
-            if (retrieveImage) {
-              setAvatarUri(retrieveImage);
-            } else {
-              setAvatarUri('../../assets/image/prof.jpg');
-            }
-          } else {
-            console.log('No user found in SQLite');
-          }
-        } else {
-          console.log('No Email');
-        }
+        });
       } catch (error: any) {
         console.log('Error querying database: ' + error.message);
       }

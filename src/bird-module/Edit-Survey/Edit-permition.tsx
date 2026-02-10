@@ -13,7 +13,7 @@ import {useNavigation} from '@react-navigation/native';
 import {useRoute} from '@react-navigation/native';
 import EditCount from './Edit-count';
 import SurveyFormPage from './Edit-survey';
-import SQLite from 'react-native-sqlite-storage';
+import { getDatabase } from '../database/db';
 // import { useNavigation } from '@react-navigation/native'; 
 
 // Define the custom theme
@@ -52,19 +52,8 @@ const SelectEditMode = ({rowData, setIsEditMode}) => {
   const [showBirdEditForm, setshowBirdEditForm] = useState(false);
   // const [isEditMode, setIsEditMode] = useState(false);
 
-  const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
-
-  // console.log('row data email ', rowData.email);
-
-  const showData = () => {
+  const showData = async () => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM Users',
@@ -83,7 +72,8 @@ const SelectEditMode = ({rowData, setIsEditMode}) => {
     });
   };
 
-  const retriveEmailFromSQLite = () => {
+  const retriveEmailFromSQLite = async () => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT email FROM LoginData LIMIT 1',

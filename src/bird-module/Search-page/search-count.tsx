@@ -14,7 +14,7 @@ import { Button, IconButton } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MyCountTable from '../count-table/count-table';
-import SQLite from 'react-native-sqlite-storage';
+import { getDatabase } from '../database/db';
 import DateTimePicker from '@react-native-community/datetimepicker';
 // Define the custom themes
 const themes = {
@@ -53,19 +53,10 @@ const SearchCount = ({ setShowBirdCount }) => {
 
   console.log('Search by Count page');
 
-  const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
-
   console.log('row data are ', rowEmail);
 
-  const showData = () => {
+  const showData = async () => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM Users',
@@ -84,7 +75,8 @@ const SearchCount = ({ setShowBirdCount }) => {
     });
   };
 
-  const retriveEmailFromSQLite = () => {
+  const retriveEmailFromSQLite = async () => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT email FROM LoginData LIMIT 1',

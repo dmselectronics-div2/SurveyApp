@@ -24,7 +24,7 @@ import * as Keychain from 'react-native-keychain';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import {Dropdown} from 'react-native-element-dropdown';
 import {useNavigation} from '@react-navigation/native';
-import SQLite from 'react-native-sqlite-storage';
+import { getDatabase } from '../../database/db';
 import {API_URL} from '../../../config';
 import axios from 'axios';
 
@@ -148,7 +148,8 @@ const ProfileImageChange = () => {
   };
 
   // Save data in SQLite
-  const saveUserToSQLite = (url, email) => {
+  const saveUserToSQLite = async (url, email) => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM Users LIMIT 1',
@@ -273,19 +274,9 @@ const ProfileImageChange = () => {
     retrieveEmailSecurely();
   }, []);
 
-  // Open the SQLite database
-  const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
-
   // Function to retrieve email from SQLite
-  const retrieveNameFromSQLite = userEmail => {
+  const retrieveNameFromSQLite = async (userEmail) => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT name, area, userImageUrl FROM Users WHERE email = ?',

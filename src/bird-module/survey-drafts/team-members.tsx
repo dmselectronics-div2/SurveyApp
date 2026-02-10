@@ -12,72 +12,51 @@ import { TextInput, Button, IconButton } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import SQLite from 'react-native-sqlite-storage';
 import { API_URL } from '../../config';
 import axios from 'axios';
-import { useNetInfo } from '@react-native-community/netinfo'; // Install @react-native-community/netinfo for connectivity
-
-// Inside your component
-
-API_URL
+import { useNetInfo } from '@react-native-community/netinfo';
+import { getDatabase } from '../database/db';
 
 const { width } = Dimensions.get('window');
  
 
-const TeamData = ({ route }) => {
+const TeamData = ({ route }: any) => {
   const [teamMember, setTeamMember] = useState('');
-  const [teamMembers, setTeamMembers] = useState([]);
-  const [editIndex, setEditIndex] = useState(null); 
-  const [email, setEmail] = useState(null);// State to keep track of the member being edited
-  const navigation = useNavigation();
-  const [selectedMembers, setSelectedMembers] = useState([]);
+  const [teamMembers, setTeamMembers] = useState<string[]>([]);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
+  const navigation = useNavigation<any>();
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const netInfo = useNetInfo();
 
-  const db = SQLite.openDatabase(
-      {name: 'user_db.db', location: 'default'},
-      () => {
-        console.log('Database opened successfully');
-      },
-      error => {
-        console.error('Error opening database: ', error);
-      },
-    );
-  
-    useEffect(() => {
-      if (netInfo.isConnected) {
-        fetchTeamMembers();  // Fetch from API if connected
-      } else {
-        fetchTeamMembersFromSQLite(); // Fetch from SQLite if offline
-      }
-    }, [netInfo.isConnected]);
-
   useEffect(() => {
-    retriveEmailFromSQLite();
-    // retriveAllFromDataSQLite();
+    const init = async () => {
+      try {
+        const db = await getDatabase();
+        db.transaction((tx: any) => {
+          tx.executeSql(
+            'SELECT email FROM LoginData LIMIT 1',
+            [],
+            (_tx: any, results: any) => {
+              if (results.rows.length > 0) {
+                const emailVal = results.rows.item(0).email;
+                setEmail(emailVal);
+                console.log('Retrieved email profile : ', emailVal);
+              } else {
+                console.log('No email and password stored.');
+              }
+            },
+            (_tx: any, error: any) => {
+              console.log('Error querying Users table: ' + error.message);
+            },
+          );
+        });
+      } catch (error) {
+        console.error('Error opening database: ', error);
+      }
+    };
+    init();
   }, []);
-
-  const retriveEmailFromSQLite = () => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT email FROM LoginData LIMIT 1',
-        [],
-        (tx, results) => {
-          if (results.rows.length > 0) {
-            const email = results.rows.item(0).email;
-            setEmail(email);
-            console.log('Retrieved email profile : ', email);
-            return {email};
-          } else {
-            console.log('No email and password stored.');
-            return null;
-          }
-        },
-        error => {
-          console.log('Error querying Users table: ' + error.message);
-        },
-      );
-    });
-  };
 
   // Retrieve surveyPoint data from route.params
   const { surveyPoint } = route.params || {};
@@ -179,26 +158,31 @@ const TeamData = ({ route }) => {
     }
   }, [email]);
   
-  const fetchTeamMembersFromSQLite = () => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT teamMembers FROM bird_survey LIMIT 1', // Adjust this query based on your table structure
-        [],
-        (tx, results) => {
-          if (results.rows.length > 0) {
-            const teamMembers = JSON.parse(results.rows.item(0).teamMembers); // Assuming teamMembers is stored as a JSON string
-            setTeamMembers(teamMembers);
-          } else {
-            console.log('No team members found in SQLite');
+  const fetchTeamMembersFromSQLite = async () => {
+    try {
+      const db = await getDatabase();
+      db.transaction((tx: any) => {
+        tx.executeSql(
+          'SELECT teamMembers FROM bird_survey LIMIT 1',
+          [],
+          (_tx: any, results: any) => {
+            if (results.rows.length > 0) {
+              const members = JSON.parse(results.rows.item(0).teamMembers);
+              setTeamMembers(members);
+            } else {
+              console.log('No team members found in SQLite');
+            }
+          },
+          (_tx: any, error: any) => {
+            console.log('Error querying team members table: ', error);
           }
-        },
-        error => {
-          console.log('Error querying team members table: ', error);
-        }
-      );
-    });
+        );
+      });
+    } catch (error) {
+      console.error('Error fetching team members from SQLite:', error);
+    }
   };
-  
+
   const fetchTeamMembers = async () => {
     try {
       const response = await axios.get(`${API_URL}/getTeamMembers`, {
@@ -214,33 +198,28 @@ const TeamData = ({ route }) => {
     }
   };
 
-  const saveTeamMembersToSQLite = (teamMembers) => {
-    const teamMembersString = JSON.stringify(teamMembers); // Convert to JSON string before saving
-    
-    db.transaction(tx => {
-      tx.executeSql(
-        'INSERT INTO bird_survey (email, teamMembers) VALUES (?, ?)',
-        [email, teamMembersString],
-        (tx, results) => {
-          if (results.rowsAffected > 0) {
-            console.log('Team members saved locally.');
-          } else {
-            console.log('Failed to save team members locally.');
+  const saveTeamMembersToSQLite = async (members: string[]) => {
+    try {
+      const db = await getDatabase();
+      const teamMembersString = JSON.stringify(members);
+      db.transaction((tx: any) => {
+        tx.executeSql(
+          'INSERT INTO bird_survey (email, teamMembers) VALUES (?, ?)',
+          [email, teamMembersString],
+          (_tx: any, results: any) => {
+            if (results.rowsAffected > 0) {
+              console.log('Team members saved locally.');
+            } else {
+              console.log('Failed to save team members locally.');
+            }
+          },
+          (_tx: any, error: any) => {
+            console.log('Error saving team members to SQLite: ', error);
           }
-        },
-        error => {
-          console.log('Error saving team members to SQLite: ', error);
-        }
-      );
-    });
-  };
-  
-  
-  const toggleMemberSelection = (member) => {
-    if (selectedMembers.includes(member)) {
-      setSelectedMembers(selectedMembers.filter((m) => m !== member));
-    } else {
-      setSelectedMembers([...selectedMembers, member]);
+        );
+      });
+    } catch (error) {
+      console.error('Error saving team members to SQLite:', error);
     }
   };
 

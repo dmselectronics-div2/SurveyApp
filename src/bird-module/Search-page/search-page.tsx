@@ -16,7 +16,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MyDataTable from '../data-table/display-table';
 import SelectEditMode from '../Edit-Survey/Edit-permition';
-import SQLite from 'react-native-sqlite-storage';
+import { getDatabase } from '../database/db';
 
 const themes = {
   light: {

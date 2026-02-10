@@ -4,10 +4,29 @@ import { Dropdown } from 'react-native-element-dropdown';
 import NetInfo from '@react-native-community/netinfo';
 import SQLite from 'react-native-sqlite-storage';
 
-SQLite.enablePromise(true);
+// Use callback-style wrapper to avoid SQLite.enablePromise(true) which breaks other files
+const openDatabase = (): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    const database = SQLite.openDatabase(
+      { name: 'app.db', location: 'default' },
+      () => resolve(database),
+      (error) => reject(error),
+    );
+  });
+};
 
-const openDatabase = async () => {
-  return SQLite.openDatabase({ name: 'app.db', location: 'default' });
+// Promise wrapper for executeSql using callback-style API
+const executeSqlPromise = (db: any, sql: string, params: any[] = []): Promise<[any]> => {
+  return new Promise((resolve, reject) => {
+    db.transaction((tx: any) => {
+      tx.executeSql(
+        sql,
+        params,
+        (_tx: any, results: any) => resolve([results]),
+        (_tx: any, error: any) => { reject(error); return false; },
+      );
+    });
+  });
 };
 
 const CustomDropdown = ({
@@ -50,7 +69,7 @@ const CustomDropdown = ({
   }, []);
 
   const initTable = async (db) => {
-    await db.executeSql(
+    await executeSqlPromise(db,
       `CREATE TABLE IF NOT EXISTS ${tableName} (
          id INTEGER PRIMARY KEY AUTOINCREMENT,
          label TEXT NOT NULL,
@@ -61,24 +80,24 @@ const CustomDropdown = ({
   };
 
   const insertValue = async (db, label, value) => {
-    await db.executeSql(
+    await executeSqlPromise(db,
       `INSERT OR IGNORE INTO ${tableName} (label, value, synced) VALUES (?, ?, 0);`,
       [label, value]
     );
   };
 
   const getAllValues = async (db) => {
-    const [results] = await db.executeSql(`SELECT * FROM ${tableName};`);
+    const [results] = await executeSqlPromise(db,`SELECT * FROM ${tableName};`);
     return results.rows.raw();
   };
 
   const getUnsyncedValues = async (db) => {
-    const [results] = await db.executeSql(`SELECT * FROM ${tableName} WHERE synced = 0;`);
+    const [results] = await executeSqlPromise(db,`SELECT * FROM ${tableName} WHERE synced = 0;`);
     return results.rows.raw();
   };
 
   const markValueAsSynced = async (db, id) => {
-    await db.executeSql(`UPDATE ${tableName} SET synced = 1 WHERE id = ?;`, [id]);
+    await executeSqlPromise(db,`UPDATE ${tableName} SET synced = 1 WHERE id = ?;`, [id]);
   };
 
   const loadLocalData = async (db) => {

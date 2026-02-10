@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Image, Swi
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import { API_URL } from '../../config';
-import SQLite from 'react-native-sqlite-storage';
+import { getDatabase } from '../database/db';
 
 const formatValue = (value) => {
   if (value instanceof Date) {
@@ -18,17 +18,8 @@ const MyCitizenTable = ({ startDate, endDate }) => {
   const [email, setEmail] = useState('');
   const [isDarkTheme, setIsDarkTheme] = useState(false);
 
-  const db = SQLite.openDatabase(
-    { name: 'user_db.db', location: 'default' },
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
-
-  const showData = () => {
+  const showData = async () => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM Users',
@@ -47,7 +38,8 @@ const MyCitizenTable = ({ startDate, endDate }) => {
     });
   };
 
-  const retriveEmailFromSQLite = () => {
+  const retriveEmailFromSQLite = async () => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT email FROM LoginData LIMIT 1',

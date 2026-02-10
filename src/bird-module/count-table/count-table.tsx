@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { API_URL } from '../../config';
-import SQLite from 'react-native-sqlite-storage';
+import { getDatabase } from '../database/db';
 
 const formatValue = (value) => {
   if (value instanceof Date) {
@@ -18,23 +18,12 @@ const MyCountTable = ({ species, startDate, endDate }) => {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [email, setEmail] = useState(null);
 
-  const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
-
-
 useEffect(() => {
   retriveEmailFromSQLite();
-  // retriveAllFromDataSQLite();
 }, []);
 
-const retriveEmailFromSQLite = () => {
+const retriveEmailFromSQLite = async () => {
+  const db = await getDatabase();
   db.transaction(tx => {
     tx.executeSql(
       'SELECT email FROM LoginData LIMIT 1',

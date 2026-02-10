@@ -13,31 +13,19 @@ import {
 import axios from 'axios';
 import CollectionCard from './collection-card'; // Adjust the path as needed
 import { API_URL } from '../../config';
-import SQLite from 'react-native-sqlite-storage';
-API_URL
+import { getDatabase } from '../database/db';
 
 const CollectionPage = () => {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState(null);// State to keep track of the member being edited
 
-  const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
-
-
 useEffect(() => {
   retriveEmailFromSQLite();
-  // retriveAllFromDataSQLite();
 }, []);
 
-const retriveEmailFromSQLite = () => {
+const retriveEmailFromSQLite = async () => {
+  const db = await getDatabase();
   db.transaction(tx => {
     tx.executeSql(
       'SELECT email FROM LoginData LIMIT 1',

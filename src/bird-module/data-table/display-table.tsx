@@ -4,7 +4,7 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image, Alert } fr
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import { API_URL } from '../../config';
-import SQLite from 'react-native-sqlite-storage';
+import { getDatabase } from '../database/db';
 import RNFS from 'react-native-fs';
 // import { PermissionsAndroid, Platform } from 'react-native';
 import { PermissionsAndroid, Platform } from 'react-native';
@@ -57,17 +57,8 @@ const MyDataTable = ({ point, startDate, endDate }) => {
 
  
   
-  const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
-
-  const showData = () => {
+  const showData = async () => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM Users',
@@ -88,7 +79,8 @@ const MyDataTable = ({ point, startDate, endDate }) => {
 
 
 
-  const retriveEmailFromSQLite = () => {
+  const retriveEmailFromSQLite = async () => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT email FROM LoginData LIMIT 1',

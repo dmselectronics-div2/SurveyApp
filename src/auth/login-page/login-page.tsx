@@ -18,6 +18,7 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import axios from 'axios';
 import {API_URL} from '../../config';
+import {setLoginEmail} from '../../assets/sql_lite/db_connection';
 import ReactNativeBiometrics from 'react-native-biometrics';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 
@@ -88,6 +89,7 @@ const LoginPage = ({route}: any) => {
           navigation.navigate('PrivacyPolicy', {email, name});
         } else if (res.data.status === 'google') {
           console.log('D');
+          setLoginEmail(email);
           Alert.alert('Success', 'Logged in successfully');
           navigation.navigate('Welcome', {email});
         } else if (res.data.status === 'notgoogle') {
@@ -123,6 +125,7 @@ const LoginPage = ({route}: any) => {
         setLoading(false);
         console.log('Response:', res.data);
         if (res.data.status === 'ok') {
+          setLoginEmail(email);
           Alert.alert('Success', 'Logged in successfully');
           navigation.navigate('Welcome', {email});
         } else if (res.data.status === 'google') {
