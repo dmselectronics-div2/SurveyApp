@@ -17,8 +17,6 @@ import { Checkbox } from 'react-native-paper';
 const SignupSurveyType = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const email = route.params?.email || '';
-  const name = route.params?.name || '';
   const role = route.params?.role || '';
 
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -50,13 +48,13 @@ const SignupSurveyType = () => {
       return;
     }
     navigation.navigate('SignupResearchAreas', {
-      email, name, role, surveyTypes: selectedTypes,
+      role, surveyTypes: selectedTypes,
     });
   };
 
   return (
     <ImageBackground
-      source={require('../../assets/image/welcome.jpg')}
+      source={require('../../assets/image/Nature.jpg')}
       style={styles.backgroundImage}
     >
       <View style={styles.overlay}>

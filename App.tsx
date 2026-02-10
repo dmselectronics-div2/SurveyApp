@@ -205,9 +205,9 @@ const App = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Set the initial route to LoginWelcome
+  // Set the initial route
   useEffect(() => {
-    setInitialRoute('LoginWelcome');
+    setInitialRoute('CitizenStartPage');
   }, []);
 
   // Return null or a loader until the initial route is determined

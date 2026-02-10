@@ -21,6 +21,9 @@ const SignupForm = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const selectedRole = route.params?.role || '';
+  const surveyTypes = route.params?.surveyTypes || [];
+  const researchAreas = route.params?.researchAreas || [];
+  const periodicalCategories = route.params?.periodicalCategories || [];
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -108,8 +111,16 @@ const SignupForm = () => {
         }
         saveUserToSQLite(email, password, fullName);
         await axios.post(`${API_URL}/add-username`, { email, name: fullName });
-        await axios.post(`${API_URL}/save-signup-details`, { email, role: selectedRole });
-        handleSendCode();
+        await axios.post(`${API_URL}/save-signup-details`, {
+          email,
+          role: selectedRole,
+          surveyTypes,
+          researchAreas,
+          periodicalCategories,
+        });
+        setLoading(false);
+        Alert.alert('Success', 'Registration successful!');
+        navigation.navigate('SignupSuccess');
       } else {
         Alert.alert('Error', response.data.data || 'Registration failed');
         setLoading(false);
@@ -121,23 +132,9 @@ const SignupForm = () => {
     }
   };
 
-  const handleSendCode = async () => {
-    try {
-      const response = await axios.post(`${API_URL}/send-confirmation-email`, { email });
-      const { confirmationCode } = response.data;
-      setLoading(false);
-      Alert.alert('Success', 'Please check your email for the verification code.');
-      navigation.navigate('VerifyEmail', { email, confirmationCode, name: fullName, role: selectedRole });
-    } catch (err) {
-      setLoading(false);
-      console.error('Failed to send confirmation email:', err);
-      Alert.alert('Error', 'Failed to send confirmation email. Please try again.');
-    }
-  };
-
   return (
     <ImageBackground
-      source={require('../../assets/image/welcome.jpg')}
+      source={require('../../assets/image/Nature.jpg')}
       style={styles.backgroundImage}
     >
       <View style={styles.overlay}>

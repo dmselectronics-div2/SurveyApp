@@ -17,8 +17,6 @@ import { Checkbox } from 'react-native-paper';
 const SignupPeriodicalCategories = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const email = route.params?.email || '';
-  const name = route.params?.name || '';
   const role = route.params?.role || '';
   const surveyTypes = route.params?.surveyTypes || [];
   const researchAreas = route.params?.researchAreas || [];
@@ -75,14 +73,14 @@ const SignupPeriodicalCategories = () => {
       Alert.alert('Error', 'Please select at least one category');
       return;
     }
-    navigation.navigate('SignupPersonalDetails', {
-      email, name, role, surveyTypes, researchAreas, periodicalCategories: selectedCategories,
+    navigation.navigate('SignupForm', {
+      role, surveyTypes, researchAreas, periodicalCategories: selectedCategories,
     });
   };
 
   return (
     <ImageBackground
-      source={require('../../assets/image/welcome.jpg')}
+      source={require('../../assets/image/Nature.jpg')}
       style={styles.backgroundImage}
     >
       <View style={styles.overlay}>

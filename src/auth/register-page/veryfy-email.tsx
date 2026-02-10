@@ -89,7 +89,7 @@ const VerifyEmail = ({ navigation, route }: any) => {
         () => {
           console.log('Email Confirmation status updated in SQLite');
           Alert.alert('Success', 'Email verified successfully');
-          navigation.navigate('SignupSurveyType', { email, name: gName, role });
+          navigation.navigate('SignupSuccess');
         },
         (error: any) => console.error('Error updating Email Confirmation status:', error.message),
       );

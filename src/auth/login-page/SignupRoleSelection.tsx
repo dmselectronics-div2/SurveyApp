@@ -71,7 +71,7 @@ const SignupRoleSelection = () => {
       return;
     }
     // Navigate to the next signup step with selected role
-    navigation.navigate('SignupForm', { role: selectedRole });
+    navigation.navigate('SignupSurveyType', { role: selectedRole });
   };
 
   const RoleOption = ({ item }: any) => (
@@ -104,7 +104,7 @@ const SignupRoleSelection = () => {
 
   return (
     <ImageBackground
-      source={require('../../assets/image/welcome.jpg')}
+      source={require('../../assets/image/Nature.jpg')}
       style={styles.backgroundImage}
     >
       <View style={styles.overlay}>

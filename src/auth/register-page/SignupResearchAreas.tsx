@@ -17,8 +17,6 @@ import { Checkbox } from 'react-native-paper';
 const SignupResearchAreas = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const email = route.params?.email || '';
-  const name = route.params?.name || '';
   const role = route.params?.role || '';
   const surveyTypes = route.params?.surveyTypes || [];
 
@@ -72,18 +70,18 @@ const SignupResearchAreas = () => {
     const hasPeriodical = surveyTypes.includes('Periodical/monthly');
     if (hasPeriodical) {
       navigation.navigate('SignupPeriodicalCategories', {
-        email, name, role, surveyTypes, researchAreas: selectedAreas,
+        role, surveyTypes, researchAreas: selectedAreas,
       });
     } else {
-      navigation.navigate('SignupPersonalDetails', {
-        email, name, role, surveyTypes, researchAreas: selectedAreas, periodicalCategories: [],
+      navigation.navigate('SignupForm', {
+        role, surveyTypes, researchAreas: selectedAreas, periodicalCategories: [],
       });
     }
   };
 
   return (
     <ImageBackground
-      source={require('../../assets/image/welcome.jpg')}
+      source={require('../../assets/image/Nature.jpg')}
       style={styles.backgroundImage}
     >
       <View style={styles.overlay}>

@@ -193,7 +193,7 @@ const SigninForm = ({navigation}: any) => {
 
   return (
     <ImageBackground
-      source={require('../../assets/image/welcome.jpg')}
+      source={require('../../assets/image/Nature.jpg')}
       style={styles.backgroundImage}>
       <View style={styles.overlay}>
         <TouchableOpacity
@@ -326,6 +326,14 @@ const SigninForm = ({navigation}: any) => {
               <Text style={styles.signUpLink}>Sign up</Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            style={styles.nextButton}
+            onPress={() => navigation.replace('Welcome')}
+            activeOpacity={0.8}>
+            <Text style={styles.nextButtonText}>Next</Text>
+            <MaterialIcon name="arrow-forward" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
       </View>
     </ImageBackground>
@@ -429,6 +437,17 @@ const styles = StyleSheet.create({
   signUpContainer: {flexDirection: 'row', justifyContent: 'center', alignItems: 'center'},
   signUpText: {fontSize: 12, color: '#666'},
   signUpLink: {fontSize: 12, color: '#4A7856', fontWeight: '700', textDecorationLine: 'underline'},
+  nextButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4A7856',
+    paddingVertical: 12,
+    borderRadius: 25,
+    marginTop: 16,
+    gap: 8,
+  },
+  nextButtonText: {fontSize: 14, fontWeight: '600', color: '#FFFFFF'},
 });
 
 export default SigninForm;

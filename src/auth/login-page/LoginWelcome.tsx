@@ -35,17 +35,17 @@ const LoginWelcome = () => {
 
   return (
     <ImageBackground
-      source={require('../../assets/image/welcome.jpg')}
+      source={require('../../assets/image/Nature.jpg')}
       style={styles.backgroundImage}
     >
       <View style={styles.overlay}>
         {/* Logo Container */}
-        <View style={styles.logoContainer}>
+        {/* <View style={styles.logoContainer}>
           <View style={styles.logo}>
             <Icon name="eco" size={48} color="#4A7856" />
           </View>
           <Text style={styles.appName}>DATA FOR BLUE CARBON ECOSYSTEMS</Text>
-        </View>
+        </View> */}
 
         {/* Welcome Text */}
         <View style={styles.welcomeContainer}>
