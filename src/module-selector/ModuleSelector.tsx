@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Platform,
   StatusBar,
+  ScrollView,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -29,6 +30,27 @@ const ModuleSelector: React.FC = () => {
       description: 'Bivalve & gastropod observation and monitoring data collection',
       icon: 'snail',
       screen: 'MangroveNew',
+    },
+    {
+      id: 'phenology',
+      title: 'Phenology Survey',
+      description: 'Plant phenology and seasonal observation data collection',
+      icon: 'flower',
+      screen: 'PhenologySurvey',
+    },
+    {
+      id: 'butterfly',
+      title: 'Butterfly Survey',
+      description: 'Butterfly observation and monitoring data collection',
+      icon: 'butterfly',
+      screen: 'ButterflyBottomNav',
+    },
+    {
+      id: 'water',
+      title: 'Water Survey',
+      description: 'Water quality and aquatic ecosystem observation data collection',
+      icon: 'water',
+      screen: 'WaterSurvey',
     },
    
   ];
@@ -61,7 +83,10 @@ const ModuleSelector: React.FC = () => {
         </View>
 
         {/* Module Buttons */}
-        <View style={styles.container}>
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={true}>
           {modules.map(module => (
             <TouchableOpacity
               key={module.id}
@@ -77,7 +102,7 @@ const ModuleSelector: React.FC = () => {
               </View>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
 
       </View>
     </ImageBackground>
@@ -153,11 +178,14 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  container: {
+  scrollView: {
     flex: 1,
+    paddingHorizontal: 30,
+  },
+  scrollContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 30,
+    paddingVertical: 20,
   },
   button: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
