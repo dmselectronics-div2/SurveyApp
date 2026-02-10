@@ -25,7 +25,7 @@ const OptionSelection = () => {
     };
 
     const handleScientistPress = () => {
-        navigation.navigate('ModuleSelector');
+        navigation.navigate('LoginWelcome');
     };
 
     const handleBackPress = () => {
