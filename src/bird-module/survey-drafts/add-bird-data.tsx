@@ -4,12 +4,10 @@ import {
   Text,
   StyleSheet,
   Image,
-  ImageBackground,
   ScrollView,
   TouchableOpacity,
   Alert,
   PermissionsAndroid,
-  Appearance,
   Platform,
 } from 'react-native';
 
@@ -114,7 +112,7 @@ const data11 = [
 ];
 
 const BirdDataRecord = ({route}) => {
-  const [theme, setTheme] = useState(Appearance.getColorScheme());
+  // theme removed - light mode only
   const [newId, setNewId] = useState(null);
   const [value1, setValue1] = useState(null);
   const [isFocus1, setIsFocus1] = useState(false);
@@ -879,24 +877,13 @@ const openGallery1 = () => {
     }
   };
 
-  useEffect(() => {
-    const subscription = Appearance.addChangeListener(({colorScheme}) => {
-      setTheme(colorScheme);
-    });
-    return () => subscription.remove();
-  }, []);
-
-  const isDarkMode = theme === 'dark';
-
   return (
-    <ImageBackground
-      source={require('../../assets/image/imageD1.jpg')}
-      style={styles.backgroundImage}>
+    <View style={styles.safeArea}>
          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                       <IconButton
                         icon="arrow-left"
-                        iconColor="#000"
-                        size={30}
+                        iconColor="#4A7856"
+                        size={28}
                       />
                     </TouchableOpacity>
       <View style={styles.whiteBoxContainer}>
@@ -910,10 +897,8 @@ const openGallery1 = () => {
     styles.dropdown,
     isFocus1 && styles.dropdownFocused,
     {
-      backgroundColor: isDarkMode
-        ? 'rgba(255, 255, 255, 0.9)'
-        : 'rgba(255, 255, 255, 0.9)',
-      color: isDarkMode ? 'black' : 'black',
+      backgroundColor: 'white',
+      color: '#333',
     },
   ]}
   placeholderStyle={styles.placeholderStyle}
@@ -921,7 +906,7 @@ const openGallery1 = () => {
   inputSearchStyle={styles.inputSearchStyle}
   iconStyle={styles.iconStyle}
   itemTextStyle={{
-    color: isDarkMode ? 'black' : 'black',
+    color: '#333',
   }}
   data={data15}  // Use the bird species list
   search
@@ -959,7 +944,7 @@ const openGallery1 = () => {
   
     return (
       <View style={{ padding: 10 }}>
-        <Text style={{  color: isDarkMode ? 'black' : 'black' }}>
+        <Text style={{  color: '#333' }}>
           {commonName}
           {scientificName ? (
             <Text style={{ fontStyle: 'italic',color: 'black' }}> ({scientificName})</Text>
@@ -987,13 +972,11 @@ const openGallery1 = () => {
     style={[
       styles.text_input,
       {
-        backgroundColor: isDarkMode
-          ? 'rgba(255, 255, 255, 0.9)'
-          : 'rgba(255, 255, 255, 0.9)',
-        color: isDarkMode ? 'black' : 'black',
+        backgroundColor: 'white',
+        color: '#333',
       },
     ]}
-    textColor={isDarkMode ? 'black' : 'black'}
+    textColor="#333"
   />
 </View>
 
@@ -1008,13 +991,11 @@ const openGallery1 = () => {
                     style={[
                       styles.text_input2,
                       {
-                        backgroundColor: isDarkMode
-                          ? 'rgba(255, 255, 255, 0.9)'
-                          : 'rgba(255, 255, 255, 0.9)',
-                        color: isDarkMode ? 'black' : 'black',
+                        backgroundColor: 'white',
+                        color: '#333',
                       },
                     ]}
-                    textColor={isDarkMode ? 'black' : 'black'}
+                    textColor="#333"
                   />
                 </View>
                 {errors.count && <Text style={styles.errorText}>{errors.count}</Text>}
@@ -1023,10 +1004,8 @@ const openGallery1 = () => {
                     styles.dropdown,
                     isFocus8 && styles.dropdownFocused,
                     {
-                      backgroundColor: isDarkMode
-                        ? 'rgba(255, 255, 255, 0.9)'
-                        : 'rgba(255, 255, 255, 0.9)',
-                      color: isDarkMode ? 'black' : 'black',
+                      backgroundColor: 'white',
+                      color: '#333',
                     },
                   ]}
                   placeholderStyle={styles.placeholderStyle}
@@ -1034,7 +1013,7 @@ const openGallery1 = () => {
                   inputSearchStyle={styles.inputSearchStyle}
                   iconStyle={styles.iconStyle}
                   itemTextStyle={{
-                    color: isDarkMode ? 'black' : 'black',
+                    color: '#333',
                   }}
                   data={data8}
                   search
@@ -1060,10 +1039,8 @@ const openGallery1 = () => {
                     styles.dropdown,
                     isFocus9 && styles.dropdownFocused,
                     {
-                      backgroundColor: isDarkMode
-                        ? 'rgba(255, 255, 255, 0.9)'
-                        : 'rgba(255, 255, 255, 0.9)',
-                      color: isDarkMode ? 'black' : 'black',
+                      backgroundColor: 'white',
+                      color: '#333',
                     },
                   ]}
                   placeholderStyle={styles.placeholderStyle}
@@ -1071,7 +1048,7 @@ const openGallery1 = () => {
                   inputSearchStyle={styles.inputSearchStyle}
                   iconStyle={styles.iconStyle}
                   itemTextStyle={{
-                    color: isDarkMode ? 'black' : 'black',
+                    color: '#333',
                   }}
                   data={data9}
                   search
@@ -1098,8 +1075,8 @@ const openGallery1 = () => {
     styles.dropdownNewTwo,
     isFocus4 && styles.dropdownFocused,
     {
-      backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-      color: isDarkMode ? 'black' : 'black',
+      backgroundColor: 'white',
+      color: '#333',
     },
   ]}
   placeholderStyle={styles.placeholderStyle}
@@ -1108,7 +1085,7 @@ const openGallery1 = () => {
   iconStyle={styles.iconStyle}
   data={data10} // Your behaviours data
   itemTextStyle={{
-    color: isDarkMode ? 'black' : 'black',
+    color: '#333',
   }}
   search
   maxHeight={400}
@@ -1131,12 +1108,12 @@ const openGallery1 = () => {
           <Text
             style={[
               styles.itemText,
-              { color: isDarkMode ? 'black' : 'black' },
+              { color: '#333' },
             ]}>
             {item.label}
           </Text>
           {selectedBehaviours.includes(item.value) && (
-            <Icon name="check" size={20} color="green" />
+            <Icon name="check" size={20} color="#4A7856" />
           )}
         </View>
       </TouchableOpacity>
@@ -1161,10 +1138,8 @@ const openGallery1 = () => {
                     styles.dropdown,
                     isFocus11 && styles.dropdownFocused,
                     {
-                      backgroundColor: isDarkMode
-                        ? 'rgba(255, 255, 255, 0.9)'
-                        : 'rgba(255, 255, 255, 0.9)',
-                      color: isDarkMode ? 'black' : 'black',
+                      backgroundColor: 'white',
+                      color: '#333',
                     },
                   ]}
                   placeholderStyle={styles.placeholderStyle}
@@ -1172,7 +1147,7 @@ const openGallery1 = () => {
                   inputSearchStyle={styles.inputSearchStyle}
                   iconStyle={styles.iconStyle}
                   itemTextStyle={{
-                    color: isDarkMode ? 'black' : 'black',
+                    color: '#333',
                   }}
                   data={data11}
                   search
@@ -1199,10 +1174,8 @@ const openGallery1 = () => {
                     styles.dropdown,
                     isFocus12 && styles.dropdownFocused,
                     {
-                      backgroundColor: isDarkMode
-                        ? 'rgba(255, 255, 255, 0.9)'
-                        : 'rgba(255, 255, 255, 0.9)',
-                      color: isDarkMode ? 'black' : 'black',
+                      backgroundColor: 'white',
+                      color: '#333',
                     },
                   ]}
                   placeholderStyle={styles.placeholderStyle}
@@ -1210,7 +1183,7 @@ const openGallery1 = () => {
                   inputSearchStyle={styles.inputSearchStyle}
                   iconStyle={styles.iconStyle}
                   itemTextStyle={{
-                    color: isDarkMode ? 'black' : 'black',
+                    color: '#333',
                   }}
                   data={data12}
                   search
@@ -1266,10 +1239,7 @@ const openGallery1 = () => {
   </View>
 </View>
                 <Text
-                  style={[
-                    {marginTop: 10},
-                    {color: isDarkMode ? 'black' : 'black'},
-                  ]}>
+                  style={{marginTop: 10, color: '#333'}}>
                   Upload a Photo
                 </Text>
                 <TouchableOpacity
@@ -1291,7 +1261,7 @@ const openGallery1 = () => {
                   mode="contained"
                   onPress={handleSignUp}
                   style={[styles.button_signup, {borderRadius: 8}]}
-                  buttonColor="green"
+                  buttonColor="#4A7856"
                   textColor="white"
                   labelStyle={styles.button_label}>
                   Submit
@@ -1306,15 +1276,19 @@ const openGallery1 = () => {
           )}
         </ScrollView>
       </View>
-    </ImageBackground>
+    </View>
   );
 };
 
 export default BirdDataRecord;
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F5F5F0',
+  },
   container: {
-    backgroundColor: 'rgba(217,217,217,0.9)',
+    backgroundColor: '#FFFFFF',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
@@ -1323,26 +1297,64 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     height: 460,
     width: width * 0.95,
+    borderRadius: 16,
+    padding: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
   container2: {
-    backgroundColor: 'rgba(217,217,217,0.9)',
+    backgroundColor: '#FFFFFF',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 15,
     marginBottom: 15,
-    
+    borderRadius: 16,
+    padding: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
   container3: {
-    backgroundColor: 'rgba(217,217,217,0.9)',
+    backgroundColor: '#FFFFFF',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 15,
     marginBottom: 15,
-     width: width * 0.95,
+    width: width * 0.95,
+    borderRadius: 16,
+    padding: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
   textRow: {
     marginBottom: 10, // space between text and radio buttons
@@ -1365,7 +1377,7 @@ const styles = StyleSheet.create({
   },
 
   dropdownFocused: {
-    borderColor: 'blue',
+    borderColor: '#4A7856',
   },
   textInputContainer: {
     padding: 10,
@@ -1385,7 +1397,7 @@ const styles = StyleSheet.create({
   },
   selectedTextStyle: {
     fontSize: 16,
-    color: 'black',
+    color: '#333',
   },
   iconStyle: {
     width: 20,
@@ -1402,14 +1414,14 @@ const styles = StyleSheet.create({
   },
   title_container: {
     flex: 1,
-    fontFamily: 'Inter-Bold',
+    fontWeight: 'bold',
     marginTop: '20%',
   },
 
   main_text: {
-    fontSize: 20,
-    fontFamily: 'InriaSerif-Bold',
-    color: '#434343',
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333333',
     marginTop: 10,
     marginBottom: 10,
     justifyContent: 'center',
@@ -1429,31 +1441,28 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#007bff',
+    backgroundColor: '#4A7856',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 15,
     marginLeft: 10,
   },
   main_text3: {
-    fontSize: 20,
-    // fontStyle: 'italic',
-    fontFamily: 'InriaSerif-Bold',
-    color: '#434343',
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333333',
     marginTop: 10,
     marginBottom: 10,
     justifyContent: 'center',
   },
   sub_text: {
     fontSize: 16,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
+    color: '#333333',
     textAlign: 'center',
   },
   sub_text_bold: {
     fontSize: 16,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
+    color: '#333333',
     textAlign: 'center',
     fontWeight: 'bold',
   },
@@ -1467,28 +1476,31 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
     height: 400,
-    backgroundColor: '#D9D9D9',
+    backgroundColor: '#FFFFFF',
     marginLeft: 14,
     marginRight: 14,
     marginTop: 30,
+    borderRadius: 16,
   },
   whiteBox2: {
     justifyContent: 'flex-start',
     alignItems: 'center',
     height: 750,
-    backgroundColor: '#D9D9D9',
+    backgroundColor: '#FFFFFF',
     marginLeft: 14,
     marginRight: 14,
     marginTop: 15,
+    borderRadius: 16,
   },
   whiteBox3: {
     justifyContent: 'flex-start',
     alignItems: 'center',
     height: 350,
-    backgroundColor: '#D9D9D9',
+    backgroundColor: '#FFFFFF',
     marginLeft: 14,
     marginRight: 14,
     marginTop: 15,
+    borderRadius: 16,
   },
   backgroundImage: {
     flex: 1,
@@ -1516,7 +1528,7 @@ const styles = StyleSheet.create({
   txtInputOutline: {
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'black',
+    borderColor: '#E0E0E0',
   },
 
   dropdownNew: {
@@ -1536,21 +1548,19 @@ const styles = StyleSheet.create({
     width: '90%',
     marginTop: 30,
     marginBottom: 30,
-    fontFamily: 'Inter-regular',
+    borderRadius: 25,
   },
   button_label: {
     fontSize: 18,
   },
   sub_text_A: {
     fontSize: 16,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
+    color: '#333333',
     textAlign: 'right',
   },
   sub_text_B: {
     fontSize: 16,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
+    color: '#333333',
     textAlign: 'center',
     fontWeight: 'bold',
   },
@@ -1655,7 +1665,7 @@ const styles = StyleSheet.create({
   },
 
   calendarTxt: {
-    color: 'black',
+    color: '#333',
     fontSize: 16,
   },
 
@@ -1673,10 +1683,10 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     backgroundColor: 'white',
     marginTop: 15,
-    borderWidth: 1,  // Add a border
-    borderColor: 'black', // Choose a color
-    color: 'black',
-    padding: 10,  // Ensure content isn't too close to the border
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    color: '#333',
+    padding: 10,
   },
   
 
@@ -1708,14 +1718,13 @@ const styles = StyleSheet.create({
   textContent: {
     fontSize: 16,
     paddingVertical: 10,
-    backgroundColor: 'gray',
-    // borderRadius: 5,
+    backgroundColor: '#F5F5F0',
+    borderRadius: 8,
     marginVertical: 5,
     padding: 10,
-    marginBottom: 5, // Reduce extra space
-    marginTop: 0, // Ensure no top margin
-    color: 'black',
-    
+    marginBottom: 5,
+    marginTop: 0,
+    color: '#333',
   },
   inputSearchStyle: {
     height: 40,

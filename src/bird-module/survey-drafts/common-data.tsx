@@ -5,12 +5,10 @@ import {
   Text,
   StyleSheet,
   Image,
-  ImageBackground,
   ScrollView,
   TouchableOpacity,
   Alert,
   PermissionsAndroid,
-  Appearance,
   Modal,
   Platform,
 } from 'react-native';
@@ -186,17 +184,6 @@ const WeatherConditionModal = ({ visible, onClose, onSelect }) => {
   const [wind, setWind] = useState(null);
   const [sunshine, setSunshine] = useState(null);
   const [weatherSummary, setWeatherSummary] = useState(""); //  New state to store formatted text
-  // const [theme, setTheme] = useState(Appearance.getColorScheme());
-  // const isDarkMode = theme === 'dark';
-  const [theme, setTheme] = useState(Appearance.getColorScheme());
-  const isDarkMode = theme === 'dark';
-
-  useEffect(() => {
-    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      setTheme(colorScheme);
-    });
-    return () => subscription.remove();
-  }, []);
   // Function to update weather summary
   const updateWeatherSummary = (cloud, rain, wind, sun) => {
     let summary = [];
@@ -229,10 +216,9 @@ const WeatherConditionModal = ({ visible, onClose, onSelect }) => {
       <View
           style={[
             styles.modalContent,
-            { backgroundColor: isDarkMode ? 'white' : 'white' },
           ]}
         >
-          <Text style={[styles.modalTitle, { color: isDarkMode ? '#000' : '#000' }]}>{weatherSummary || "Select Weather Condition"}</Text> 
+          <Text style={styles.modalTitle}>{weatherSummary || "Select Weather Condition"}</Text>
           {/* ✅ Display selected values dynamically */}
 
           <Dropdown
@@ -364,7 +350,7 @@ const WeatherConditionModal = ({ visible, onClose, onSelect }) => {
     updateWeatherSummary(cloudCover, rain, wind, item.value);
   }}
 /> 
-          <Button mode="contained" onPress={handleSave}   style={[styles.button_signup, { backgroundColor: 'green' }]}  labelStyle={{ color: 'white' }}>
+          <Button mode="contained" onPress={handleSave}   style={[styles.button_signup, { backgroundColor: '#4A7856' }]}  labelStyle={{ color: 'white' }}>
             Save
           </Button>
         </View>
@@ -379,16 +365,6 @@ const WaterAvailabilityModal = ({ visible, onClose, onSelect }) => {
   const [waterReservoir, setWaterReservoir] = useState(null);
   const [showWaterLevelPopup, setShowWaterLevelPopup] = useState(false);
   const [waterLevel, setWaterLevel] = useState('');
-  const [theme, setTheme] = useState(Appearance.getColorScheme());
-  const isDarkMode = theme === 'dark';
-
-  useEffect(() => {
-    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      setTheme(colorScheme);
-    });
-    return () => subscription.remove();
-  }, []);
-
   const handleSave = () => {
     if (waterReservoir === 'Yes') {
       setShowWaterLevelPopup(true);
@@ -412,10 +388,9 @@ const WaterAvailabilityModal = ({ visible, onClose, onSelect }) => {
  <View
           style={[
             styles.modalContent,
-            { backgroundColor: isDarkMode ? 'white' : 'white' },
           ]}
         >
-                      <Text style={[styles.modalTitle, { color: isDarkMode ? '#000' : '#000' }]}>Select Water Availability</Text>
+                      <Text style={styles.modalTitle}>Select Water Availability</Text>
 
                       <Dropdown
   style={[
@@ -480,7 +455,7 @@ const WaterAvailabilityModal = ({ visible, onClose, onSelect }) => {
 />
         
 
-            <Button mode="contained" onPress={handleSave}  style={[styles.button_signup, { backgroundColor: 'green' }]}  labelStyle={{ color: 'white' }}>
+            <Button mode="contained" onPress={handleSave}  style={[styles.button_signup, { backgroundColor: '#4A7856' }]}  labelStyle={{ color: 'white' }}>
               Save
             </Button>
           </View>
@@ -514,7 +489,7 @@ const WaterAvailabilityModal = ({ visible, onClose, onSelect }) => {
                 },
               ]}
             />
-            <Button mode="contained" onPress={handleWaterLevelSave} style={[styles.button_signup, { backgroundColor: 'green' }]}  labelStyle={{ color: 'white' }}>
+            <Button mode="contained" onPress={handleWaterLevelSave} style={[styles.button_signup, { backgroundColor: '#4A7856' }]}  labelStyle={{ color: 'white' }}>
               Save
             </Button>
           </View>
@@ -526,7 +501,6 @@ const WaterAvailabilityModal = ({ visible, onClose, onSelect }) => {
 
 
 const CommonData = ({ route,navigation }) => {
-  const [theme, setTheme] = useState(Appearance.getColorScheme());
   const [newId, setNewId] = useState(null);
   const [value1, setValue1] = useState(null);
   const [isFocus1, setIsFocus1] = useState(false);
@@ -1670,15 +1644,6 @@ const uploadPathToServer = async (uri, addedId) => {
     }
   };
 
-  useEffect(() => {
-    const subscription = Appearance.addChangeListener(({colorScheme}) => {
-      setTheme(colorScheme);
-    });
-    return () => subscription.remove();
-  }, []);
-
-  const isDarkMode = theme === 'dark';
-
   const formatWaterSelection = (selection = []) => {
     return selection
       .map((item) => {
@@ -1721,9 +1686,7 @@ const uploadPathToServer = async (uri, addedId) => {
 
   
   return (
-    <ImageBackground
-      source={require('../../assets/image/imageD1.jpg')}
-      style={styles.backgroundImage}>
+    <View style={styles.safeArea}>
          <TouchableOpacity 
     onPress={() => navigation.navigate('TeamData', { 
         formData: {
@@ -1739,7 +1702,7 @@ const uploadPathToServer = async (uri, addedId) => {
     })}
     style={styles.backButton}
 >
-    <IconButton icon="arrow-left" iconColor="#000" size={30} />
+    <IconButton icon="arrow-left" iconColor="#4A7856" size={28} />
 </TouchableOpacity>
 
 
@@ -1756,7 +1719,7 @@ const uploadPathToServer = async (uri, addedId) => {
                     <Text
                       style={[
                         styles.calendarTxt,
-                        {color: isDarkMode ? 'black' : 'black'},
+                        {color: '#333'},
                       ]}>
                       {text || 'Select Date'}
                     </Text>
@@ -1788,7 +1751,7 @@ const uploadPathToServer = async (uri, addedId) => {
                     onChangeText={setObservers}
                     outlineStyle={styles.txtInputOutline}
                     style={[styles.text_input, errors.observers && styles.errorBorder]}
-                    textColor={isDarkMode ? 'black' : 'black'}
+                    textColor="#333"
                   />
                   {errors.observers ? <Text style={styles.errorText}>{errors.observers}</Text> : null}
                 </View> */}
@@ -1800,10 +1763,7 @@ const uploadPathToServer = async (uri, addedId) => {
       styles.dropdownNewTwo,
       isFocusObservers && styles.dropdownFocused, // Apply focused style when isFocusObservers is true
       {
-        backgroundColor: isDarkMode
-          ? 'rgba(255, 255, 255, 0.9)'
-          : 'rgba(255, 255, 255, 0.9)',
-        color: isDarkMode ? 'black' : 'black',
+        backgroundColor: 'white',
       },
     ]}
     placeholderStyle={styles.placeholderStyle}
@@ -1811,7 +1771,7 @@ const uploadPathToServer = async (uri, addedId) => {
     inputSearchStyle={styles.inputSearchStyle}
     iconStyle={styles.iconStyle}
     itemTextStyle={{
-      color: isDarkMode ? 'black' : 'black',
+      color: '#333',
     }}
     data={teamMembers.map(member => ({
       label: member, // Since teamMembers is a simple array of strings, use the value as label
@@ -1846,7 +1806,7 @@ const uploadPathToServer = async (uri, addedId) => {
                     <Text
                       style={[
                         styles.calendarTxt,
-                        {color: isDarkMode ? 'black' : 'black'},
+                        {color: '#333'},
                       ]}>
                       {/* {selectedStartTime.toLocaleTimeString() || 'Start Time'} */}
                       {selectedStartTime
@@ -1884,7 +1844,7 @@ const uploadPathToServer = async (uri, addedId) => {
                     <Text
                       style={[
                         styles.calendarTxt,
-                        {color: isDarkMode ? 'black' : 'black'},
+                        {color: '#333'},
                       ]}>
                       {/* {selectedEndTime.toLocaleTimeString() || 'End Time'} */}
                       {selectedEndTime
@@ -1924,7 +1884,7 @@ const uploadPathToServer = async (uri, addedId) => {
       onPressIn={() => setWeatherModalVisible(true)} // Ensures modal opens on press
       outlineStyle={styles.txtInputOutline}
       style={styles.text_input}
-      textColor={isDarkMode ? 'black' : 'black'}
+      textColor="#333"
       editable={false} // Makes input non-editable, acts like a dropdown
     />
   </View>
@@ -1953,7 +1913,7 @@ const uploadPathToServer = async (uri, addedId) => {
       onPressIn={() => setWaterModalVisible(true)} // Ensures modal opens on press
       outlineStyle={styles.txtInputOutline}
       style={styles.text_input}
-      textColor={isDarkMode ? 'black' : 'black'}
+      textColor="#333"
       editable={false} // Makes input non-editable, acts like a dropdown
     />
   </View>
@@ -1990,10 +1950,7 @@ const uploadPathToServer = async (uri, addedId) => {
                       styles.dropdownNewTwo,
                       isFocus6 && styles.dropdownFocused,
                       {
-                        backgroundColor: isDarkMode
-                          ? 'rgba(255, 255, 255, 0.9)'
-                          : 'rgba(255, 255, 255, 0.9)',
-                        color: isDarkMode ? 'black' : 'black',
+                        backgroundColor: 'white',
                       },
                     ]}
                     placeholderStyle={styles.placeholderStyle}
@@ -2001,7 +1958,7 @@ const uploadPathToServer = async (uri, addedId) => {
                     inputSearchStyle={styles.inputSearchStyle}
                     iconStyle={styles.iconStyle}
                     itemTextStyle={{
-                      color: isDarkMode ? 'black' : 'black',
+                      color: '#333',
                     }}
                     data={data6}
                     search
@@ -2032,10 +1989,7 @@ const uploadPathToServer = async (uri, addedId) => {
                     styles.dropdownNewTwo,
                     isFocus3 && styles.dropdownFocused,
                     {
-                      backgroundColor: isDarkMode
-                        ? 'rgba(255, 255, 255, 0.9)'
-                        : 'rgba(255, 255, 255, 0.9)',
-                      color: isDarkMode ? 'black' : 'black',
+                      backgroundColor: 'white',
                     },
                   ]}
                   placeholderStyle={styles.placeholderStyle}
@@ -2043,7 +1997,7 @@ const uploadPathToServer = async (uri, addedId) => {
                   inputSearchStyle={styles.inputSearchStyle}
                   iconStyle={styles.iconStyle}
                   itemTextStyle={{
-                    color: isDarkMode ? 'black' : 'black',
+                    color: '#333',
                   }}
                   data={data7}
                   search
@@ -2087,7 +2041,7 @@ const uploadPathToServer = async (uri, addedId) => {
    } }}
   
   style={[styles.button_signup, { borderRadius: 8 }]}
-  buttonColor="green"
+  buttonColor="#4A7856"
   textColor="white"
   labelStyle={styles.button_label}
 >
@@ -2098,7 +2052,7 @@ const uploadPathToServer = async (uri, addedId) => {
                   mode="contained"
                   onPress={handleSignUp}
                   style={[styles.button_signup, {borderRadius: 8}]}
-                  buttonColor="green"
+                  buttonColor="#4A7856"
                   textColor="white"
                   labelStyle={styles.button_label}>
                  Submit your full Survey
@@ -2115,15 +2069,20 @@ const uploadPathToServer = async (uri, addedId) => {
           )}
         </ScrollView>
       </View>
-    </ImageBackground>
+    </View>
   );
 };
 
 export default CommonData;
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F5F5F0',
+  },
   container: {
-    backgroundColor: 'rgba(217,217,217,0.9)',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
@@ -2132,10 +2091,22 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     height: 460,
     width: width * 0.95,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
 
   container2: {
-    backgroundColor: 'rgba(217,217,217,0.9)',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
@@ -2143,16 +2114,40 @@ const styles = StyleSheet.create({
     marginTop: 15,
     marginBottom: 15,
     width: width * 0.95,
-    height: 560,
-    },
+    padding: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
+  },
   container3: {
-    backgroundColor: 'rgba(217,217,217,0.9)',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 15,
     marginBottom: 15,
+    padding: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
   textRow: {
     marginBottom: 10, // space between text and radio buttons
@@ -2175,7 +2170,7 @@ const styles = StyleSheet.create({
   },
 
   dropdownFocused: {
-    borderColor: 'blue',
+    borderColor: '#4A7856',
   },
   textInputContainer: {
     padding: 10,
@@ -2225,9 +2220,9 @@ const styles = StyleSheet.create({
   },
 
   main_text: {
-    fontSize: 20,
-    fontFamily: 'InriaSerif-Bold',
-    color: '#434343',
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333333',
     marginTop: 10,
     marginBottom: 10,
     justifyContent: 'center',
@@ -2247,16 +2242,16 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#007bff',
+    backgroundColor: '#4A7856',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 15,
     marginLeft: 10,
   },
   main_text3: {
-    fontSize: 20,
-    fontFamily: 'InriaSerif-Bold',
-    color: '#434343',
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333333',
     marginTop: 10,
     marginBottom: 10,
     justifyContent: 'center',
@@ -2284,7 +2279,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
     height: 400,
-    backgroundColor: '#D9D9D9',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     marginLeft: 14,
     marginRight: 14,
     marginTop: 30,
@@ -2293,7 +2289,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
     height: 750,
-    backgroundColor: '#D9D9D9',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     marginLeft: 14,
     marginRight: 14,
     marginTop: 15,
@@ -2302,7 +2299,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
     height: 350,
-    backgroundColor: '#D9D9D9',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     marginLeft: 14,
     marginRight: 14,
     marginTop: 15,
@@ -2333,7 +2331,7 @@ const styles = StyleSheet.create({
   txtInputOutline: {
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'black',
+    borderColor: '#E0E0E0',
   },
 
   dropdownNew: {
@@ -2353,7 +2351,7 @@ const styles = StyleSheet.create({
     width: '98%',
     marginTop: 20,
     marginBottom: 50,
-    fontFamily: 'Inter-regular',
+    borderRadius: 25,
   },
   button_label: {
     fontSize: 18,
@@ -2526,8 +2524,8 @@ errorText: {
   },
   selectButton: {
     padding: 10,
-    backgroundColor: '#3498db',
-    borderRadius: 5,
+    backgroundColor: '#4A7856',
+    borderRadius: 25,
     marginBottom: 10,
     width: width * 0.9,
     alignItems: 'center',

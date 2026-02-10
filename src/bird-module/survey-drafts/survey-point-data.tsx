@@ -4,12 +4,10 @@ import {
   Text,
   StyleSheet,
   Image,
-  ImageBackground,
   ScrollView,
   TouchableOpacity,
   Alert,
   PermissionsAndroid,
-  Appearance,
   Platform,
 } from 'react-native';
 import { Switch } from 'react-native-elements';
@@ -79,7 +77,6 @@ const data2 = [
 ];
 
 const SurveyPointData = ({ route }) => {
-  const [theme, setTheme] = useState(Appearance.getColorScheme());
   const [newId, setNewId] = useState(null);
   const [value1, setValue1] = useState(null);
   const [isFocus1, setIsFocus1] = useState(false);
@@ -442,21 +439,8 @@ const SurveyPointData = ({ route }) => {
   };
 
 
-  useEffect(() => {
-    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      setTheme(colorScheme);
-    });
-    return () => subscription.remove();
-  }, []);
-
-  const isDarkMode = theme === 'dark';
-
   return (
-    <ImageBackground
-      source={require('../../assets/image/imageD1.jpg')}
-      style={styles.backgroundImage}>
-
-
+    <View style={styles.safeArea}>
       <TouchableOpacity
         onPress={() => {
           Alert.alert(
@@ -473,228 +457,206 @@ const SurveyPointData = ({ route }) => {
       >
         <IconButton
           icon="arrow-left"
-          iconColor="#000"
-          size={30}
+          iconColor="#4A7856"
+          size={28}
         />
       </TouchableOpacity>
 
-      <View style={styles.whiteBoxContainer}>
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {!isFormSubmitted ? (
-            <View>
-              <View
-                style={[
-                  styles.container,
-                  {
-                    backgroundColor: isDarkMode
-                      ? 'rgba(217, 217, 217, 0.7)'
-                      : 'rgba(217, 217, 217, 0.7)',
-                  },
-                ]}>
-                <Text
-                  style={[
-                    styles.main_text,
-                    { color: isDarkMode ? 'black' : 'black' },
-                  ]}>
-                  Survey Point Details
-                </Text>
-                <View style={{ marginHorizontal: 20, width: '90%' }}>
-                <CustomDropdown
-                  tableName="habitat_types"
-                  apiEndpoint={`${API_URL}/habitats`}
-                  placeholder="Select Habitat Type"
-                  value={value1}
-                  setValue={setValue1}
-                  updateSummary={() => console.log('Selected:', value1)}
-                  isDarkMode={false}
-                  error={errors.value1}
-                />
-                </View>
-               
-             
-
-                <View style={{ height: 16 }} />
-
-                <Dropdown
-                  style={[
-                    styles.dropdown,
-                    isFocus2 && styles.dropdownFocused,
-                    {
-                      backgroundColor: isDarkMode
-                        ? 'rgba(255, 255, 255, 0.9)'
-                        : 'rgba(255, 255, 255, 0.9)',
-                      color: isDarkMode ? 'black' : 'black',
-                    },
-                  ]}
-                  placeholderStyle={styles.placeholderStyle}
-                  selectedTextStyle={styles.selectedTextStyle}
-                  inputSearchStyle={styles.inputSearchStyle}
-                  iconStyle={styles.iconStyle}
-                  itemTextStyle={{
-                    color: isDarkMode ? 'black' : 'black',
-                  }}
-                  data={data1}
-                  search
-                  maxHeight={300}
-                  labelField="label"
-                  valueField="value"
-                  placeholder={!isFocus2 && !value2 ? `Point` : ''}
-                  searchPlaceholder="Search..."
-                  value={value2}
-                  onFocus={() => setIsFocus2(true)}
-                  onBlur={() => setIsFocus2(false)}
-                  onChange={item => {
-                    setValue2(prevValue => (prevValue === item.value ? null : item.value));
-                    setIsFocus2(false);
-                    console.log('Selected value:', item.value);
-                  }}>
-                  <Text>{renderLabel('Point', value2, isFocus2)}</Text>
-                  {errors.value2 && <Text style={styles.errorText}>{errors.value2}</Text>}
-                </Dropdown>
-
-                <View style={{ height: 16 }} />
-
-                <Dropdown
-                  style={[
-                    styles.dropdown,
-                    isFocus3 && styles.dropdownFocused,
-                    {
-                      backgroundColor: isDarkMode
-                        ? 'rgba(255, 255, 255, 0.9)'
-                        : 'rgba(255, 255, 255, 0.9)',
-                      color: isDarkMode ? 'black' : 'black',
-                    },
-                  ]}
-                  placeholderStyle={styles.placeholderStyle}
-                  selectedTextStyle={styles.selectedTextStyle}
-                  inputSearchStyle={styles.inputSearchStyle}
-                  iconStyle={styles.iconStyle}
-                  itemTextStyle={{
-                    color: isDarkMode ? 'black' : 'black',
-                  }}
-                  data={data2}
-                  search
-                  maxHeight={300}
-                  labelField="label"
-                  valueField="value"
-                  placeholder={!isFocus3 && !value3 ? `Point Tag` : ''}
-                  searchPlaceholder="Search..."
-                  value={value3}
-                  onFocus={() => setIsFocus3(true)}
-                  onBlur={() => setIsFocus3(false)}
-                  onChange={item => {
-                    setValue3(prevValue => (prevValue === item.value ? null : item.value));
-                    setIsFocus3(false);
-                  }}>
-                  <Text style={[{ color: isDarkMode ? 'black' : 'black' }]}>
-                    {renderLabel('Point Tag', value3, isFocus3)}
-                  </Text>
-                  {errors.value3 && (
-                    <Text style={styles.errorText}>{errors.value3}</Text>
-                  )}
-                </Dropdown>
-                <View style={styles.dropdownNew}>
-                  <TextInput
-                    mode="outlined"
-                    placeholder="Descriptor"
-                    outlineStyle={styles.txtInputOutline}
-                    value={descriptor}
-                    style={styles.text_input4}
-                    onChangeText={text => setDescriptor(text)}
-                    textColor={isDarkMode ? 'black' : 'black'}
-                  />
-                </View>
-                <View style={styles.dropdownNew}>
-                  <TextInput
-                    mode="outlined"
-                    placeholder="Latitude(N)"
-                    outlineStyle={styles.txtInputOutline}
-                    value={FormattedLatitude}
-                    style={styles.text_input4}
-                    textColor={isDarkMode ? 'black' : 'black'}
-                  />
-                </View>
-                <View style={styles.dropdownNew}>
-                  <TextInput
-                    mode="outlined"
-                    placeholder="Longitude(E)"
-                    outlineStyle={styles.txtInputOutline}
-                    value={FormattedLongitude}
-                    style={styles.text_input4}
-                    textColor={isDarkMode ? 'black' : 'black'}
-                  />
-                </View>
-
-                <View style={styles.dropdownNew}>
-                  <TextInput
-                    mode="outlined"
-                    placeholder="Radius of Area(m)"
-                    value={radius}
-                    onChangeText={handleRadiusChange}
-                    outlineStyle={styles.txtInputOutline}
-                    style={styles.text_input}
-                    textColor={isDarkMode ? 'black' : 'black'}
-                  />
-                  {errors.radius && (
-                    <Text style={styles.errorText}>{errors.radius}</Text>
-                  )}
-                </View>
-              </View>
-              <CustomAlert
-                visible={isAlertVisible}
-                onClose={hideAlert}
-                message="Successfully saved data!"
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {!isFormSubmitted ? (
+          <View style={styles.card}>
+            <Text style={styles.main_text}>
+              Survey Point Details
+            </Text>
+            <View style={{ marginHorizontal: 0, width: '100%' }}>
+              <CustomDropdown
+                tableName="habitat_types"
+                apiEndpoint={`${API_URL}/habitats`}
+                placeholder="Select Habitat Type"
+                value={value1}
+                setValue={setValue1}
+                updateSummary={() => console.log('Selected:', value1)}
+                isDarkMode={false}
+                error={errors.value1}
               />
-              <Button
-                mode="contained"
-                onPress={handleSignUp}
-                style={[styles.button_signup, { borderRadius: 8 }]}
-                buttonColor="green"
-                textColor="white"
-                labelStyle={styles.button_label}>
-                Go To Next Step
-              </Button>
             </View>
 
-          ) : (
-            <View style={styles.container}>
+            <View style={{ height: 16 }} />
 
-              <MyDataTable data={formEntries} />
+            <Dropdown
+              style={[styles.dropdown, isFocus2 && styles.dropdownFocused]}
+              placeholderStyle={styles.placeholderStyle}
+              selectedTextStyle={styles.selectedTextStyle}
+              inputSearchStyle={styles.inputSearchStyle}
+              iconStyle={styles.iconStyle}
+              itemTextStyle={{ color: '#333' }}
+              data={data1}
+              search
+              maxHeight={300}
+              labelField="label"
+              valueField="value"
+              placeholder={!isFocus2 && !value2 ? `Point` : ''}
+              searchPlaceholder="Search..."
+              value={value2}
+              onFocus={() => setIsFocus2(true)}
+              onBlur={() => setIsFocus2(false)}
+              onChange={item => {
+                setValue2(prevValue => (prevValue === item.value ? null : item.value));
+                setIsFocus2(false);
+                console.log('Selected value:', item.value);
+              }}>
+              <Text>{renderLabel('Point', value2, isFocus2)}</Text>
+              {errors.value2 && <Text style={styles.errorText}>{errors.value2}</Text>}
+            </Dropdown>
+
+            <View style={{ height: 16 }} />
+
+            <Dropdown
+              style={[styles.dropdown, isFocus3 && styles.dropdownFocused]}
+              placeholderStyle={styles.placeholderStyle}
+              selectedTextStyle={styles.selectedTextStyle}
+              inputSearchStyle={styles.inputSearchStyle}
+              iconStyle={styles.iconStyle}
+              itemTextStyle={{ color: '#333' }}
+              data={data2}
+              search
+              maxHeight={300}
+              labelField="label"
+              valueField="value"
+              placeholder={!isFocus3 && !value3 ? `Point Tag` : ''}
+              searchPlaceholder="Search..."
+              value={value3}
+              onFocus={() => setIsFocus3(true)}
+              onBlur={() => setIsFocus3(false)}
+              onChange={item => {
+                setValue3(prevValue => (prevValue === item.value ? null : item.value));
+                setIsFocus3(false);
+              }}>
+              <Text style={{ color: '#333' }}>
+                {renderLabel('Point Tag', value3, isFocus3)}
+              </Text>
+              {errors.value3 && (
+                <Text style={styles.errorText}>{errors.value3}</Text>
+              )}
+            </Dropdown>
+            <View style={styles.dropdownNew}>
+              <TextInput
+                mode="outlined"
+                placeholder="Descriptor"
+                outlineStyle={styles.txtInputOutline}
+                value={descriptor}
+                style={styles.text_input4}
+                onChangeText={text => setDescriptor(text)}
+                textColor="#333"
+              />
             </View>
-          )}
-        </ScrollView>
-      </View>
-    </ImageBackground>
+            <View style={styles.dropdownNew}>
+              <TextInput
+                mode="outlined"
+                placeholder="Latitude(N)"
+                outlineStyle={styles.txtInputOutline}
+                value={FormattedLatitude}
+                style={styles.text_input4}
+                textColor="#333"
+              />
+            </View>
+            <View style={styles.dropdownNew}>
+              <TextInput
+                mode="outlined"
+                placeholder="Longitude(E)"
+                outlineStyle={styles.txtInputOutline}
+                value={FormattedLongitude}
+                style={styles.text_input4}
+                textColor="#333"
+              />
+            </View>
+
+            <View style={styles.dropdownNew}>
+              <TextInput
+                mode="outlined"
+                placeholder="Radius of Area(m)"
+                value={radius}
+                onChangeText={handleRadiusChange}
+                outlineStyle={styles.txtInputOutline}
+                style={styles.text_input}
+                textColor="#333"
+              />
+              {errors.radius && (
+                <Text style={styles.errorText}>{errors.radius}</Text>
+              )}
+            </View>
+
+            <CustomAlert
+              visible={isAlertVisible}
+              onClose={hideAlert}
+              message="Successfully saved data!"
+            />
+
+            <Button
+              mode="contained"
+              onPress={handleSignUp}
+              style={styles.button_signup}
+              buttonColor="#4A7856"
+              textColor="white"
+              labelStyle={styles.button_label}>
+              Go To Next Step
+            </Button>
+          </View>
+        ) : (
+          <View style={styles.card}>
+            <MyDataTable data={formEntries} />
+          </View>
+        )}
+      </ScrollView>
+    </View>
   );
 };
 
 export default SurveyPointData;
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F5F5F0',
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
+    alignItems: 'center',
+  },
   container: {
-    backgroundColor: 'rgba(217,217,217,0.9)',
-    display: 'flex',
+    backgroundColor: '#FFFFFF',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 15,
     marginBottom: 15,
-    height: 520,
     width: width * 0.95,
   },
   container2: {
-    backgroundColor: 'rgba(217,217,217,0.9)',
-    display: 'flex',
+    backgroundColor: '#FFFFFF',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 15,
     marginBottom: 15,
-
   },
   container3: {
-    backgroundColor: 'rgba(217,217,217,0.9)',
-    display: 'flex',
+    backgroundColor: '#FFFFFF',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
@@ -706,11 +668,12 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     height: 50,
-    width: width * 0.9,
+    width: '100%',
     borderWidth: 1,
     borderRadius: 8,
-    paddingHorizontal: 8,
-    backgroundColor: 'white',
+    paddingHorizontal: 12,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E0E0E0',
   },
   dropdown1: {
     height: 50,
@@ -722,7 +685,7 @@ const styles = StyleSheet.create({
   },
 
   dropdownFocused: {
-    borderColor: 'blue',
+    borderColor: '#4A7856',
   },
   textInputContainer: {
     padding: 10,
@@ -764,13 +727,12 @@ const styles = StyleSheet.create({
   },
 
   main_text: {
-    fontSize: 20,
-    fontFamily: 'InriaSerif-Bold',
-    color: '#434343',
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333333',
     marginTop: 10,
-    marginBottom: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginBottom: 16,
+    textAlign: 'center',
   },
   radioContainer: {
     marginTop: 0,
@@ -846,10 +808,6 @@ const styles = StyleSheet.create({
     marginRight: 14,
     marginTop: 15,
   },
-  backgroundImage: {
-    flex: 1,
-    resizeMode: 'cover',
-  },
   text_input: {
     width: width * 0.9,
     height: 50,
@@ -872,7 +830,7 @@ const styles = StyleSheet.create({
   txtInputOutline: {
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'black',
+    borderColor: '#E0E0E0',
   },
 
   dropdownNew: {
@@ -889,10 +847,10 @@ const styles = StyleSheet.create({
   },
 
   button_signup: {
-    width: '98%',
-    marginTop: 30,
-    marginBottom: 30,
-    fontFamily: 'Inter-regular',
+    width: '100%',
+    marginTop: 24,
+    marginBottom: 10,
+    borderRadius: 25,
   },
   button_label: {
     fontSize: 18,
@@ -1040,7 +998,8 @@ const styles = StyleSheet.create({
   },
   backButton: {
     alignSelf: 'flex-start',
-    marginLeft: -10,
+    marginLeft: 4,
+    marginTop: 4,
   },
   inputSearchStyle: {
     height: 40,

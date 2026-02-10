@@ -6,7 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  ImageBackground,
+  Platform,
 } from 'react-native';
 import { TextInput, Button, IconButton } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -224,137 +224,105 @@ const TeamData = ({ route }: any) => {
   };
 
   return (
-    <ImageBackground source={require('../../assets/image/imageD1.jpg')} style={styles.backgroundImage}>
-      {/* <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-        <IconButton icon="arrow-left" iconColor="#000" size={30} />
-      </TouchableOpacity> */}
-      <TouchableOpacity 
-  onPress={() => navigation.navigate('SurveyPointData', { teamMembers })}
-  style={styles.backButton}
->
-  <IconButton icon="arrow-left" iconColor="#000" size={30} />
-</TouchableOpacity>
+    <View style={styles.safeArea}>
+      <TouchableOpacity
+        onPress={() => navigation.navigate('SurveyPointData', { teamMembers })}
+        style={styles.backButton}
+      >
+        <IconButton icon="arrow-left" iconColor="#4A7856" size={28} />
+      </TouchableOpacity>
 
-      <View style={styles.whiteBoxContainer}>
-        <ScrollView contentContainerStyle={styles.container}>
-          <View style={styles.container2}>
-            <Text style={styles.mainText}>Team Members</Text>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.card}>
+          <Text style={styles.mainText}>Team Members</Text>
 
-            {/* Text input to enter or edit team member names */}
-            <View style={styles.inputContainer}>
-              <TextInput
-                mode="outlined"
-                placeholder="Enter Team Member"
-                value={teamMember}
-                onChangeText={setTeamMember}
-                style={styles.textInput}
-                theme={{
-                  colors: {
-                    text: 'black',
-                    placeholder: 'black',
-                    primary: 'green',
-                  },
-                }}
-                placeholderTextColor="black"
-              />
-
-              <TouchableOpacity onPress={editIndex !== null ? handleSaveEdit : addTeamMember} style={styles.addButton}>
-                <Icon name={editIndex !== null ? "check" : "plus"} size={20} color="white" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Display the list of added team members with edit and delete buttons */}
-            <View style={styles.teamMembersContainer}>
-              {teamMembers.length > 0 ? (
-                teamMembers.map((member, index) => (
-                  <View key={index} style={styles.teamMemberContainer}>
-                    <Text style={styles.teamMember}>{member}</Text>
-
-                    <View style={styles.actionsContainer}>
-                      <TouchableOpacity onPress={() => handleEditTeamMember(index)} style={styles.editButton}>
-                        <Icon name="edit" size={18} color="green" />
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => handleDeleteTeamMember(index)} style={styles.deleteButton}>
-                        <Icon name="trash" size={18} color="red" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))
-              ) : (
-                <Text style={styles.noMembersText}>No team members added yet.</Text>
-              )}
-            </View>
-
-            {/* Button to navigate to CommonData, passing both surveyPoint & teamMembers */}
-            {/* <Button
-              mode="contained"
-              onPress={() => {
-                if (teamMembers.length === 0) {
-                  Alert.alert('Error', 'Please add at least one team member before proceeding.');
-                  return; // Stop execution if no team members
-                }
-
-                console.log('Survey Point Data:', surveyPoint);
-                console.log('Team Members Array:', teamMembers);
-                console.log('Team Members Array:', formData);
-
-                navigation.navigate('CommonData', { surveyPoint, teamMembers,formData });
+          <View style={styles.inputContainer}>
+            <TextInput
+              mode="outlined"
+              placeholder="Enter Team Member"
+              value={teamMember}
+              onChangeText={setTeamMember}
+              style={styles.textInput}
+              theme={{
+                colors: {
+                  text: '#333',
+                  placeholder: '#999',
+                  primary: '#4A7856',
+                },
               }}
-              style={styles.button}
-              buttonColor="green"
-              textColor="white"
-            >
-              Go to Next
-            </Button> */}
-           <Button
-  mode="contained"
-  onPress={async () => {
-    if (teamMembers.length === 0) {
-      Alert.alert('Error', 'Please add at least one team member before proceeding.');
-      return;
-    }
+              placeholderTextColor="#999"
+            />
 
-    if (netInfo.isConnected) {
-      try {
-        const response = await axios.post(`${API_URL}/saveOrUpdateTeamData`, {
-          surveyPoint,
-          teamMembers,
-          formData,
-          email,
-        });
-
-        if (response.data.updated) {
-          Alert.alert('Success', 'Team data updated successfully!');
-        } else {
-          Alert.alert('Success', 'Team data saved successfully!');
-        }
-
-        console.log(response.data);
-
-        navigation.navigate('CommonData', { surveyPoint, teamMembers, formData });
-      } catch (error) {
-        console.error('Error saving or updating data:', error);
-        Alert.alert('Error', 'Failed to save or update team data.');
-      }
-    } else {
-      // Save to SQLite if offline
-      saveTeamMembersToSQLite(teamMembers);
-      Alert.alert('Offline', 'Team data saved locally, will sync once online.');
-      navigation.navigate('CommonData', { surveyPoint, teamMembers, formData });
-    }
-  }}
-  style={styles.button}
-  buttonColor="green"
-  textColor="white"
->
-  Go to Next
-</Button>
-
-
+            <TouchableOpacity onPress={editIndex !== null ? handleSaveEdit : addTeamMember} style={styles.addButton}>
+              <Icon name={editIndex !== null ? "check" : "plus"} size={20} color="white" />
+            </TouchableOpacity>
           </View>
-        </ScrollView>
-      </View>
-    </ImageBackground>
+
+          <View style={styles.teamMembersContainer}>
+            {teamMembers.length > 0 ? (
+              teamMembers.map((member, index) => (
+                <View key={index} style={styles.teamMemberContainer}>
+                  <Text style={styles.teamMember}>{member}</Text>
+
+                  <View style={styles.actionsContainer}>
+                    <TouchableOpacity onPress={() => handleEditTeamMember(index)} style={styles.editButton}>
+                      <Icon name="edit" size={18} color="#4A7856" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleDeleteTeamMember(index)} style={styles.deleteButton}>
+                      <Icon name="trash" size={18} color="#D32F2F" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.noMembersText}>No team members added yet.</Text>
+            )}
+          </View>
+
+          <Button
+            mode="contained"
+            onPress={async () => {
+              if (teamMembers.length === 0) {
+                Alert.alert('Error', 'Please add at least one team member before proceeding.');
+                return;
+              }
+
+              if (netInfo.isConnected) {
+                try {
+                  const response = await axios.post(`${API_URL}/saveOrUpdateTeamData`, {
+                    surveyPoint,
+                    teamMembers,
+                    formData,
+                    email,
+                  });
+
+                  if (response.data.updated) {
+                    Alert.alert('Success', 'Team data updated successfully!');
+                  } else {
+                    Alert.alert('Success', 'Team data saved successfully!');
+                  }
+
+                  console.log(response.data);
+                  navigation.navigate('CommonData', { surveyPoint, teamMembers, formData });
+                } catch (error) {
+                  console.error('Error saving or updating data:', error);
+                  Alert.alert('Error', 'Failed to save or update team data.');
+                }
+              } else {
+                saveTeamMembersToSQLite(teamMembers);
+                Alert.alert('Offline', 'Team data saved locally, will sync once online.');
+                navigation.navigate('CommonData', { surveyPoint, teamMembers, formData });
+              }
+            }}
+            style={styles.button}
+            buttonColor="#4A7856"
+            textColor="white"
+          >
+            Go to Next
+          </Button>
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
@@ -362,30 +330,33 @@ export default TeamData;
 
 // Styles
 const styles = StyleSheet.create({
-  whiteBoxContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-
-  container2: {
-    backgroundColor: 'rgba(217,217,217,0.9)',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    marginTop: 15,
-    marginBottom: 15,
-    width: width * 0.93,
-    padding: 20,
-  },
-  backgroundImage: {
+  safeArea: {
     flex: 1,
-    resizeMode: 'cover',
+    backgroundColor: '#F5F5F0',
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
+    alignItems: 'center',
   },
   container: {
     flexGrow: 1,
     alignItems: 'center',
-    padding: 20,
+    padding: 8,
   },
   mainText: {
     fontSize: 22,
@@ -393,30 +364,29 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     marginTop: 10,
     textAlign: 'center',
-    color: '#444',
+    color: '#333333',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    color: 'black',
     marginBottom: 15,
-    width: width * 0.9,
+    width: '100%',
   },
   textInput: {
     flex: 1,
     height: 50,
-    backgroundColor: 'gray',
+    backgroundColor: '#FFFFFF',
     marginRight: 10,
     fontSize: 16,
   },
   addButton: {
-    backgroundColor: 'green',
+    backgroundColor: '#4A7856',
     padding: 12,
-    borderRadius: 5,
+    borderRadius: 8,
   },
   teamMembersContainer: {
-    width: width * 0.9,
-    marginTop: 20,
+    width: '100%',
+    marginTop: 10,
     alignItems: 'center',
   },
   teamMemberContainer: {
@@ -424,16 +394,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: 10,
+    marginVertical: 8,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
   },
   teamMember: {
-    fontSize: 18,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-    width: '80%',
+    fontSize: 16,
+    paddingVertical: 4,
+    width: '75%',
     textAlign: 'center',
-    color: 'black',
+    color: '#333333',
   },
   actionsContainer: {
     flexDirection: 'row',
@@ -448,18 +419,20 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   noMembersText: {
-    fontSize: 16,
-    color: 'black',
+    fontSize: 14,
+    color: '#888888',
     textAlign: 'center',
     marginTop: 10,
   },
   button: {
-    width: width * 0.9,
+    width: '100%',
     marginTop: 20,
-    marginBottom: 20,
+    marginBottom: 10,
+    borderRadius: 25,
   },
   backButton: {
     alignSelf: 'flex-start',
-    marginLeft: -10,
+    marginLeft: 4,
+    marginTop: 4,
   },
 });
