@@ -27,7 +27,7 @@ import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import DisplayTable from '../data-table/display-table';
 import MyDataTable from '../data-table/display-table';
 import axios from 'axios';
-import CustomAlert from '../custom-alert/alert-design';
+
 import {Dimensions} from 'react-native';
 import RadioForm, {
   RadioButton,

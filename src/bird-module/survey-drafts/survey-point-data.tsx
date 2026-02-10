@@ -28,7 +28,7 @@ import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import DisplayTable from '../data-table/display-table';
 import MyDataTable from '../data-table/display-table';
 import axios from 'axios';
-import CustomAlert from '../custom-alert/alert-design';
+
 import { Dimensions } from 'react-native';
 import RadioForm, {
   RadioButton,
@@ -324,8 +324,8 @@ const SurveyPointData = ({ route }) => {
       return;
     }
 
-    // Navigate to the CommonData screen and pass the surveyPoint array
-    navigation.navigate('TeamData', { surveyPoint, teamMembers });
+    // Navigate directly to CommonData screen and pass the surveyPoint array
+    navigation.navigate('CommonData', { surveyPoint, teamMembers });
   };
 
 

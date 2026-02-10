@@ -29,7 +29,7 @@ import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import DisplayTable from '../data-table/display-table';
 import MyDataTable from '../data-table/display-table';
 import axios from 'axios';
-import CustomAlert from '../custom-alert/alert-design';
+
 import {Dimensions} from 'react-native';
 import RadioForm, {
   RadioButton,
@@ -581,6 +581,11 @@ const [isWaterModalVisible, setWaterModalVisible] = useState(false);
   const [birdDataArray, setBirdDataArray] = useState([]);
   const [isFocusObservers, setIsFocusObservers] = useState(false);
   const [birdCount, setBirdCount] = useState(1);
+  
+  // Team Members State
+  const [teamMemberInput, setTeamMemberInput] = useState('');
+  const [teamMembersList, setTeamMembersList] = useState(teamMembers || []);
+  const [editTeamIndex, setEditTeamIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (surveyPoint) {
@@ -1223,8 +1228,34 @@ const uploadPathToServer = async (uri, addedId) => {
   }
 };
 
+  // Team Members Management Functions
+  const addTeamMember = () => {
+    if (teamMemberInput.trim() !== '' && !teamMembersList.includes(teamMemberInput)) {
+      setTeamMembersList([...teamMembersList, teamMemberInput]);
+      setTeamMemberInput('');
+    } else {
+      Alert.alert('Error', 'Please enter a valid and unique name.');
+    }
+  };
 
+  const editTeamMember = (index) => {
+    setTeamMemberInput(teamMembersList[index]);
+    setEditTeamIndex(index);
+  };
 
+  const saveTeamMemberEdit = () => {
+    if (editTeamIndex !== null) {
+      const updated = [...teamMembersList];
+      updated[editTeamIndex] = teamMemberInput;
+      setTeamMembersList(updated);
+      setTeamMemberInput('');
+      setEditTeamIndex(null);
+    }
+  };
+
+  const deleteTeamMember = (index) => {
+    setTeamMembersList(teamMembersList.filter((_, i) => i !== index));
+  };
 
   const handleSignUp = async () => {
     if (!isFormValid()) {
@@ -1294,7 +1325,7 @@ const uploadPathToServer = async (uri, addedId) => {
       waterAvailability: compileWaterAvailability(),
       waterLevelOnLand,
       waterLevelOnResources,
-      teamMembers: teamMembers,
+      teamMembers: teamMembersList,
   
       birdObservations: birdDataArray.map(bird => ({
         uniqueId: bird.find(item => item.label === "Unique ID")?.value,
@@ -1688,18 +1719,7 @@ const uploadPathToServer = async (uri, addedId) => {
   return (
     <View style={styles.safeArea}>
          <TouchableOpacity 
-    onPress={() => navigation.navigate('TeamData', { 
-        formData: {
-            birdDataArray,
-            text,
-            observers,
-            selectedStartTime: selectedStartTime?.toISOString(),  // Convert Date to string
-            selectedEndTime: selectedEndTime?.toISOString(),      // Convert Date to string
-            weatherSelection,
-            waterSelection,
-            value7
-        }
-    })}
+    onPress={() => navigation.navigate('SurveyPointData')}
     style={styles.backButton}
 >
     <IconButton icon="arrow-left" iconColor="#4A7856" size={28} />
@@ -2034,7 +2054,7 @@ const uploadPathToServer = async (uri, addedId) => {
     if (isFormValid()) {
     navigation.navigate('BirdDataRecord', {
       surveyPoint,
-      teamMembers,
+      teamMembers: teamMembersList,
       birdDataArray
     });
     setBirdCount((prevCount) => prevCount + 1); // Increment bird count on click
@@ -2047,6 +2067,57 @@ const uploadPathToServer = async (uri, addedId) => {
 >
   {`Add ${birdCount === 1 ? 'First Observed Bird Data ' : `Observed Bird Data ${birdCount}`}`} 
 </Button>
+
+                {/* Team Members Section */}
+                <View style={styles.teamMembersSection}>
+                  <Text style={styles.sectionTitle}>Team Members</Text>
+                  
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      mode="outlined"
+                      placeholder="Enter team member name"
+                      value={teamMemberInput}
+                      onChangeText={setTeamMemberInput}
+                      style={styles.textInput}
+                      outlineColor="#4A7856"
+                      activeOutlineColor="#4A7856"
+                      placeholderTextColor="#999"
+                    />
+                    <TouchableOpacity 
+                      onPress={editTeamIndex !== null ? saveTeamMemberEdit : addTeamMember}
+                      style={styles.addButton}
+                    >
+                      <Icon name={editTeamIndex !== null ? "check" : "plus"} size={20} color="white" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.teamMembersContainer}>
+                    {teamMembersList.length > 0 ? (
+                      teamMembersList.map((member, index) => (
+                        <View key={index} style={styles.teamMemberItem}>
+                          <Text style={styles.teamMemberText}>{member}</Text>
+                          <View style={styles.actionsContainer}>
+                            <TouchableOpacity 
+                              onPress={() => editTeamMember(index)}
+                              style={styles.editButton}
+                            >
+                              <Icon name="edit" size={18} color="#4A7856" />
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                              onPress={() => deleteTeamMember(index)}
+                              style={styles.deleteButton}
+                            >
+                              <Icon name="trash" size={18} color="#D32F2F" />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ))
+                    ) : (
+                      <Text style={styles.noMembersText}>No team members added yet.</Text>
+                    )}
+                  </View>
+                </View>
+
                 <View>
                 <Button
                   mode="contained"
@@ -2542,5 +2613,74 @@ errorText: {
   backButton: {
     alignSelf: 'flex-start',
     marginLeft: -10,
+  },
+  // Team Members Styles
+  teamMembersSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 15,
+    marginVertical: 15,
+    marginHorizontal: 5,
+    width: width * 0.9,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333333',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  textInput: {
+    flex: 1,
+    height: 50,
+    marginRight: 10,
+    backgroundColor: 'white',
+  },
+  addButton: {
+    backgroundColor: '#4A7856',
+    padding: 12,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  teamMembersContainer: {
+    width: '100%',
+  },
+  teamMemberItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  teamMemberText: {
+    fontSize: 16,
+    color: '#333333',
+    flex: 1,
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editButton: {
+    marginLeft: 10,
+    padding: 5,
+  },
+  deleteButton: {
+    marginLeft: 10,
+    padding: 5,
+  },
+  noMembersText: {
+    fontSize: 14,
+    color: '#888888',
+    textAlign: 'center',
+    marginTop: 10,
   },
 });
