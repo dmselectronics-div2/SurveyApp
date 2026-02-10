@@ -41,7 +41,7 @@ const StartPageA = () => {
     }, []);
 
     const handlePress = () => {
-        navigation.navigate('ModuleSelector');
+        navigation.navigate('OptionSelection'); // Navigate to the next screen
     };
 
     return (

@@ -41,7 +41,7 @@ import RadioForm, {
   RadioButtonLabel,
 } from 'react-native-simple-radio-button';
 import { API_URL } from '../../config';
-import SQLite from 'react-native-sqlite-storage';
+import { getDatabase } from '../database/db';
 import NetInfo from '@react-native-community/netinfo';
 import RNFS from 'react-native-fs';
 
@@ -683,71 +683,65 @@ const [longitude, setLongitude] = useState(
   );
     const navigation = useNavigation(); 
 
-  const db = SQLite.openDatabase(
-    { name: 'user_db.db', location: 'default' },
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
-
   useEffect(() => {
     retriveEmailFromSQLite();
     retriveAllFromDataSQLite();
   }, []);
 
   useEffect(() => {
-    db.transaction(tx => {
-      tx.executeSql(
-        `CREATE TABLE IF NOT EXISTS bird_survey (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          email TEXT,
-          uniqueId TEXT,
-          habitatType TEXT,
-          point TEXT,
-          pointTag TEXT,
-          latitude TEXT,
-          longitude TEXT,
-          date TEXT,
-          observers TEXT,
-          startTime TEXT,
-          endTime TEXT,
-          weather TEXT,
-          water TEXT,
-          season TEXT,
-          statusOfVegy TEXT,
-          species TEXT,
-          count TEXT,
-          maturity TEXT,
-          sex TEXT,
-          behaviour TEXT,
-          identification TEXT,
-          status TEXT,
-          radiusOfArea TEXT,
-          remark TEXT,
-          imageUri TEXT,
-          cloudIntensity TEXT,
-          rainIntensity TEXT,
-          windIntensity TEXT,
-          sunshineIntensity TEXT,
-          waterLevel TEXT
-        );`,
-        [],
-        () => console.log('Table created successfully'),
-        error => console.log('Error creating table: ', error),
-      );
-      tx.executeSql(
-        `CREATE TABLE IF NOT EXISTS failed_submissions (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          formData TEXT
-        );`,
-        [],
-        () => console.log('Failed submissions table created successfully'),
-        error => console.log('Error creating failed_submissions table: ', error),
-      );
-    });
+    const initDb = async () => {
+      const db = await getDatabase();
+      db.transaction(tx => {
+        tx.executeSql(
+          `CREATE TABLE IF NOT EXISTS bird_survey (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT,
+            uniqueId TEXT,
+            habitatType TEXT,
+            point TEXT,
+            pointTag TEXT,
+            latitude TEXT,
+            longitude TEXT,
+            date TEXT,
+            observers TEXT,
+            startTime TEXT,
+            endTime TEXT,
+            weather TEXT,
+            water TEXT,
+            season TEXT,
+            statusOfVegy TEXT,
+            species TEXT,
+            count TEXT,
+            maturity TEXT,
+            sex TEXT,
+            behaviour TEXT,
+            identification TEXT,
+            status TEXT,
+            radiusOfArea TEXT,
+            remark TEXT,
+            imageUri TEXT,
+            cloudIntensity TEXT,
+            rainIntensity TEXT,
+            windIntensity TEXT,
+            sunshineIntensity TEXT,
+            waterLevel TEXT
+          );`,
+          [],
+          () => console.log('Table created successfully'),
+          error => console.log('Error creating table: ', error),
+        );
+        tx.executeSql(
+          `CREATE TABLE IF NOT EXISTS failed_submissions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            formData TEXT
+          );`,
+          [],
+          () => console.log('Failed submissions table created successfully'),
+          error => console.log('Error creating failed_submissions table: ', error),
+        );
+      });
+    };
+    initDb();
   }, []);
 
 
@@ -766,8 +760,9 @@ const [longitude, setLongitude] = useState(
     };
   }, []);
 
-  const retryFailedSubmissions = () => {
+  const retryFailedSubmissions = async () => {
     console.log('Attempting to retry failed submissions...');
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM failed_submissions',
@@ -807,7 +802,8 @@ const [longitude, setLongitude] = useState(
     });
   };
 
-  const deleteFailedSubmission = id => {
+  const deleteFailedSubmission = async (id) => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'DELETE FROM failed_submissions WHERE id = ?',
@@ -1137,7 +1133,8 @@ const [longitude, setLongitude] = useState(
   };
 
 
-  const retriveEmailFromSQLite = () => {
+  const retriveEmailFromSQLite = async () => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT email FROM LoginData LIMIT 1',

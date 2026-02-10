@@ -10,6 +10,7 @@ import {
   Alert,
   PermissionsAndroid,
   Appearance,
+  Platform,
 } from 'react-native';
 
 import {Dropdown} from 'react-native-element-dropdown';
@@ -250,6 +251,8 @@ const openGallery1 = () => {
         error => console.log('Error creating table: ', error),
       );
     });
+    };
+    initDb();
   }, []);
 
   
@@ -268,8 +271,9 @@ const openGallery1 = () => {
     };
   }, []);
 
-  const retryFailedSubmissions = () => {
+  const retryFailedSubmissions = async () => {
     console.log('Attempting to retry failed submissions...');
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM failed_submissions',
@@ -341,7 +345,8 @@ const openGallery1 = () => {
 //   };
 
 
-  const deleteFailedSubmission = id => {
+  const deleteFailedSubmission = async (id) => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'DELETE FROM failed_submissions WHERE id = ?',
@@ -694,7 +699,8 @@ const openGallery1 = () => {
   };
 
   // get email from sqlite
-  const retriveEmailFromSQLite = () => {
+  const retriveEmailFromSQLite = async () => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT email FROM LoginData LIMIT 1',
@@ -718,7 +724,8 @@ const openGallery1 = () => {
   };
 
   // get email from sqlite
-  const retriveAllFromDataSQLite = () => {
+  const retriveAllFromDataSQLite = async () => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM bird_survey',

@@ -668,7 +668,7 @@ import RadioForm, {
   RadioButtonLabel,
 } from 'react-native-simple-radio-button';
 import { API_URL } from '../../config';
-import SQLite from 'react-native-sqlite-storage';
+import { getDatabase } from '../database/db';
 import NetInfo from '@react-native-community/netinfo';
 import RNFS from 'react-native-fs';
 
@@ -1297,65 +1297,56 @@ const EditCount = () => {
   );
     const navigation = useNavigation(); 
 
-  const db = SQLite.openDatabase(
-    { name: 'user_db.db', location: 'default' },
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
-
-
-
   useEffect(() => {
     retriveEmailFromSQLite();
     retriveAllFromDataSQLite();
   }, []);
 
   useEffect(() => {
-
-    db.transaction(tx => {
-      tx.executeSql(
-        `CREATE TABLE IF NOT EXISTS bird_survey (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          email TEXT,
-          uniqueId TEXT,
-          habitatType TEXT,
-          point TEXT,
-          pointTag TEXT,
-          latitude TEXT,
-          longitude TEXT,
-          date TEXT,
-          observers TEXT,
-          startTime TEXT,
-          endTime TEXT,
-          weather TEXT,
-          water TEXT,
-          season TEXT,
-          statusOfVegy TEXT,
-          species TEXT,
-          count TEXT,
-          maturity TEXT,
-          sex TEXT,
-          behaviour TEXT,
-          identification TEXT,
-          status TEXT,
-          radiusOfArea TEXT,
-          remark TEXT,
-          imageUri TEXT,
-          cloudIntensity TEXT,
-          rainIntensity TEXT,
-          windIntensity TEXT,
-          sunshineIntensity TEXT,
-          waterLevel TEXT
-        );`,
-        [],
-        () => console.log('Table created successfully'),
-        error => console.log('Error creating table: ', error),
-      );
-    });
+    const initDb = async () => {
+      const db = await getDatabase();
+      db.transaction(tx => {
+        tx.executeSql(
+          `CREATE TABLE IF NOT EXISTS bird_survey (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT,
+            uniqueId TEXT,
+            habitatType TEXT,
+            point TEXT,
+            pointTag TEXT,
+            latitude TEXT,
+            longitude TEXT,
+            date TEXT,
+            observers TEXT,
+            startTime TEXT,
+            endTime TEXT,
+            weather TEXT,
+            water TEXT,
+            season TEXT,
+            statusOfVegy TEXT,
+            species TEXT,
+            count TEXT,
+            maturity TEXT,
+            sex TEXT,
+            behaviour TEXT,
+            identification TEXT,
+            status TEXT,
+            radiusOfArea TEXT,
+            remark TEXT,
+            imageUri TEXT,
+            cloudIntensity TEXT,
+            rainIntensity TEXT,
+            windIntensity TEXT,
+            sunshineIntensity TEXT,
+            waterLevel TEXT
+          );`,
+          [],
+          () => console.log('Table created successfully'),
+          error => console.log('Error creating table: ', error),
+        );
+      });
+    };
+    initDb();
   }, []);
 
 
@@ -1374,8 +1365,9 @@ const EditCount = () => {
     };
   }, []);
 
-  const retryFailedSubmissions = () => {
+  const retryFailedSubmissions = async () => {
     console.log('Attempting to retry failed submissions...');
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM failed_submissions',
@@ -1426,7 +1418,8 @@ const EditCount = () => {
     });
   };
 
-  const deleteFailedSubmission = id => {
+  const deleteFailedSubmission = async (id) => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'DELETE FROM failed_submissions WHERE id = ?',
@@ -1758,7 +1751,8 @@ const EditCount = () => {
   };
 
 
-  const retriveEmailFromSQLite = () => {
+  const retriveEmailFromSQLite = async () => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT email FROM LoginData LIMIT 1',
@@ -1782,7 +1776,8 @@ const EditCount = () => {
   };
 
 
-  const retriveAllFromDataSQLite = () => {
+  const retriveAllFromDataSQLite = async () => {
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'SELECT * FROM bird_survey',
@@ -1985,8 +1980,9 @@ const EditCount = () => {
   };
 
   // Save failed submission data in a local queue for retry
-  const storeFailedSubmission = formData => {
+  const storeFailedSubmission = async (formData) => {
     // You can save failed submissions in a separate table/collection in SQLite for later retries
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         'INSERT INTO failed_submissions (formData) VALUES (?)',
@@ -2001,8 +1997,9 @@ const EditCount = () => {
     });
   };
 
-  const saveFormDataSQL = formData => {
+  const saveFormDataSQL = async (formData) => {
     // Insert the form data into SQLite
+    const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
         `INSERT INTO bird_survey (

@@ -30,13 +30,7 @@ const ModuleSelector: React.FC = () => {
       icon: 'snail',
       screen: 'MangroveNew',
     },
-    {
-      id: 'citizen',
-      title: 'Survey',
-      description: 'Citizen & Scientist observation with monitoring data collection',
-      icon: 'account-group',
-      screen: 'OptionSelection',
-    },
+   
   ];
 
   const handleModuleSelect = (screenName: string) => {

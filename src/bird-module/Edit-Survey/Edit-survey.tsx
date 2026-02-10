@@ -37,7 +37,7 @@ import RadioForm, {
   RadioButtonLabel,
 } from 'react-native-simple-radio-button';
 import {API_URL} from '../../config';
-import SQLite from 'react-native-sqlite-storage';
+
 import NetInfo from '@react-native-community/netinfo';
 import RNFS from 'react-native-fs';
 

@@ -25,7 +25,7 @@ const OptionSelection = () => {
     };
 
     const handleScientistPress = () => {
-        Alert.alert('Coming Soon', 'Scientist Dashboard is under development.');
+        navigation.navigate('ModuleSelector');
     };
 
     const handleBackPress = () => {
