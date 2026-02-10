@@ -1,4 +1,3 @@
-//import liraries
 import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
@@ -7,463 +6,173 @@ import {
   ImageBackground,
   Platform,
   Alert,
-  Appearance,
-  ActivityIndicator,
   TouchableOpacity,
   BackHandler,
 } from 'react-native';
-import {
-  Provider as PaperProvider,
-  TextInput,
-  DefaultTheme,
-  Button,
-} from 'react-native-paper';
-import {useNavigation} from '@react-navigation/native';
+import {TextInput} from 'react-native-paper';
+import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import axios from 'axios';
 import {API_URL} from '../../config';
-import SQLite from 'react-native-sqlite-storage';
 
-const theme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    primary: '#56FF64',
-    text: 'red',
-    placeholder: 'white',
-    surface: 'rgba(217, 217, 217, 0.7)',
-  },
-};
-// component
-const VerifyFPEmail = ({navigation, route}) => {
-  const [theme, setTheme] = useState(Appearance.getColorScheme());
-  const [pin5, setPin5] = useState('');
-  const [pin1, setPin1] = useState('');
-  const [pin2, setPin2] = useState('');
-  const [pin3, setPin3] = useState('');
-  const [pin4, setPin4] = useState('');
-  const [userPin, setUserPin] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [confirmCode, setConfirmCode] = useState(null);
-  const [countdown, setCountdown] = useState(30); // Countdown state
-  const [isResendEnabled, setIsResendEnabled] = useState(false); // State to control button enabling
-  const timerRef = useRef(null); 
+const VerifyFPEmail = ({navigation, route}: any) => {
+  const [pins, setPins] = useState(['', '', '', '', '']);
+  const [confirmCode, setConfirmCode] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(30);
+  const [isResendEnabled, setIsResendEnabled] = useState(false);
   const [resendAttempts, setResendAttempts] = useState(0);
+  const timerRef = useRef<any>(null);
 
-  // Create references for each TextInput
-  const pin1Ref = useRef(null);
-  const pin2Ref = useRef(null);
-  const pin3Ref = useRef(null);
-  const pin4Ref = useRef(null);
-  const pin5Ref = useRef(null);
+  const pinRefs = [
+    useRef<any>(null),
+    useRef<any>(null),
+    useRef<any>(null),
+    useRef<any>(null),
+    useRef<any>(null),
+  ];
 
-  // SQLite Database
-  const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened');
-    },
-    err => {
-      console.error('Database error: ', err);
-    },
-  );
-
-  // Get the email from route parameters
   const email = route?.params?.email || null;
   const confirmation = route?.params?.confirmationCode || null;
 
   useEffect(() => {
     if (confirmation) {
       setConfirmCode(confirmation);
+      startCountdown();
     }
+    return () => clearInterval(timerRef.current);
   }, [confirmation]);
 
-  const cleanFilled = () => {
-    setPin1('');
-    setPin2('');
-    setPin3('');
-    setPin4('');
-    setPin5('');
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      navigation.goBack();
+      return true;
+    });
+    return () => backHandler.remove();
+  }, [navigation]);
+
+  const startCountdown = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setCountdown(30);
+    setIsResendEnabled(false);
+    timerRef.current = setInterval(() => {
+      setCountdown((prev: number) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          setIsResendEnabled(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
-  const handleConfirmEmail = async () => {
-    if (
-      pin1 === '' ||
-      pin2 === '' ||
-      pin3 === '' ||
-      pin4 === '' ||
-      pin5 === ''
-    ) {
-      Alert.alert('Failed', 'Please Fill all Field');
-    } else {
-      setLoading(true);
-      handleConfirm();
+  const handlePinChange = (text: string, index: number) => {
+    const newPins = [...pins];
+    newPins[index] = text;
+    setPins(newPins);
+    if (text.length === 1 && index < 4) {
+      pinRefs[index + 1].current?.focus();
     }
   };
 
-  const updateEmailVerificationInSQLite = EmailVerified => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'UPDATE Users SET emailConfirm = ? WHERE email = ?',
-        [EmailVerified ? 1 : 0, email], // Update fingerprint status (1 for enabled, 0 for disabled)
-        (tx, result) => {
-          console.log('Email Confirmation status updated in SQLite');
-        },
-        error => {
-          console.error(
-            'Error updating Email Confirmation status:',
-            error.message,
-          );
-        },
-      );
-    });
+  const handleKeyPress = (e: any, index: number) => {
+    if (e.nativeEvent.key === 'Backspace' && pins[index] === '' && index > 0) {
+      pinRefs[index - 1].current?.focus();
+    }
   };
 
-  // Update useEffect to use the startCountdown function
-useEffect(() => {
-  if (confirmation) {
-    setConfirmCode(confirmation);
-    startCountdown();
-  }
-
-  return () => {
-    clearInterval(timerRef.current); // Cleanup on component unmount
-  };
-}, [confirmation]);
-
-const startCountdown = () => {
-  // Clear any existing timer
-  if (timerRef.current) {
-    clearInterval(timerRef.current);
-  }
-
-  // Reset countdown and disable the resend button
-  setCountdown(30);
-  setIsResendEnabled(false);
-
-  // Start a new countdown
-  timerRef.current = setInterval(() => {
-    setCountdown(prev => {
-      if (prev <= 1) {
-        clearInterval(timerRef.current); // Clear the timer when countdown finishes
-        setIsResendEnabled(true); // Enable the button
-        return 0;
-      }
-      return prev - 1;
-    });
-  }, 1000);
-};
-
-  const handleConfirm = async () => {
-    const enteredPin = `${pin1}${pin2}${pin3}${pin4}${pin5}`;
-    if (enteredPin === confirmCode) {
-      setLoading(false);
-      updateEmailVerificationInSQLite(true);
-      Alert.alert('Success', 'Email verified in successfully');
+  const handleConfirmEmail = () => {
+    const enteredCode = pins.join('');
+    if (enteredCode.length < 5) {
+      Alert.alert('Error', 'Please enter the complete verification code');
+      return;
+    }
+    if (enteredCode === confirmCode) {
+      Alert.alert('Success', 'Email verified successfully');
       navigation.navigate('ResetPassword', {email});
     } else {
-      Alert.alert('Invalid PIN');
+      Alert.alert('Error', 'Invalid verification code');
+      setPins(['', '', '', '', '']);
+      pinRefs[0].current?.focus();
     }
   };
 
-  // Get the email from route parameters
   const sendEmailAgain = async () => {
     if (resendAttempts >= 2) {
       Alert.alert('Limit Reached', 'You can try again later.');
       return;
     }
     try {
-      // Clear the existing timer and start a new countdown
       startCountdown();
-  
-      // Clear the pin fields
-      cleanFilled();
-  
-      // Disable the resend button and reset countdown
-      setIsResendEnabled(false);
-      setCountdown(30);
-  
-      // Make the API request to resend the confirmation code
-      const response = await axios.post(`${API_URL}/send-password-reset-email`, {
-        email,
-      });
-      const { resetCode } = response.data;
-      console.log('New confirmation code:', resetCode);
-  
-      // Update the confirmation code state
+      setPins(['', '', '', '', '']);
+      const response = await axios.post(`${API_URL}/send-password-reset-email`, {email});
+      const {resetCode} = response.data;
       setConfirmCode(resetCode);
-
-      // Increment the resend attempt counter
       setResendAttempts(prev => prev + 1);
     } catch (err) {
-      setError('Failed to send confirmation email.');
-      Alert.alert('Error', 'Failed to send confirmation email.');
+      Alert.alert('Error', 'Failed to resend verification code.');
     }
   };
-  
-
-  // remove back press
-  useEffect(() => {
-    const backAction = () => {
-      navigation.goBack();
-      return true;
-    };
-
-    const backHandler = BackHandler.addEventListener(
-      'hardwareBackPress',
-      backAction,
-    );
-
-    return () => backHandler.remove();
-  }, [navigation]);
-
-  useEffect(() => {
-    const subscription = Appearance.addChangeListener(({colorScheme}) => {
-      setTheme(colorScheme);
-    });
-    return () => subscription.remove();
-  }, []);
-
-  const isDarkMode = theme === 'dark';
 
   return (
     <ImageBackground
-      source={require('./../../assets/image/imageD.jpg')}
+      source={require('../../assets/image/welcome.jpg')}
       style={styles.backgroundImage}>
-      <View style={styles.title_container}>
-        <View
-          style={[
-            styles.whiteBox,
-            {
-              backgroundColor: isDarkMode
-                ? 'rgba(17, 17, 17, 0.8)'
-                : 'rgba(217, 217, 217, 0.7)',
-            },
-          ]}>
-          <Text
-            style={[styles.main_text, {color: isDarkMode ? 'white' : 'black'}]}>
-            Verify your Email
+      <View style={styles.overlay}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}>
+          <MaterialIcon name="arrow-back" size={28} color="#4A7856" />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+
+        <View style={styles.card}>
+          <View style={styles.iconContainer}>
+            <View style={styles.emailCircle}>
+              <MaterialIcon name="mark-email-read" size={40} color="#4A7856" />
+            </View>
+          </View>
+
+          <Text style={styles.title}>Verify Email</Text>
+          <Text style={styles.subtitle}>
+            Please enter the verification code we sent to{' '}
+            <Text style={styles.emailHighlight}>{email}</Text>
           </Text>
-          <View style={styles.flex_container}>
-            <Text
-              style={[
-                styles.sub_text,
-                {color: isDarkMode ? 'white' : 'black'},
-              ]}>
-              Please enter the verification code{' '}
-            </Text>
-            <Text
-              style={[
-                styles.sub_text_bold,
-                {color: isDarkMode ? 'white' : 'black'},
-              ]}>
-              {' '}
-              we sent to your{' '}
-            </Text>
-          </View>
-          <View style={styles.flex_container}>
-            <Text
-              style={[
-                styles.sub_text_bold,
-                {color: isDarkMode ? 'white' : 'black'},
-              ]}>
-              {email}
-            </Text>
-          </View>
-          <View style={styles.flex_container}>
-            <Text
-              style={[
-                styles.sub_text_bold,
-                {color: isDarkMode ? 'white' : 'black'},
-              ]}>
-              {' '}
-              email address{' '}
-            </Text>
-            <Text
-              style={[
-                styles.sub_text,
-                {color: isDarkMode ? 'white' : 'black'},
-              ]}>
-              {' '}
-              to complete the verification process.
-            </Text>
-          </View>
-          {/* <Text>hi {confirmationCode}</Text> */}
 
-          <View style={styles.flex_container_text_input}>
-            <TextInput
-              label=""
-              mode="outlined"
-              value={pin1}
-              onChangeText={text => {
-                setPin1(text);
-                if (text.length === 1) {
-                  pin1Ref.current.focus(); // Move to next input
-                }
-              }}
-              style={[
-                styles.text_input,
-                {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(0, 0, 0, 0.7)'
-                    : 'rgba(255, 255, 255, 0.7)',
-                  fontSize: 30,
-                  textAlign: 'center',
-                },
-              ]}
-              keyboardType="number-pad"
-              maxLength={1}
-              onKeyPress={({nativeEvent}) => {
-                if (nativeEvent.key === 'Backspace' && pin1.length === 0) {
-                  pin1Ref.current.blur(); // Prevent focus shift if already empty
-                }
-              }}
-            />
-            <TextInput
-              ref={pin1Ref}
-              label=""
-              mode="outlined"
-              value={pin2}
-              onChangeText={text => {
-                setPin2(text);
-                if (text.length === 1) {
-                  pin2Ref.current.focus(); // Move to next input
-                }
-              }}
-              style={[
-                styles.text_input,
-                {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(0, 0, 0, 0.7)'
-                    : 'rgba(255, 255, 255, 0.7)',
-                  fontSize: 30,
-                  textAlign: 'center',
-                },
-              ]}
-              keyboardType="number-pad"
-              maxLength={1}
-              onKeyPress={({nativeEvent}) => {
-                if (nativeEvent.key === 'Backspace' && pin2.length === 0) {
-                  pin2Ref.current.blur();
-                  pin1Ref.current.focus(); // Move back to the previous input
-                }
-              }}
-            />
-            <TextInput
-              ref={pin2Ref}
-              label=""
-              mode="outlined"
-              value={pin3}
-              onChangeText={text => {
-                setPin3(text);
-                if (text.length === 1) {
-                  pin3Ref.current.focus(); // Move to next input
-                }
-              }}
-              style={[
-                styles.text_input,
-                {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(0, 0, 0, 0.7)'
-                    : 'rgba(255, 255, 255, 0.7)',
-                  fontSize: 30,
-                  textAlign: 'center',
-                },
-              ]}
-              keyboardType="number-pad"
-              maxLength={1}
-              onKeyPress={({nativeEvent}) => {
-                if (nativeEvent.key === 'Backspace' && pin3.length === 0) {
-                  pin3Ref.current.focus(); // Move back to the previous input
-                }
-              }}
-            />
-            <TextInput
-              ref={pin3Ref}
-              label=""
-              mode="outlined"
-              value={pin4}
-              onChangeText={text => {
-                setPin4(text);
-                if (text.length === 1) {
-                  pin4Ref.current.focus(); // Move to next input
-                }
-              }}
-              style={[
-                styles.text_input,
-                {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(0, 0, 0, 0.7)'
-                    : 'rgba(255, 255, 255, 0.7)',
-                  fontSize: 30,
-                  textAlign: 'center',
-                },
-              ]}
-              keyboardType="number-pad"
-              maxLength={1}
-              onKeyPress={({nativeEvent}) => {
-                if (nativeEvent.key === 'Backspace' && pin4.length === 0) {
-                  pin4Ref.current.blur();
-                  pin3Ref.current.focus(); // Move back to the previous input
-                }
-              }}
-            />
-            <TextInput
-              ref={pin4Ref}
-              label=""
-              mode="outlined"
-              value={pin5}
-              onChangeText={setPin5}
-              style={[
-                styles.text_input,
-                {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(0, 0, 0, 0.7)'
-                    : 'rgba(255, 255, 255, 0.7)',
-                  fontSize: 30,
-                  textAlign: 'center',
-                },
-              ]}
-              keyboardType="number-pad"
-              maxLength={1}
-              onKeyPress={({nativeEvent}) => {
-                if (nativeEvent.key === 'Backspace' && pin5.length === 0) {
-                  pin5Ref.current.focus(); // Move back to the previous input
-                }
-              }}
-            />
+          <View style={styles.pinContainer}>
+            {pins.map((digit, index) => (
+              <TextInput
+                key={index}
+                ref={pinRefs[index]}
+                value={digit}
+                onChangeText={text => handlePinChange(text, index)}
+                onKeyPress={e => handleKeyPress(e, index)}
+                style={styles.pinInput}
+                keyboardType="number-pad"
+                maxLength={1}
+                mode="outlined"
+                outlineColor="rgba(74, 120, 86, 0.3)"
+                activeOutlineColor="#4A7856"
+                theme={{colors: {primary: '#4A7856', background: '#fff'}}}
+              />
+            ))}
           </View>
 
-          {/* {loading ?
-           (
-            <ActivityIndicator size="large" color="#516E9E" />
-          ) : ( */}
-          <Button
-            mode="contained"
+          <TouchableOpacity
+            style={styles.confirmButton}
             onPress={handleConfirmEmail}
-            style={[styles.button_signup, {borderRadius: 8}]}
-            buttonColor="#516E9E"
-            textColor="white"
-            labelStyle={styles.button_label}>
-            Confirm
-          </Button>
-          {/* </Button>)} */}
+            activeOpacity={0.8}>
+            <Text style={styles.confirmButtonText}>Confirm</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             onPress={sendEmailAgain}
-            disabled={!isResendEnabled || resendAttempts >= 2} // Disable until countdown finishes
-          >
+            disabled={!isResendEnabled || resendAttempts >= 2}
+            activeOpacity={0.7}>
             <Text
               style={[
-                styles.forgotPasswordText,
-                {
-                  color:
-                    isResendEnabled && resendAttempts < 2
-                      ? isDarkMode
-                        ? 'white'
-                        : 'black'
-                      : 'gray',
-                },
+                styles.resendText,
+                {color: isResendEnabled && resendAttempts < 2 ? '#4A7856' : '#999'},
               ]}>
               {resendAttempts >= 2
                 ? 'Try again later'
@@ -478,112 +187,68 @@ const startCountdown = () => {
   );
 };
 
-// styles
 const styles = StyleSheet.create({
-  container: {
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
-    width: '55%',
-    height: 142,
-    marginLeft: 'auto',
-    marginRight: 24,
-    marginTop: '60%',
+  backgroundImage: {flex: 1, resizeMode: 'cover'},
+  overlay: {flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.4)', justifyContent: 'center', paddingHorizontal: 20},
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 40,
+    left: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    zIndex: 10,
   },
-  title_container: {
-    flex: 1,
-    // justifyContent: 'flex-start',
-    // alignItems: 'flex-start',
-    // backgroundColor: 'white',
-    fontFamily: 'Inter-Bold',
-    marginTop: '20%',
+  backButtonText: {fontSize: 14, color: '#FFFFFF', marginLeft: 5, fontWeight: '600'},
+  card: {
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderRadius: 20,
+    padding: 28,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {shadowColor: 'black', shadowOffset: {width: 0, height: 5}, shadowOpacity: 0.35, shadowRadius: 10},
+      android: {elevation: 10},
+    }),
   },
-  forgotPasswordText: {
-    color: 'black',
-    textDecorationLine: 'underline',
-    fontSize: 16,
-    marginTop: 10,
-    // marginLeft: 240,
-  },
-  main_text: {
-    fontSize: 40,
-    fontFamily: 'Inter-Bold',
-    color: 'black',
-    fontWeight: 'bold',
-    marginTop: 10,
-  },
-  sub_text: {
-    fontSize: 16,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
-    textAlign: 'center',
-  },
-  sub_text_bold: {
-    fontSize: 16,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
-  text_container: {
+  iconContainer: {marginBottom: 15},
+  emailCircle: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(74, 120, 86, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    width: '100%',
-    height: 142,
   },
-  whiteBox: {
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    // width: '100%',
-    height: 442,
-    backgroundColor: 'rgba(217, 217, 217, 0.7)',
-    marginLeft: 14,
-    marginRight: 14,
-    marginTop: 80,
+  title: {fontSize: 24, fontWeight: '700', color: '#4A7856', marginBottom: 10, textAlign: 'center'},
+  subtitle: {fontSize: 13, color: '#666', textAlign: 'center', lineHeight: 20, marginBottom: 25},
+  emailHighlight: {fontWeight: '700', color: '#4A7856'},
+  pinContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 25,
   },
-  backgroundImage: {
-    flex: 1,
-    resizeMode: 'cover',
-  },
-  text_input: {
-    width: 55,
-  },
-  button_signup: {
-    width: '90%',
-    marginTop: 115,
-    fontFamily: 'Inter-regular',
-  },
-  button_label: {
-    fontSize: 18,
-  },
-  sub_text_A: {
-    fontSize: 16,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
-    textAlign: 'right',
-  },
-  sub_text_B: {
-    fontSize: 16,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
+  pinInput: {
+    width: 50,
+    height: 55,
     textAlign: 'center',
-    fontWeight: 'bold',
+    fontSize: 22,
+    backgroundColor: '#fff',
   },
-  bottom_container: {
-    flexDirection: 'row',
-    marginTop: 20,
+  confirmButton: {
+    backgroundColor: '#4A7856',
+    paddingVertical: 14,
+    borderRadius: 25,
     alignItems: 'center',
+    width: '100%',
+    marginBottom: 15,
+    ...Platform.select({
+      ios: {shadowColor: 'black', shadowOffset: {width: 0, height: 3}, shadowOpacity: 0.25, shadowRadius: 5},
+      android: {elevation: 6},
+    }),
   },
-  flex_container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  flex_container_text_input: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '90%',
-    marginTop: 40,
-  },
+  confirmButtonText: {fontSize: 15, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.5},
+  resendText: {fontSize: 13, fontWeight: '600', textDecorationLine: 'underline'},
 });
 
 export default VerifyFPEmail;

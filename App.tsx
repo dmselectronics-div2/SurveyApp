@@ -26,6 +26,17 @@ import VerifyFPEmail from './src/auth/login-page/veryfy-fogotPW-email';
 import ResetPassword from './src/auth/login-page/reset-password';
 import SetNewPin from './src/auth/login-page/re-add-new-pin';
 
+// New Auth Screens
+import LoginWelcome from './src/auth/login-page/LoginWelcome';
+import SigninForm from './src/auth/login-page/SigninForm';
+import SignupRoleSelection from './src/auth/login-page/SignupRoleSelection';
+import SignupForm from './src/auth/login-page/SignupForm';
+import SignupSurveyType from './src/auth/register-page/SignupSurveyType';
+import SignupResearchAreas from './src/auth/register-page/SignupResearchAreas';
+import SignupPeriodicalCategories from './src/auth/register-page/SignupPeriodicalCategories';
+import SignupPersonalDetails from './src/auth/register-page/SignupPersonalDetails';
+import SignupSuccess from './src/auth/register-page/SignupSuccess';
+
 
 // Module Selector
 import ModuleSelector from './src/module-selector/ModuleSelector';
@@ -194,9 +205,9 @@ const App = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Set the initial route to CitizenStartPage
+  // Set the initial route to LoginWelcome
   useEffect(() => {
-    setInitialRoute('CitizenStartPage');
+    setInitialRoute('LoginWelcome');
   }, []);
 
   // Return null or a loader until the initial route is determined
@@ -214,7 +225,16 @@ const App = () => {
             ...customAnimation,
           }}>
           {/* ============== SHARED AUTH SCREENS ============== */}
-          
+
+          <Stack.Screen name="LoginWelcome" component={LoginWelcome} />
+          <Stack.Screen name="SigninForm" component={SigninForm} />
+          <Stack.Screen name="SignupRoleSelection" component={SignupRoleSelection} />
+          <Stack.Screen name="SignupForm" component={SignupForm} />
+          <Stack.Screen name="SignupSurveyType" component={SignupSurveyType} />
+          <Stack.Screen name="SignupResearchAreas" component={SignupResearchAreas} />
+          <Stack.Screen name="SignupPeriodicalCategories" component={SignupPeriodicalCategories} />
+          <Stack.Screen name="SignupPersonalDetails" component={SignupPersonalDetails} />
+          <Stack.Screen name="SignupSuccess" component={SignupSuccess} />
           <Stack.Screen name="RegisterPage" component={RegisterPage} />
           <Stack.Screen name="VerifyEmail" component={VerifyEmail} />
           <Stack.Screen name="VerifyFingerPrint" component={VerifyFingerPrint} />

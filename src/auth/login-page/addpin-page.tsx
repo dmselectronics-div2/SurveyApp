@@ -5,341 +5,206 @@ import {
   StyleSheet,
   ImageBackground,
   Alert,
-  Appearance,
+  Platform,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  ScrollView,
 } from 'react-native';
-import {TextInput, DefaultTheme, Button} from 'react-native-paper';
-import {useNavigation} from '@react-navigation/native';
-import axios from 'axios';
-import {API_URL} from '../../config';
+import {TextInput} from 'react-native-paper';
+import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import * as Keychain from 'react-native-keychain';
+import {setLoginEmail} from '../../assets/sql_lite/db_connection';
 
-const AddPin = () => {
-  const [theme, setTheme] = useState(Appearance.getColorScheme());
-
-  const navigation = useNavigation();
-  const [pin, setPin] = useState('');
-  const [pin1, setPin1] = useState('');
-  const [pin2, setPin2] = useState('');
-  const [pin3, setPin3] = useState('');
+const AddPin = ({navigation}: any) => {
+  const [pin, setPin] = useState(['', '', '', '']);
   const [userEmail, setUserEmail] = useState('');
   const [userPin, setUserPin] = useState('');
 
-  // Create references for each TextInput
-  const pin1Ref = useRef(null);
-  const pin2Ref = useRef(null);
-  const pin3Ref = useRef(null);
+  const pinRefs = [useRef<any>(null), useRef<any>(null), useRef<any>(null), useRef<any>(null)];
 
-  // Replace with the actual email from context or state
-  const email = 'user@example.com';
+  useEffect(() => {
+    retrieveCredentials();
+  }, []);
 
-  const handleSignIn = async () => {
-    const enteredPin = `${pin}${pin1}${pin2}${pin3}`;
-    if (pin === '' || pin1 === '' || pin2 === '' || pin3 === '') {
-      Alert.alert('Failed', 'Please Fill all Field');
-    } else {
-      if (enteredPin === userPin) {
-        // Alert.alert('Success', 'Signed in successfully');
-        navigation.navigate('Welcome', {email}); // Navigate to the desired screen
-      } else {
-        Alert.alert('Invalid PIN');
-      }
-    }
-  };
-
-  // Retrieving the email
-  const retrieveEmailSecurely = async () => {
+  const retrieveCredentials = async () => {
     try {
       const credentials = await Keychain.getGenericPassword();
       if (credentials) {
-        const email = credentials.username;
-        const pinPW = credentials.password;
-        setUserEmail(email);
-        setUserPin(pinPW);
-        console.log('Retrieved email:', email);
-        console.log('Retrieved PIN:', pinPW);
-        return {email, pinPW};
+        setUserEmail(credentials.username);
+        setUserPin(credentials.password);
       } else {
-        console.log('No email found');
-        return null;
+        Alert.alert('Error', 'No PIN found. Please set up a PIN first.');
+        navigation.goBack();
       }
     } catch (error) {
-      console.error('Failed to retrieve email securely', error);
+      console.error('Failed to retrieve credentials:', error);
     }
   };
 
-  useEffect(() => {
-    retrieveEmailSecurely(); // Call it when the Login page loads
-  }, []);
+  const handlePinChange = (text: string, index: number) => {
+    const newPin = [...pin];
+    newPin[index] = text;
+    setPin(newPin);
+    if (text.length === 1 && index < 3) {
+      pinRefs[index + 1].current?.focus();
+    }
+  };
 
-  useEffect(() => {
-    const subscription = Appearance.addChangeListener(({colorScheme}) => {
-      setTheme(colorScheme);
-    });
-    return () => subscription.remove();
-  }, []);
+  const handleKeyPress = (e: any, index: number) => {
+    if (e.nativeEvent.key === 'Backspace' && pin[index] === '' && index > 0) {
+      pinRefs[index - 1].current?.focus();
+    }
+  };
 
-  const isDarkMode = theme === 'dark';
+  const handleSignIn = () => {
+    const enteredPin = pin.join('');
+    if (enteredPin.length < 4) {
+      Alert.alert('Error', 'Please enter all 4 digits');
+      return;
+    }
+    if (enteredPin === userPin) {
+      setLoginEmail(userEmail);
+      navigation.replace('Welcome', {email: userEmail});
+    } else {
+      Alert.alert('Error', 'Invalid PIN. Please try again.');
+      setPin(['', '', '', '']);
+      pinRefs[0].current?.focus();
+    }
+  };
 
   return (
     <ImageBackground
-      source={require('./../../assets/image/imageD.jpg')}
+      source={require('../../assets/image/welcome.jpg')}
       style={styles.backgroundImage}>
-      <View style={styles.title_container}>
-        <View
-          style={[
-            styles.whiteBox,
-            {
-              backgroundColor: isDarkMode
-                ? 'rgba(17, 17, 17, 0.8)'
-                : 'rgba(217, 217, 217, 0.7)',
-            },
-          ]}>
-          <Text
-            style={[styles.main_text, {color: isDarkMode ? 'white' : 'black'}]}>
-            Enter Your PIN
-          </Text>
-          <View style={styles.flex_container}>
-            <Text
-              style={[
-                styles.sub_text,
-                {color: isDarkMode ? 'white' : 'black'},
-              ]}>
-              Please enter a{' '}
-            </Text>
-            <Text
-              style={[
-                styles.sub_text_bold,
-                {color: isDarkMode ? 'white' : 'black'},
-              ]}>
-              {' '}
-              PIN for access to this app
-            </Text>
-            <Text
-              style={[
-                styles.sub_text,
-                {color: isDarkMode ? 'white' : 'black'},
-              ]}>
-              {' '}
-              without
-            </Text>
-          </View>
-          <View style={styles.flex_container}>
-            <Text
-              style={[
-                styles.sub_text,
-                {color: isDarkMode ? 'white' : 'black'},
-              ]}>
-              {' '}
-              sign in.
-            </Text>
-          </View>
+      <View style={styles.overlay}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}>
+          <MaterialIcon name="arrow-back" size={28} color="#4A7856" />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
 
-          <View style={styles.flex_container_text_input}>
-            <TextInput
-              label=""
-              mode="outlined"
-              value={pin}
-              onChangeText={text => {
-                setPin(text);
-                if (text.length === 1) {
-                  pin1Ref.current.focus(); // Move to next input
-                }
-              }}
-              style={[
-                styles.text_input,
-                {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(0, 0, 0, 0.7)'
-                    : 'rgba(255, 255, 255, 0.7)',
-                  fontSize: 30,
-                  textAlign: 'center',
-                },
-              ]}
-              keyboardType="number-pad"
-              maxLength={1}
-              onKeyPress={({nativeEvent}) => {
-                if (nativeEvent.key === 'Backspace' && pin.length === 0) {
-                  pin1Ref.current.blur(); // Prevent focus shift if already empty
-                }
-              }}
-            />
-            <TextInput
-              ref={pin1Ref}
-              label=""
-              mode="outlined"
-              value={pin1}
-              onChangeText={text => {
-                setPin1(text);
-                if (text.length === 1) {
-                  pin2Ref.current.focus(); // Move to next input
-                }
-              }}
-              style={[
-                styles.text_input,
-                {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(0, 0, 0, 0.7)'
-                    : 'rgba(255, 255, 255, 0.7)',
-                  fontSize: 30,
-                  textAlign: 'center',
-                },
-              ]}
-              keyboardType="number-pad"
-              maxLength={1}
-              onKeyPress={({nativeEvent}) => {
-                if (nativeEvent.key === 'Backspace' && pin1.length === 0) {
-                  pin1Ref.current.blur();
-                  pin2Ref.current.focus(); // Move back to the previous input
-                }
-              }}
-            />
-            <TextInput
-              ref={pin2Ref}
-              label=""
-              mode="outlined"
-              value={pin2}
-              onChangeText={text => {
-                setPin2(text);
-                if (text.length === 1) {
-                  pin3Ref.current.focus(); // Move to next input
-                }
-              }}
-              style={[
-                styles.text_input,
-                {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(0, 0, 0, 0.7)'
-                    : 'rgba(255, 255, 255, 0.7)',
-                  fontSize: 30,
-                  textAlign: 'center',
-                },
-              ]}
-              keyboardType="number-pad"
-              maxLength={1}
-              onKeyPress={({nativeEvent}) => {
-                if (nativeEvent.key === 'Backspace' && pin2.length === 0) {
-                  pin1Ref.current.focus(); // Move back to the previous input
-                }
-              }}
-            />
-            <TextInput
-              ref={pin3Ref}
-              label=""
-              mode="outlined"
-              value={pin3}
-              onChangeText={setPin3}
-              style={[
-                styles.text_input,
-                {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(0, 0, 0, 0.7)'
-                    : 'rgba(255, 255, 255, 0.7)',
-                  fontSize: 30,
-                  textAlign: 'center',
-                },
-              ]}
-              keyboardType="number-pad"
-              maxLength={1}
-              onKeyPress={({nativeEvent}) => {
-                if (nativeEvent.key === 'Backspace' && pin3.length === 0) {
-                  pin2Ref.current.focus(); // Move back to the previous input
-                }
-              }}
-            />
-          </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{flex: 1}}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled">
+            <View style={styles.card}>
+              <View style={styles.iconContainer}>
+                <View style={styles.lockCircle}>
+                  <MaterialIcon name="dialpad" size={40} color="#4A7856" />
+                </View>
+              </View>
 
-          <Button
-            mode="contained"
-            onPress={handleSignIn}
-            style={[styles.button_signup, {borderRadius: 8}]}
-            buttonColor="#516E9E"
-            textColor="white"
-            labelStyle={styles.button_label}>
-            Continue
-          </Button>
-        </View>
+              <Text style={styles.title}>Enter Your PIN</Text>
+              <Text style={styles.subtitle}>
+                Enter your 4-digit PIN to access your account
+              </Text>
+
+              <View style={styles.pinContainer}>
+                {pin.map((digit, index) => (
+                  <TextInput
+                    key={index}
+                    ref={pinRefs[index]}
+                    value={digit}
+                    onChangeText={text => handlePinChange(text, index)}
+                    onKeyPress={e => handleKeyPress(e, index)}
+                    style={styles.pinInput}
+                    keyboardType="number-pad"
+                    maxLength={1}
+                    secureTextEntry
+                    mode="outlined"
+                    outlineColor="rgba(74, 120, 86, 0.3)"
+                    activeOutlineColor="#4A7856"
+                    theme={{colors: {primary: '#4A7856', background: '#fff'}}}
+                  />
+                ))}
+              </View>
+
+              <TouchableOpacity
+                style={styles.continueButton}
+                onPress={handleSignIn}
+                activeOpacity={0.8}>
+                <Text style={styles.continueButtonText}>Continue</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate('SigninForm')}
+                activeOpacity={0.7}>
+                <Text style={styles.usePasswordText}>Use email & password instead</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </View>
     </ImageBackground>
   );
 };
 
-// styles
 const styles = StyleSheet.create({
-  container: {
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
-    width: '55%',
-    height: 142,
-    marginLeft: 'auto',
-    marginRight: 24,
-    marginTop: '60%',
+  backgroundImage: {flex: 1, resizeMode: 'cover'},
+  overlay: {flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.3)', justifyContent: 'center'},
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 40,
+    left: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    zIndex: 10,
   },
-  title_container: {
-    flex: 1,
-    fontFamily: 'Inter-Bold',
-    marginTop: '20%',
+  backButtonText: {fontSize: 14, color: '#FFFFFF', marginLeft: 5, fontWeight: '600'},
+  scrollContent: {flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20},
+  card: {
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {shadowColor: 'black', shadowOffset: {width: 0, height: 5}, shadowOpacity: 0.35, shadowRadius: 10},
+      android: {elevation: 10},
+    }),
   },
-  main_text: {
-    fontSize: 40,
-    fontFamily: 'Inter-Bold',
-    color: 'black',
-    fontWeight: 'bold',
-    marginTop: 10,
-  },
-  sub_text: {
-    fontSize: 16,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
-    textAlign: 'center',
-  },
-  sub_text_bold: {
-    fontSize: 16,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
-  text_container: {
+  iconContainer: {marginBottom: 20},
+  lockCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(74, 120, 86, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    width: '100%',
-    height: 142,
   },
-  whiteBox: {
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    height: 300,
-    backgroundColor: 'rgba(217, 217, 217, 0.7)',
-    marginLeft: 14,
-    marginRight: 14,
-    marginTop: 80,
+  title: {fontSize: 24, fontWeight: '700', color: '#4A7856', marginBottom: 8, textAlign: 'center'},
+  subtitle: {fontSize: 14, color: '#666', textAlign: 'center', lineHeight: 22, marginBottom: 25},
+  pinContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 15,
+    marginBottom: 25,
   },
-  backgroundImage: {
-    flex: 1,
-    resizeMode: 'cover',
-  },
-  text_input: {
+  pinInput: {
     width: 55,
+    height: 55,
+    textAlign: 'center',
+    fontSize: 24,
+    backgroundColor: '#fff',
   },
-  button_signup: {
-    width: '90%',
-    marginTop: 30,
-    fontFamily: 'Inter-regular',
-  },
-  button_label: {
-    fontSize: 18,
-  },
-  flex_container: {
-    flexDirection: 'row',
+  continueButton: {
+    backgroundColor: '#4A7856',
+    paddingVertical: 14,
+    borderRadius: 25,
     alignItems: 'center',
+    width: '100%',
+    marginBottom: 15,
+    ...Platform.select({
+      ios: {shadowColor: 'black', shadowOffset: {width: 0, height: 3}, shadowOpacity: 0.25, shadowRadius: 5},
+      android: {elevation: 6},
+    }),
   },
-  flex_container_text_input: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '70%',
-    marginTop: 20,
-  },
+  continueButtonText: {fontSize: 16, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.5},
+  usePasswordText: {fontSize: 13, color: '#4A7856', fontWeight: '600', textDecorationLine: 'underline'},
 });
 
 export default AddPin;

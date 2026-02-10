@@ -1,213 +1,127 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ImageBackground,
   Platform,
-  TouchableOpacity,
-  Image,
   Alert,
-  Appearance,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
-import {
-  Provider as PaperProvider,
-  TextInput,
-  DefaultTheme,
-  Button,
-  Icon,
-} from 'react-native-paper';
-import {useNavigation} from '@react-navigation/native';
+import {TextInput} from 'react-native-paper';
+import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import axios from 'axios';
 import {API_URL} from '../../config';
-import SQLite from 'react-native-sqlite-storage';
 
-const theme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    primary: '#56FF64',
-    text: 'red',
-    placeholder: 'white',
-    surface: 'rgba(217, 217, 217, 0.7)',
-  },
-};
-
-const ForgetPasswordPage = () => {
-  const [theme, setTheme] = useState(Appearance.getColorScheme());
-  const navigation = useNavigation();
+const ForgetPasswordPage = ({navigation}: any) => {
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened successfully');
-    },
-    error => {
-      console.error('Error opening database: ', error);
-    },
-  );
+  const validateEmail = (value: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(value);
+  };
 
-  const handleLogin = () => {
-    if (!validateFields()) {
+  const handleSend = () => {
+    if (!validateEmail(email)) {
+      setEmailError('Invalid email address');
       return;
     }
+    setEmailError('');
 
-    const userData = {
-      email: email,
-    };
-
+    setLoading(true);
     axios
-      .post(`${API_URL}/send-password-reset-email`, userData)
+      .post(`${API_URL}/send-password-reset-email`, {email})
       .then(res => {
-        // console.log('Response:', res.data);
         if (res.data.status === 'ok') {
-          // Alert.alert('Success', 'Email verified in successfully');
           handleSendCode();
         } else {
+          setLoading(false);
           Alert.alert('Error', 'Email not registered!');
         }
       })
-      .catch(error => {
-        // console.error('Error:', error);
+      .catch(() => {
+        setLoading(false);
         Alert.alert('Error', 'Email not registered!');
       });
-    // console.log('email should verify here', API_URL);
   };
 
-  const handleLogin2 = () => {
-    navigation.navigate('LoginPage');
-  };
-
-  const validateEmail = email => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
-  };
-
-  const validateFields = () => {
-    let isValid = true;
-
-    if (!validateEmail(email)) {
-      setEmailError('Invalid email address');
-      isValid = false;
-    } else {
-      setEmailError('');
-    }
-    return isValid;
-  };
-
-  // Get the email from route parameters
   const handleSendCode = async () => {
-    const userData = {
-      email: email,
-    };
     try {
-      setLoading(true);
-      const response = await axios.post(
-        `${API_URL}/send-confirmation-email`,
-        userData,
-      );
+      const response = await axios.post(`${API_URL}/send-confirmation-email`, {email});
       const {confirmationCode} = response.data;
-      console.log('confirmationCode', confirmationCode);
       setLoading(false);
-      Alert.alert(
-        'Success',
-        'Please check your email for the verification code.',
-      );
+      Alert.alert('Success', 'Please check your email for the verification code.');
       navigation.navigate('VerifyFPEmail', {email, confirmationCode});
     } catch (err) {
-      setError('Failed to send confirmation email.');
+      setLoading(false);
+      Alert.alert('Error', 'Failed to send confirmation email.');
     }
   };
-
-  useEffect(() => {
-    const subscription = Appearance.addChangeListener(({colorScheme}) => {
-      setTheme(colorScheme);
-    });
-    return () => subscription.remove();
-  }, []);
-
-  const isDarkMode = theme === 'dark';
 
   return (
     <ImageBackground
-      source={require('./../../assets/image/imageD.jpg')}
+      source={require('../../assets/image/welcome.jpg')}
       style={styles.backgroundImage}>
-      <View style={styles.title_container}>
-        <View
-          style={[
-            styles.whiteBox,
-            {
-              backgroundColor: isDarkMode
-                ? 'rgba(17, 17, 17, 0.8)'
-                : 'rgba(217, 217, 217, 0.7)',
-            },
-          ]}>
-          <Text
-            style={[styles.main_text, {color: isDarkMode ? 'white' : 'black'}]}>
-            Forgot Password
-          </Text>
-          <Text
-            style={[styles.sub_text, {color: isDarkMode ? 'white' : 'black'}]}>
-            Enter your email address below to reset your password.
+      <View style={styles.overlay}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}>
+          <MaterialIcon name="arrow-back" size={28} color="#4A7856" />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+
+        <View style={styles.formContainer}>
+          <View style={styles.iconContainer}>
+            <View style={styles.lockCircle}>
+              <MaterialIcon name="lock-reset" size={40} color="#4A7856" />
+            </View>
+          </View>
+
+          <Text style={styles.title}>Forgot Password</Text>
+          <Text style={styles.subtitle}>
+            Enter your email address below and we'll send you a verification code to reset your password.
           </Text>
 
-          <TextInput
-            label="Enter Your Email Address"
-            mode="outlined"
-            value={email}
-            onChangeText={email => setEmail(email)}
-            style={[
-              styles.text_input,
-              {
-                backgroundColor: isDarkMode
-                  ? 'rgba(0, 0, 0, 0.7)'
-                  : 'rgba(255, 255, 255, 0.7)',
-              },
-            ]}
-            error={!!emailError}
-          />
-          {emailError ? (
-            <Text style={styles.errorText}>{emailError}</Text>
-          ) : null}
-
-          {/* <Button
-            mode="contained"
-            onPress={handleLogin}
-            style={[styles.button_signup, {borderRadius: 8}]}
-            buttonColor="#516E9E"
-            textColor="white"
-            labelStyle={styles.button_label}>
-            Send
-          </Button> */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>E-mail address:</Text>
+            <TextInput
+              mode="outlined"
+              placeholder="Enter your email"
+              placeholderTextColor="#999"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              outlineColor="rgba(74, 120, 86, 0.3)"
+              activeOutlineColor="#4A7856"
+              style={styles.input}
+              error={!!emailError}
+              theme={{colors: {primary: '#4A7856', background: 'rgba(255, 255, 255, 0.95)'}}}
+            />
+            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+          </View>
 
           {loading ? (
-            <ActivityIndicator size="large" color="#516E9E" />
+            <ActivityIndicator size="large" color="#4A7856" style={{marginVertical: 15}} />
           ) : (
-            <Button
-              mode="contained"
-              onPress={handleLogin}
-              style={[styles.button_signup, {borderRadius: 8}]}
-              buttonColor="#516E9E"
-              textColor="white"
-              labelStyle={styles.button_label}>
-              Send
-            </Button>
+            <TouchableOpacity
+              style={styles.sendButton}
+              onPress={handleSend}
+              activeOpacity={0.8}>
+              <Text style={styles.sendButtonText}>Send Verification Code</Text>
+            </TouchableOpacity>
           )}
 
-          <TouchableOpacity onPress={handleLogin2}>
-            <Text
-              style={[
-                styles.forgotPasswordText,
-                {color: isDarkMode ? 'white' : 'black'},
-              ]}>
-              Back to Login
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.loginContainer}>
+            <Text style={styles.loginText}>Remember your password? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('LoginPage')} activeOpacity={0.7}>
+              <Text style={styles.loginLink}>Sign in</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </ImageBackground>
@@ -215,179 +129,59 @@ const ForgetPasswordPage = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
-    width: '55%',
-    height: 142,
-    marginLeft: 'auto',
-    marginRight: 24,
-    marginTop: '60%',
+  backgroundImage: {flex: 1, resizeMode: 'cover'},
+  overlay: {flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.4)', justifyContent: 'center', paddingHorizontal: 20},
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 40,
+    left: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    zIndex: 10,
   },
-  boldText: {
-    fontWeight: 'bold',
+  backButtonText: {fontSize: 14, color: '#FFFFFF', marginLeft: 5, fontWeight: '600'},
+  formContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderRadius: 20,
+    padding: 28,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {shadowColor: 'black', shadowOffset: {width: 0, height: 5}, shadowOpacity: 0.35, shadowRadius: 10},
+      android: {elevation: 10},
+    }),
   },
-  title_container: {
-    flex: 1,
-    fontFamily: 'Inter-Bold',
-    marginTop: '20%',
-  },
-  main_text: {
-    fontSize: 40,
-    fontFamily: 'Inter-Bold',
-    color: 'black',
-    fontWeight: 'bold',
-    marginTop: 10,
-  },
-  sub_text: {
-    fontSize: 16,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
-    textAlign: 'right',
-    marginTop: 10,
-  },
-  sub_text_below: {
-    fontSize: 16,
-    fontFamily: 'Inter-regular',
-    color: 'rgba(217, 217, 217, 0.8)',
-    textAlign: 'center',
-  },
-  text_container: {
+  iconContainer: {marginBottom: 15},
+  lockCircle: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(74, 120, 86, 0.1)',
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  title: {fontSize: 24, fontWeight: '700', color: '#4A7856', marginBottom: 10, textAlign: 'center'},
+  subtitle: {fontSize: 13, color: '#666', textAlign: 'center', lineHeight: 20, marginBottom: 20},
+  inputContainer: {width: '100%', marginBottom: 20},
+  label: {fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 8},
+  input: {backgroundColor: 'rgba(255, 255, 255, 0.98)', fontSize: 13},
+  errorText: {color: 'red', fontSize: 12, marginTop: 4},
+  sendButton: {
+    backgroundColor: '#4A7856',
+    paddingVertical: 14,
+    borderRadius: 25,
     alignItems: 'center',
     width: '100%',
-    height: 142,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: {shadowColor: 'black', shadowOffset: {width: 0, height: 3}, shadowOpacity: 0.25, shadowRadius: 5},
+      android: {elevation: 6},
+    }),
   },
-  whiteBox: {
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    height: 300,
-    backgroundColor: 'rgba(217, 217, 217, 0.7)',
-    marginLeft: 14,
-    marginRight: 14,
-    marginTop: 80,
-  },
-  forgotPasswordText: {
-    color: 'black',
-    fontWeight: 'bold',
-    fontSize: 19,
-    marginTop: 10,
-    marginLeft: 10,
-  },
-  googleIcon: {
-    width: 24,
-    height: 24,
-    marginRight: 10, // Adjusted for a smaller gap
-  },
-  backgroundImage: {
-    flex: 1,
-    resizeMode: 'cover',
-  },
-  text_input: {
-    width: '90%',
-    marginTop: 10,
-  },
-  button_signup: {
-    width: '90%',
-    marginTop: 20,
-    fontFamily: 'Inter-regular',
-  },
-  finger_icon: {
-    // justifyContent: 'center',
-    // flexDirection: 'row',
-    marginRight: 10,
-    marginTop: 10,
-    // marginLeft:-100
-  },
-  dialpad_icon: {
-    // justifyContent: 'center',
-    // flexDirection: 'row',
-    marginRight: 90,
-    marginTop: 10,
-    // marginLeft:-100
-  },
-  button_google: {
-    width: '90%',
-    marginTop: 6,
-    fontFamily: 'Inter-regular',
-  },
-  button_label: {
-    fontSize: 18,
-  },
-  sub_text_A: {
-    fontSize: 16,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
-    textAlign: 'right',
-  },
-  sub_text_B: {
-    fontSize: 16,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
-  sub_text_C: {
-    fontSize: 16,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
-  sub_text_D: {
-    fontSize: 16,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
-    textAlign: 'right',
-    marginTop: 2,
-  },
-  bottom_container: {
-    flexDirection: 'row',
-    marginTop: 2,
-    alignItems: 'center',
-  },
-  orContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '90%',
-    marginTop: 9,
-    justifyContent: 'center',
-  },
-  iconContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '90%',
-    marginTop: 5,
-    justifyContent: 'center',
-    marginLeft: 100,
-  },
-  horizontalLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    marginHorizontal: 10,
-  },
-  googleButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  googleButtonText: {
-    fontSize: 18,
-    color: 'black', // Same color as the button's textColor
-  },
-  lower_container: {
-    flexDirection: 'row',
-    marginTop: 180,
-    alignItems: 'center',
-    marginLeft: 10,
-    marginRight: 10,
-  },
-  errorText: {
-    color: 'red',
-    alignSelf: 'flex-start',
-    marginLeft: '5%',
-    marginTop: 5,
-  },
+  sendButtonText: {fontSize: 15, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.5},
+  loginContainer: {flexDirection: 'row', justifyContent: 'center', alignItems: 'center'},
+  loginText: {fontSize: 12, color: '#666'},
+  loginLink: {fontSize: 12, color: '#4A7856', fontWeight: '700', textDecorationLine: 'underline'},
 });
 
 export default ForgetPasswordPage;

@@ -5,279 +5,176 @@ import {
   StyleSheet,
   ImageBackground,
   Alert,
-  Appearance,
+  Platform,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  ScrollView,
 } from 'react-native';
-import {TextInput, Button, Switch} from 'react-native-paper';
+import {Switch} from 'react-native-paper';
+import {TextInput} from 'react-native-paper';
 import axios from 'axios';
 import {API_URL} from '../../config';
 import * as Keychain from 'react-native-keychain';
 import ReactNativeBiometrics from 'react-native-biometrics';
 import SQLite from 'react-native-sqlite-storage';
+import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 
-const SetPin = ({navigation, route}) => {
-  const [theme, setTheme] = useState(Appearance.getColorScheme());
-  const [isSwitchOn, setIsSwitchOn] = React.useState(false);
+const SetPin = ({navigation, route}: any) => {
+  const [isSwitchOn, setIsSwitchOn] = useState(false);
   const [BiometicHas, isBiometricHas] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [pin, setPin] = useState('');
-  const [pin1, setPin1] = useState('');
-  const [pin2, setPin2] = useState('');
-  const [pin3, setPin3] = useState('');
+  const [pin, setPin] = useState(['', '', '', '']);
+  const [loading, setLoading] = useState(false);
 
-  // References to TextInput fields
-  const pin1Ref = useRef(null);
-  const pin2Ref = useRef(null);
-  const pin3Ref = useRef(null);
+  const pinRefs = [useRef<any>(null), useRef<any>(null), useRef<any>(null), useRef<any>(null)];
 
-  // SQLite Database
   const db = SQLite.openDatabase(
     {name: 'user_db.db', location: 'default'},
-    () => {
-      console.log('Database opened');
-    },
-    err => {
-      console.error('Database error: ', err);
-    },
+    () => console.log('Database opened'),
+    (err: any) => console.error('Database error: ', err),
   );
 
-  const showData = () => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT email FROM Users',
-        [],
-        (tx, results) => {
-          if (results.rows.length > 0) {
-            console.log('Results: Q ', results.rows.item(0)); // This should give you an array of the rows
-          } else {
-            console.log('No data found.');
-          }
-        },
-        error => {
-          console.log('Error retrieving data: ', error);
-        },
-      );
-    });
-  };
-
-  // Get the email from route parameters
   const email = route?.params?.email || null;
   const gName = route?.params?.name || null;
 
   if (!email) {
-    // If email is not provided, handle the error
-    console.error('Error: Email is not passed to SetPin component.');
     return (
-      <View>
+      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
         <Text>Error: Email not provided.</Text>
       </View>
     );
   }
 
-  // Function to update the pin in SQLite
-  const updatePinInSQLite = pinValue => {
-    db.transaction(tx => {
+  const handlePinChange = (text: string, index: number) => {
+    const newPin = [...pin];
+    newPin[index] = text;
+    setPin(newPin);
+    if (text.length === 1 && index < 3) {
+      pinRefs[index + 1].current?.focus();
+    }
+  };
+
+  const handleKeyPress = (e: any, index: number) => {
+    if (e.nativeEvent.key === 'Backspace' && pin[index] === '' && index > 0) {
+      pinRefs[index - 1].current?.focus();
+    }
+  };
+
+  const updatePinInSQLite = (pinValue: string) => {
+    db.transaction((tx: any) => {
       tx.executeSql(
         'UPDATE Users SET pin = ? WHERE email = ?',
-        [pinValue, email], // Update the pin for the user
-        (tx, result) => {
-          console.log('PIN updated in SQLite');
-          return;
-        },
-        error => {
-          console.error('Error updating PIN:', error.message);
-        },
+        [pinValue, email],
+        () => console.log('PIN updated in SQLite'),
+        (error: any) => console.error('Error updating PIN:', error.message),
       );
     });
   };
 
   const handleSavePin = async () => {
-    const completePin = `${pin}${pin1}${pin2}${pin3}`;
+    const completePin = pin.join('');
 
-    if (pin === '' || pin1 === '' || pin2 === '' || pin3 === '') {
-      Alert.alert('Failed', 'Please Fill all Field');
-    } else {
-      try {
-        // Store the PIN securely
-        await Keychain.setGenericPassword(email, completePin);
-        Alert.alert('Success', 'PIN set successfully!');
-        // Update the PIN in SQLite
-        updatePinInSQLite(completePin);
-        if (biometricEnabled) {
-          getResearchAreaDataFromMongo(email, gName);
-        }
-        getResearchAreaDataFromMongo(email, gName);
-      } catch (error) {
-        console.error('Error storing PIN:', error);
-        Alert.alert('Error', 'Failed to set PIN. Please try again.');
+    if (completePin.length < 4) {
+      Alert.alert('Error', 'Please enter all 4 digits');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await Keychain.setGenericPassword(email, completePin);
+      updatePinInSQLite(completePin);
+
+      if (biometricEnabled) {
+        updateFingerPrintInSQLite();
       }
+
+      Alert.alert('Success', 'PIN set successfully!');
+      getResearchAreaDataFromMongo(email, gName);
+    } catch (error) {
+      console.error('Error storing PIN:', error);
+      Alert.alert('Error', 'Failed to set PIN. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const updateFingerPrintInSQLite = () => {
-    db.transaction(tx => {
+    db.transaction((tx: any) => {
       tx.executeSql(
         'UPDATE Users SET fingerPrint = ? WHERE email = ?',
-        [1, email], // Update fingerprint status (1 for enabled, 0 for disabled)
-        (tx, result) => {
-          console.log('Fingerprint status updated in SQLite');
-        },
-        error => {
-          console.error('Error updating fingerprint status:', error.message);
-        },
+        [1, email],
+        () => console.log('Fingerprint status updated in SQLite'),
+        (error: any) => console.error('Error updating fingerprint status:', error.message),
       );
     });
   };
 
-  const getResearchAreaDataFromMongo = (email, gName) => {
-    const userData = {
-      email: email,
-      gName:gName,
-    };
+  const getResearchAreaDataFromMongo = (userEmail: string, userName: string) => {
     axios
-    .post(`${API_URL}/get-reArea`, userData)
-    .then(res => {
-      console.log('status ', res.data.status);
-      if (res.data.status === 'bird') {
-        console.log('Bird'); 
-        // Alert.alert('Success', `User's research area is Bird`);
-        getResearchNameDataFromMongo(email, gName);
-      } else if (res.data.status === 'none'){
-        console.log('None', email, ' ', gName);
-        Alert.alert('Success', `User's research area is Not defined`);
-        navigation.navigate('SelectResearchArea', {email, gName});
-      } else {
-        console.log('X');
-        Alert.alert('Error', res.data.data);
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      Alert.alert('Error', 'Error registering user. Please try again.');
-    });
-   
+      .post(`${API_URL}/get-reArea`, {email: userEmail, gName: userName})
+      .then(res => {
+        if (res.data.status === 'bird') {
+          getResearchNameDataFromMongo(userEmail, userName);
+        } else if (res.data.status === 'none') {
+          navigation.navigate('SignupSuccess', {email: userEmail, name: userName});
+        } else {
+          navigation.navigate('SignupSuccess', {email: userEmail, name: userName});
+        }
+      })
+      .catch(() => {
+        navigation.navigate('SignupSuccess', {email: userEmail, name: userName});
+      });
   };
 
-  const getResearchNameDataFromMongo = (email, gName) => {
-    const userData = {
-      email: email,
-      gName:gName,
-    };
+  const getResearchNameDataFromMongo = (userEmail: string, userName: string) => {
     axios
-    .post(`${API_URL}/get-name`, userData)
-    .then(res => {
-      console.log('status name data ', res.data);
-      const userEmail = res.data.email;
-      const emailStatus = res.data.confirmEmail;
-      const userName = res.data.name;
-      const profileImagePath = res.data.profileImagePath;
-      const area = res.data.area;
-      console.log('emailStatus ', emailStatus,' ', userName);
-
-      if (res.data && res.data.name && res.data.email) {
-        console.log('Data exists');
-        ruuldildb(userEmail, emailStatus, userName, profileImagePath, area );
-      } else {
-        console.log('No relevant data found');
-      }
-
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      Alert.alert('Error', 'Error registering user. Please try again.');
-    });
-   
+      .post(`${API_URL}/get-name`, {email: userEmail, gName: userName})
+      .then(res => {
+        const data = res.data;
+        if (data && data.name && data.email) {
+          ruuldildb(data.email, data.confirmEmail, data.name, data.profileImagePath, data.area);
+        } else {
+          navigation.navigate('SignupSuccess', {email: userEmail, name: userName});
+        }
+      })
+      .catch(() => {
+        navigation.navigate('SignupSuccess', {email: userEmail, name: userName});
+      });
   };
 
-   // Registered user Update Login data in local DB
-   const ruuldildb = (email, emailStatus, userName, profileImagePath, area) => {
-    db.transaction(tx => {
+  const ruuldildb = (userEmail: string, emailStatus: any, userName: string, profileImagePath: string, area: string) => {
+    db.transaction((tx: any) => {
       tx.executeSql(
-        `UPDATE LoginData SET email = ? WHERE id=1`,
-        [email],
-        (tx, result) => {
-          console.log('DFHI 2');
-          // navigation.navigate('Welcome', {email});
-          saveGoogleUserToSQLite(email, emailStatus, userName, profileImagePath, area);
+        'UPDATE LoginData SET email = ? WHERE id=1',
+        [userEmail],
+        () => {
+          saveGoogleUserToSQLite(userEmail, emailStatus, userName, profileImagePath, area);
         },
-        error => {
-          console.log('Error saving user to SQLite: ' + error.message);
-        },
+        (error: any) => console.log('Error saving user to SQLite: ' + error.message),
       );
     });
   };
 
-  //    login Save data in SQLite
-  const saveGoogleUserToSQLite = (email, emailStatus, userName, profileImagePath, area) => {
-    db.transaction(tx => {
+  const saveGoogleUserToSQLite = (userEmail: string, emailStatus: any, userName: string, profileImagePath: string, area: string) => {
+    db.transaction((tx: any) => {
       tx.executeSql(
-        'SELECT * FROM Users',
-        [],
-        (tx, results) => {
+        'SELECT * FROM Users WHERE email = ?',
+        [userEmail],
+        (tx: any, results: any) => {
           if (results.rows.length > 0) {
             tx.executeSql(
-              `update Users set isGoogleLogin = ?, emailConfirm = ?, name = ?, userImageUrl = ?, area = ? WHERE email = ?`,
-              [0, 1, userName, profileImagePath, area, email],
-              () => {
-                console.log('AC 1');
-                navigation.navigate('Welcome', {email});
-              },
-              error => {
-                console.log('Error saving user to SQLite: ' + error.message);
-              },
+              'UPDATE Users SET isGoogleLogin = ?, emailConfirm = ?, name = ?, userImageUrl = ?, area = ? WHERE email = ?',
+              [0, 1, userName, profileImagePath, area, userEmail],
+              () => navigation.navigate('Welcome', {email: userEmail}),
+              (error: any) => console.log('Error saving user to SQLite: ' + error.message),
             );
           } else {
-            // If no row exists, insert a new one
-            tx.executeSql(
-              `INSERT INTO Users (email, password, pin, isGoogleLogin, emailConfirm, name, area, fingerPrint, userImageUrl) 
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-              [email, null, 0, 1, 1, name, null, 0, photo],
-              () => {
-                console.log('AB 1');
-                irnundildb(email, name);
-              },
-              error => {
-                console.log('Error saving user to SQLite: ' + error.message);
-              },
-            );
+            navigation.navigate('Welcome', {email: userEmail});
           }
         },
-        error => {
-          console.log('Error querying Users table: ' + error.message);
-        },
+        (error: any) => console.log('Error querying Users table: ' + error.message),
       );
     });
-  };
-
-  useEffect(() => {
-    showData();
-    const subscription = Appearance.addChangeListener(({colorScheme}) => {
-      setTheme(colorScheme);
-    });
-    return () => subscription.remove();
-  }, []);
-
-  const isDarkMode = theme === 'dark';
-
-  // const onToggleSwitch = () => {
-  //   setIsSwitchOn(!isSwitchOn);
-  //   if (isSwitchOn) {
-  //     Alert.alert('Biometric Not Disabled');
-  //   }else{
-  //     setBiometricEnabled(true);
-  //     handleBiometricAuth();
-  //   }
-  // };
-
-  const onToggleSwitch = () => {
-    setIsSwitchOn(!isSwitchOn);
-    if (!isSwitchOn) {
-      setBiometricEnabled(true);
-      handleBiometricAuth();
-    } else {
-      setBiometricEnabled(false);
-      updateFingerPrintInSQLite();
-      Alert.alert('Fingerprint disabled');
-    }
   };
 
   useEffect(() => {
@@ -288,33 +185,27 @@ const SetPin = ({navigation, route}) => {
     const rnBiometrics = new ReactNativeBiometrics();
     const checkBiometrics = async () => {
       try {
-        const {available, biometryType} =
-          await rnBiometrics.isSensorAvailable();
+        const {available} = await rnBiometrics.isSensorAvailable();
         if (available) {
           isBiometricHas(true);
-        } else {
-          updateFingerPrintInSQLite(false);
-          Alert.alert('Biometric sensor not available on this device.');
         }
-        // }
-      } catch (error) {
-        // Log the exact error for debugging purposes
+      } catch (error: any) {
         console.error('Biometric error:', error);
-        Alert.alert(
-          'Error',
-          `An error occurred while trying to authenticate: ${error.message}`,
-        );
       }
     };
-
     checkBiometrics();
   };
 
-  // const biometricSwitchOn = () => {
-  //   if (isSwitchOn) {
-  //     handleBiometricAuth();
-  //   }
-  // };
+  const onToggleSwitch = () => {
+    setIsSwitchOn(!isSwitchOn);
+    if (!isSwitchOn) {
+      setBiometricEnabled(true);
+      handleBiometricAuth();
+    } else {
+      setBiometricEnabled(false);
+      Alert.alert('Info', 'Fingerprint disabled');
+    }
+  };
 
   const handleBiometricAuth = async () => {
     const rnBiometrics = new ReactNativeBiometrics();
@@ -322,226 +213,160 @@ const SetPin = ({navigation, route}) => {
       const {success} = await rnBiometrics.simplePrompt({
         promptMessage: 'Confirm fingerprint',
       });
-
       if (success) {
-        Alert.alert('Authentication Success', 'Fingerprint Added Successfully');
-        updateFingerPrintInSQLite(true);
-        // navigation.navigate('SelectResearchArea');
+        Alert.alert('Success', 'Fingerprint added successfully');
+        updateFingerPrintInSQLite();
       } else {
-        Alert.alert('Authentication failed', 'Please try again.');
+        Alert.alert('Failed', 'Authentication failed. Please try again.');
+        setIsSwitchOn(false);
+        setBiometricEnabled(false);
       }
-    } catch (error) {
-      // Log the exact error for debugging purposes
+    } catch (error: any) {
       console.error('Biometric error:', error);
-      Alert.alert(
-        'Error',
-        `An error occurred while trying to authenticate: ${error.message}`,
-      );
+      Alert.alert('Error', `Biometric authentication error: ${error.message}`);
+      setIsSwitchOn(false);
+      setBiometricEnabled(false);
     }
   };
 
   return (
     <ImageBackground
-      source={require('./../../assets/image/imageD.jpg')}
+      source={require('../../assets/image/welcome.jpg')}
       style={styles.backgroundImage}>
-      <View style={styles.title_container}>
-        <View
-          style={[
-            styles.whiteBox,
-            {
-              backgroundColor: isDarkMode
-                ? 'rgba(17, 17, 17, 0.8)'
-                : 'rgba(217, 217, 217, 0.7)',
-            },
-          ]}>
-          <Text
-            style={[styles.main_text, {color: isDarkMode ? 'white' : 'black'}]}>
-            Set Your PIN
-          </Text>
-          <View style={styles.pinContainer}>
-            <TextInput
-              value={pin}
-              onChangeText={text => {
-                setPin(text);
-                if (text.length === 1) {
-                  pin1Ref.current.focus(); // Move to next input
-                }
-              }}
-              onKeyPress={({nativeEvent}) => {
-                if (nativeEvent.key === 'Backspace' && pin === '') {
-                  pin1Ref.current.blur(); // Avoid focusing if the field is already empty
-                }
-              }}
-              style={[
-                styles.text_input,
-                {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(0, 0, 0, 0.7)'
-                    : 'rgba(255, 255, 255, 0.7)',
-                  fontSize: 30,
-                },
-              ]}
-              keyboardType="number-pad"
-              maxLength={1}
-            />
-            <TextInput
-              ref={pin1Ref}
-              value={pin1}
-              onChangeText={text => {
-                setPin1(text);
-                if (text.length === 1) {
-                  pin2Ref.current.focus(); // Move to next input
-                }
-              }}
-              onKeyPress={({nativeEvent}) => {
-                if (nativeEvent.key === 'Backspace' && pin1 === '') {
-                  pin1Ref.current.blur();
-                  pin2Ref.current.focus(); // Move to the previous input
-                }
-              }}
-              style={[
-                styles.text_input,
-                {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(0, 0, 0, 0.7)'
-                    : 'rgba(255, 255, 255, 0.7)',
-                  fontSize: 30,
-                },
-              ]}
-              keyboardType="number-pad"
-              maxLength={1}
-            />
-            <TextInput
-              ref={pin2Ref}
-              value={pin2}
-              onChangeText={text => {
-                setPin2(text);
-                if (text.length === 1) {
-                  pin3Ref.current.focus(); // Move to next input
-                }
-              }}
-              onKeyPress={({nativeEvent}) => {
-                if (nativeEvent.key === 'Backspace' && pin2 === '') {
-                  pin1Ref.current.focus(); // Move back to the previous input
-                }
-              }}
-              style={[
-                styles.text_input,
-                {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(0, 0, 0, 0.7)'
-                    : 'rgba(255, 255, 255, 0.7)',
-                  fontSize: 30,
-                },
-              ]}
-              keyboardType="number-pad"
-              maxLength={1}
-            />
-            <TextInput
-              ref={pin3Ref}
-              value={pin3}
-              onChangeText={setPin3}
-              onKeyPress={({nativeEvent}) => {
-                if (nativeEvent.key === 'Backspace' && pin3 === '') {
-                  pin2Ref.current.focus(); // Move back to the previous input
-                }
-              }}
-              style={[
-                styles.text_input,
-                {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(0, 0, 0, 0.7)'
-                    : 'rgba(255, 255, 255, 0.7)',
-                  fontSize: 30,
-                },
-              ]}
-              keyboardType="number-pad"
-              maxLength={1}
-            />
-          </View>
-          <Button
-            mode="contained"
-            onPress={handleSavePin}
-            style={styles.button_signup}
-            buttonColor="#516E9E"
-            textColor="white"
-            labelStyle={styles.button_label}>
-            Save PIN
-          </Button>
-          {BiometicHas && (
-            <View style={styles.bottom_container}>
-              <Text
-                style={[
-                  styles.sub_text_A,
-                  {color: isDarkMode ? 'white' : 'black'},
-                ]}>
-                Enable Finger Print
+      <View style={styles.overlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{flex: 1}}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled">
+            <View style={styles.card}>
+              <View style={styles.iconContainer}>
+                <View style={styles.lockCircle}>
+                  <MaterialIcon name="lock" size={40} color="#4A7856" />
+                </View>
+              </View>
+
+              <Text style={styles.title}>Set Your PIN</Text>
+              <Text style={styles.subtitle}>
+                Create a 4-digit PIN to secure your account
               </Text>
-              <Switch value={isSwitchOn} onValueChange={onToggleSwitch} />
+
+              <View style={styles.pinContainer}>
+                {pin.map((digit, index) => (
+                  <TextInput
+                    key={index}
+                    ref={pinRefs[index]}
+                    value={digit}
+                    onChangeText={text => handlePinChange(text, index)}
+                    onKeyPress={e => handleKeyPress(e, index)}
+                    style={styles.pinInput}
+                    keyboardType="number-pad"
+                    maxLength={1}
+                    secureTextEntry
+                    mode="outlined"
+                    outlineColor="rgba(74, 120, 86, 0.3)"
+                    activeOutlineColor="#4A7856"
+                    theme={{colors: {primary: '#4A7856', background: '#fff'}}}
+                  />
+                ))}
+              </View>
+
+              {BiometicHas && (
+                <View style={styles.fingerprintContainer}>
+                  <View style={styles.fingerprintRow}>
+                    <MaterialIcon name="fingerprint" size={24} color="#4A7856" />
+                    <Text style={styles.fingerprintText}>Enable Fingerprint</Text>
+                  </View>
+                  <Switch
+                    value={isSwitchOn}
+                    onValueChange={onToggleSwitch}
+                    color="#4A7856"
+                  />
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={[styles.saveButton, loading && styles.saveButtonDisabled]}
+                onPress={handleSavePin}
+                activeOpacity={0.8}
+                disabled={loading}>
+                <Text style={styles.saveButtonText}>
+                  {loading ? 'Saving...' : 'Save PIN'}
+                </Text>
+              </TouchableOpacity>
             </View>
-          )}
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </View>
     </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  bottom_container: {
-    flexDirection: 'row',
-    marginTop: 25,
+  backgroundImage: {flex: 1, resizeMode: 'cover'},
+  overlay: {flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.3)', justifyContent: 'center'},
+  scrollContent: {flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20},
+  card: {
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {shadowColor: 'black', shadowOffset: {width: 0, height: 5}, shadowOpacity: 0.35, shadowRadius: 10},
+      android: {elevation: 10},
+    }),
+  },
+  iconContainer: {marginBottom: 20},
+  lockCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(74, 120, 86, 0.1)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  sub_text_A: {
-    fontSize: 18,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
-    textAlign: 'left',
-  },
-  title_container: {
-    flex: 1,
-    fontFamily: 'Inter-Bold',
-    marginTop: '20%',
-  },
-  main_text: {
-    fontSize: 40,
-    fontFamily: 'Inter-Bold',
-    color: 'black',
-    fontWeight: 'bold',
-    marginTop: 10,
-  },
-  whiteBox: {
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    height: 300,
-    backgroundColor: 'rgba(217, 217, 217, 0.7)',
-    marginLeft: 14,
-    marginRight: 14,
-    marginTop: 80,
-  },
-  backgroundImage: {
-    flex: 1,
-    resizeMode: 'cover',
-  },
+  title: {fontSize: 24, fontWeight: '700', color: '#4A7856', marginBottom: 8, textAlign: 'center'},
+  subtitle: {fontSize: 14, color: '#666', textAlign: 'center', lineHeight: 22, marginBottom: 25},
   pinContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '70%',
-    marginTop: 20,
+    justifyContent: 'center',
+    gap: 15,
+    marginBottom: 25,
   },
-  text_input: {
+  pinInput: {
     width: 55,
+    height: 55,
+    textAlign: 'center',
+    fontSize: 24,
+    backgroundColor: '#fff',
   },
-  button_signup: {
-    width: '90%',
-    marginTop: 30,
-    fontFamily: 'Inter-regular',
-    borderRadius: 8,
+  fingerprintContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(74, 120, 86, 0.15)',
+    marginBottom: 20,
   },
-  button_label: {
-    fontSize: 18,
+  fingerprintRow: {flexDirection: 'row', alignItems: 'center', gap: 10},
+  fingerprintText: {fontSize: 15, color: '#333', fontWeight: '500'},
+  saveButton: {
+    backgroundColor: '#4A7856',
+    paddingVertical: 14,
+    borderRadius: 25,
+    alignItems: 'center',
+    width: '100%',
+    ...Platform.select({
+      ios: {shadowColor: 'black', shadowOffset: {width: 0, height: 3}, shadowOpacity: 0.25, shadowRadius: 5},
+      android: {elevation: 6},
+    }),
   },
+  saveButtonDisabled: {opacity: 0.6},
+  saveButtonText: {fontSize: 16, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.5},
 });
 
 export default SetPin;
