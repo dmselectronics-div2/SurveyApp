@@ -52,8 +52,7 @@
 
 import React, {useState, useEffect} from 'react';
 import {StyleSheet, View, PermissionsAndroid, Platform} from 'react-native';
-import MapView, {Marker, Geojson} from 'react-native-maps';
-import geojson from './custom.geo.json'; // Import your GeoJSON data
+import MapView, {Marker} from 'react-native-maps';
 import GetLocation from 'react-native-get-location';
 
 const MapPage = () => {
@@ -74,7 +73,6 @@ const MapPage = () => {
         region={region} // Use dynamic region state
         showsUserLocation={locationEnabled} // Show user location if enabled
       >
-        {geojson && <Geojson geojson={geojson} />}
         {latitude && longitude && (
           <Marker
             coordinate={{latitude, longitude}}

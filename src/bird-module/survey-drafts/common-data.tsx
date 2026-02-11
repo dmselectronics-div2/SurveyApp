@@ -1,5 +1,4 @@
 import React, {useState, useEffect} from 'react';
-import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -26,21 +25,16 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import GetLocation from 'react-native-get-location';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
-import DisplayTable from '../data-table/display-table';
 import MyDataTable from '../data-table/display-table';
 import axios from 'axios';
 
 import {Dimensions} from 'react-native';
-import RadioForm, {
-  RadioButton,
-  RadioButtonInput,
-  RadioButtonLabel,
-} from 'react-native-simple-radio-button';
 import {API_URL} from '../../config';
 import { getDatabase } from '../database/db';
 import NetInfo from '@react-native-community/netinfo';
 import RNFS from 'react-native-fs';
-import { useNavigation } from '@react-navigation/native'; 
+import { useNavigation } from '@react-navigation/native';
+import { birdSpecies } from './bird-list'; 
 
 
 const {width, height} = Dimensions.get('window');
@@ -176,6 +170,331 @@ const data11 = [
   {label: 'Sighting', value: 'Sighting'},
   {label: 'Listening', value: 'Listening'},
 ];
+
+// Bird species data for inline observation
+const birdSpeciesData = birdSpecies.map(item => {
+  const regex = /^(.*)\(([^)]+)\)$/;
+  const match = item.label.match(regex);
+  const name = match ? match[1].trim() : item.label;
+  const scientificName = match ? match[2].trim() : '';
+  return { ...item, customLabel: `${name} (${scientificName})` };
+});
+
+const createEmptyBirdObservation = () => ({
+  id: Date.now().toString(),
+  species: '',
+  count: '',
+  maturity: null,
+  sex: null,
+  behaviours: [],
+  identification: null,
+  status: null,
+  remark: '',
+  imageUri: null,
+  expanded: true,
+});
+
+const BirdObservationCard = ({ observation, index, onUpdate, onDelete, onToggle }) => {
+  const [speciesFocus, setSpeciesFocus] = useState(false);
+
+  const handleBehaviourChange = (item) => {
+    const current = observation.behaviours || [];
+    const updated = current.includes(item.value)
+      ? current.filter(b => b !== item.value)
+      : [...current, item.value];
+    onUpdate({ ...observation, behaviours: updated });
+  };
+
+  const handleChoosePhoto = () => {
+    Alert.alert('Bird Photo', 'Choose an option', [
+      { text: 'Camera', onPress: () => {
+        launchCamera({ mediaType: 'photo', quality: 1 }, response => {
+          if (response.assets && response.assets.length > 0) {
+            onUpdate({ ...observation, imageUri: response.assets[0].uri });
+          }
+        });
+      }},
+      { text: 'Gallery', onPress: () => {
+        launchImageLibrary({ mediaType: 'photo', quality: 1 }, response => {
+          if (response.assets && response.assets.length > 0) {
+            onUpdate({ ...observation, imageUri: response.assets[0].uri });
+          }
+        });
+      }},
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const handleCountChange = (text) => {
+    const numericValue = text.replace(/\D/g, '');
+    onUpdate({ ...observation, count: numericValue });
+  };
+
+  return (
+    <View style={birdCardStyles.card}>
+      <TouchableOpacity onPress={onToggle} style={birdCardStyles.cardHeader}>
+        <Text style={birdCardStyles.cardTitle}>
+          Bird Observation #{index + 1}
+          {observation.species ? ` - ${observation.species.split('(')[0].trim()}` : ''}
+        </Text>
+        <View style={birdCardStyles.headerActions}>
+          <Icon name={observation.expanded ? 'chevron-up' : 'chevron-down'} size={16} color="#4A7856" />
+          <TouchableOpacity onPress={onDelete} style={birdCardStyles.deleteBtn}>
+            <Icon name="trash" size={16} color="#D32F2F" />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+
+      {observation.expanded && (
+        <View style={birdCardStyles.cardBody}>
+          <Dropdown
+            style={[birdCardStyles.dropdown, speciesFocus && { borderColor: '#4A7856' }]}
+            placeholderStyle={birdCardStyles.placeholderStyle}
+            selectedTextStyle={birdCardStyles.selectedTextStyle}
+            inputSearchStyle={birdCardStyles.inputSearchStyle}
+            iconStyle={birdCardStyles.iconStyle}
+            itemTextStyle={{ color: '#333' }}
+            data={birdSpeciesData}
+            search
+            maxHeight={300}
+            labelField="label"
+            valueField="value"
+            placeholder={observation.species ? observation.species.split('(')[0].trim() : 'Select Observed Species'}
+            searchPlaceholder="Search species..."
+            value={observation.species}
+            onFocus={() => setSpeciesFocus(true)}
+            onBlur={() => setSpeciesFocus(false)}
+            onChange={item => {
+              onUpdate({ ...observation, species: item.value });
+              setSpeciesFocus(false);
+            }}
+            renderItem={item => {
+              const parts = item?.label?.split('(') || [];
+              const commonName = parts[0]?.trim() || item?.label || '';
+              const sciName = item?.value?.split('(')[1]?.split(')')[0] || '';
+              return (
+                <View style={{ padding: 10 }}>
+                  <Text style={{ color: '#333' }}>
+                    {commonName}
+                    {sciName ? <Text style={{ fontStyle: 'italic' }}> ({sciName})</Text> : null}
+                  </Text>
+                </View>
+              );
+            }}
+          />
+
+          <TextInput
+            mode="outlined"
+            placeholder="Observed Species (type manually)"
+            value={observation.species}
+            onChangeText={val => onUpdate({ ...observation, species: val })}
+            outlineStyle={birdCardStyles.txtInputOutline}
+            style={birdCardStyles.textInput}
+            textColor="#333"
+          />
+
+          <TextInput
+            mode="outlined"
+            placeholder="Count"
+            value={observation.count}
+            onChangeText={handleCountChange}
+            keyboardType="numeric"
+            outlineStyle={birdCardStyles.txtInputOutline}
+            style={birdCardStyles.textInput}
+            textColor="#333"
+          />
+
+          <Dropdown
+            style={birdCardStyles.dropdown}
+            placeholderStyle={birdCardStyles.placeholderStyle}
+            selectedTextStyle={birdCardStyles.selectedTextStyle}
+            inputSearchStyle={birdCardStyles.inputSearchStyle}
+            iconStyle={birdCardStyles.iconStyle}
+            itemTextStyle={{ color: '#333' }}
+            data={data8}
+            maxHeight={300}
+            labelField="label"
+            valueField="value"
+            placeholder={observation.maturity || 'Maturity'}
+            value={observation.maturity}
+            onChange={item => onUpdate({ ...observation, maturity: item.value })}
+          />
+
+          <Dropdown
+            style={birdCardStyles.dropdown}
+            placeholderStyle={birdCardStyles.placeholderStyle}
+            selectedTextStyle={birdCardStyles.selectedTextStyle}
+            inputSearchStyle={birdCardStyles.inputSearchStyle}
+            iconStyle={birdCardStyles.iconStyle}
+            itemTextStyle={{ color: '#333' }}
+            data={data9}
+            maxHeight={300}
+            labelField="label"
+            valueField="value"
+            placeholder={observation.sex || 'Sex'}
+            value={observation.sex}
+            onChange={item => onUpdate({ ...observation, sex: item.value })}
+          />
+
+          <Dropdown
+            style={birdCardStyles.dropdown}
+            placeholderStyle={birdCardStyles.placeholderStyle}
+            selectedTextStyle={birdCardStyles.selectedTextStyle}
+            inputSearchStyle={birdCardStyles.inputSearchStyle}
+            iconStyle={birdCardStyles.iconStyle}
+            itemTextStyle={{ color: '#333' }}
+            data={data10}
+            maxHeight={400}
+            labelField="label"
+            valueField="value"
+            placeholder={observation.behaviours.length > 0 ? observation.behaviours.join(', ') : 'Select Behaviour'}
+            value={null}
+            onChange={handleBehaviourChange}
+            renderItem={(item) => (
+              <TouchableOpacity onPress={() => handleBehaviourChange(item)}>
+                <View style={[birdCardStyles.item, observation.behaviours.includes(item.value) && birdCardStyles.itemSelected]}>
+                  <Text style={{ color: '#333' }}>{item.label}</Text>
+                  {observation.behaviours.includes(item.value) && <Icon name="check" size={20} color="#4A7856" />}
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+
+          <Dropdown
+            style={birdCardStyles.dropdown}
+            placeholderStyle={birdCardStyles.placeholderStyle}
+            selectedTextStyle={birdCardStyles.selectedTextStyle}
+            inputSearchStyle={birdCardStyles.inputSearchStyle}
+            iconStyle={birdCardStyles.iconStyle}
+            itemTextStyle={{ color: '#333' }}
+            data={data11}
+            maxHeight={300}
+            labelField="label"
+            valueField="value"
+            placeholder={observation.identification || 'Identification'}
+            value={observation.identification}
+            onChange={item => onUpdate({ ...observation, identification: item.value })}
+          />
+
+          <Dropdown
+            style={birdCardStyles.dropdown}
+            placeholderStyle={birdCardStyles.placeholderStyle}
+            selectedTextStyle={birdCardStyles.selectedTextStyle}
+            inputSearchStyle={birdCardStyles.inputSearchStyle}
+            iconStyle={birdCardStyles.iconStyle}
+            itemTextStyle={{ color: '#333' }}
+            data={data12}
+            maxHeight={300}
+            labelField="label"
+            valueField="value"
+            placeholder={observation.status || 'Status'}
+            value={observation.status}
+            onChange={item => onUpdate({ ...observation, status: item.value })}
+          />
+
+          <TextInput
+            mode="outlined"
+            placeholder="Remarks"
+            value={observation.remark}
+            onChangeText={val => onUpdate({ ...observation, remark: val })}
+            outlineStyle={birdCardStyles.txtInputOutline}
+            style={[birdCardStyles.textInput, { height: 80 }]}
+            textColor="#333"
+            multiline
+          />
+
+          <View style={birdCardStyles.photoRow}>
+            <Text style={{ color: '#333', marginRight: 10 }}>Upload Photo</Text>
+            <TouchableOpacity style={birdCardStyles.photoButton} onPress={handleChoosePhoto}>
+              <Icon name="camera" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          {observation.imageUri && (
+            <Image source={{ uri: observation.imageUri }} style={birdCardStyles.imagePreview} />
+          )}
+        </View>
+      )}
+    </View>
+  );
+};
+
+const birdCardStyles = StyleSheet.create({
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginVertical: 8,
+    overflow: 'hidden',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#F0F7F2',
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#4A7856',
+    flex: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteBtn: {
+    marginLeft: 15,
+    padding: 4,
+  },
+  cardBody: {
+    padding: 12,
+  },
+  dropdown: {
+    height: 50,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    backgroundColor: 'white',
+    marginBottom: 10,
+  },
+  placeholderStyle: { fontSize: 16, color: 'gray' },
+  selectedTextStyle: { fontSize: 16, color: '#333' },
+  inputSearchStyle: { height: 40, fontSize: 16, color: 'black' },
+  iconStyle: { width: 20, height: 20 },
+  txtInputOutline: { borderRadius: 8, borderWidth: 1, borderColor: '#E0E0E0' },
+  textInput: { marginBottom: 10, backgroundColor: 'white' },
+  item: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 10,
+  },
+  itemSelected: {
+    backgroundColor: '#F0F7F2',
+  },
+  photoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  photoButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#4A7856',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imagePreview: {
+    width: 100,
+    height: 100,
+    marginTop: 10,
+    borderRadius: 8,
+  },
+});
 
 
 const WeatherConditionModal = ({ visible, onClose, onSelect }) => {
@@ -577,8 +896,8 @@ const [isWeatherModalVisible, setWeatherModalVisible] = useState(false);
 const [isWaterModalVisible, setWaterModalVisible] = useState(false);
   const [waterSelection, setWaterSelection] = useState({});
   // const navigation = useNavigation();  
-  const { surveyPoint, teamMembers, submittedData,formData } = route.params || {};
-  const [birdDataArray, setBirdDataArray] = useState([]);
+  const { surveyPoint, teamMembers } = route.params || {};
+  const [birdDataArray, setBirdDataArray] = useState<any[]>([]);
   const [isFocusObservers, setIsFocusObservers] = useState(false);
   const [birdCount, setBirdCount] = useState(1);
   
@@ -623,18 +942,28 @@ const [isWaterModalVisible, setWaterModalVisible] = useState(false);
   
   
 
-  useFocusEffect(
-    React.useCallback(() => {
-      if (route.params?.submittedData) {
-        setBirdDataArray(prevData => {
-          const updatedData = [...prevData, route.params.submittedData];
-          console.log("👥 Updated Bird Data:", JSON.stringify(updatedData, null, 2)); // Log the array
-          return updatedData;
-        });
-      }
-    }, [route.params?.submittedData])
-  );
-  
+  // Bird observations managed inline
+  const addBirdObservation = () => {
+    setBirdDataArray(prev => [...prev, createEmptyBirdObservation()]);
+  };
+
+  const updateBirdObservation = (updated: any) => {
+    setBirdDataArray(prev => prev.map((b: any) => b.id === updated.id ? updated : b));
+  };
+
+  const deleteBirdObservation = (id: string) => {
+    Alert.alert('Delete', 'Remove this bird observation?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => {
+        setBirdDataArray(prev => prev.filter((b: any) => b.id !== id));
+      }},
+    ]);
+  };
+
+  const toggleBirdObservation = (id: string) => {
+    setBirdDataArray(prev => prev.map((b: any) => b.id === id ? { ...b, expanded: !b.expanded } : b));
+  };
+
   useEffect(() => {
     const handleNetworkChange = async (state) => {
       if (state.isConnected) {
@@ -1327,21 +1656,21 @@ const uploadPathToServer = async (uri, addedId) => {
       waterLevelOnResources,
       teamMembers: teamMembersList,
   
-      birdObservations: birdDataArray.map(bird => ({
-        uniqueId: bird.find(item => item.label === "Unique ID")?.value,
-        species: bird.find(item => item.label === "Observed Species")?.value,
-        count: bird.find(item => item.label === "Count")?.value,
-        maturity: bird.find(item => item.label === "Maturity")?.value,
-        sex: bird.find(item => item.label === "Sex")?.value,
-        behaviour: bird.find(item => item.label === "Behaviours")?.value,
-        identification: bird.find(item => item.label === "Identification")?.value,
-        status: bird.find(item => item.label === "Status")?.value,
-        latitude: bird.find(item => item.label === "Latitude")?.value,
-        longitude: bird.find(item => item.label === "Longitude")?.value,
-        weather: bird.find(item => item.label === "Weather")?.value,
-        waterConditions: bird.find(item => item.label === "Water Conditions")?.value,
-        remarks: bird.find(item => item.label === "Remarks")?.value,
-        imageUri: bird.find(item => item.label === "Image URL")?.value || imageUri,
+      birdObservations: birdDataArray.map((bird: any) => ({
+        uniqueId: uniqueId,
+        species: bird.species || '',
+        count: bird.count || '',
+        maturity: bird.maturity || '',
+        sex: bird.sex || '',
+        behaviour: (bird.behaviours || []).join(', '),
+        identification: bird.identification || '',
+        status: bird.status || '',
+        latitude: latitude || '',
+        longitude: longitude || '',
+        weather: selectedWeatherString || '',
+        waterConditions: selectedWaterString || '',
+        remarks: bird.remark || '',
+        imageUri: bird.imageUri || imageUri || '',
       })),
     };
   
@@ -1406,36 +1735,10 @@ const uploadPathToServer = async (uri, addedId) => {
   };
 
 
-  // Save failed submission data in a local queue for retry
-  const getImageUrl = (submittedData) => {
-    if (!submittedData || !Array.isArray(submittedData)) {
-      console.log('Error: submittedData is undefined or not an array.');
-      return null;  // Return null if `submittedData` is invalid
-    }
-  
-    // Find the object with label "Image URL" and return its value
-    const imageObject = submittedData.find(item => item.label === "Image URL");
-  
-    // Return the value if found, otherwise return null
-    return imageObject ? imageObject.value : null;
-  };
-  
-
   useEffect(() => {
-    if (!submittedData) {
-      console.log("Error: submittedData is undefined.");
-    } else {
-      console.log("📌 Survey Point Data:", surveyPoint);
-      console.log("👥 Team Members Data:", teamMembers);
-      console.log("👥 Bird Data:", submittedData);
-    }
-  
-    const imageUrl = getImageUrl(submittedData);
-    console.log("🖼️ Image URL:", imageUrl);  // Log the image URL
-    setNewImageUri(imageUrl);
-    setImageUri(imageUrl);
-    console.log("Image URL:", newImageUri);
-  }, [surveyPoint, teamMembers, submittedData]);
+    console.log("Survey Point Data:", surveyPoint);
+    console.log("Team Members Data:", teamMembers);
+  }, [surveyPoint, teamMembers]);
   
 
   const saveFormDataSQL = async (formData, navigation, resetForm) => {
@@ -2048,25 +2351,31 @@ const uploadPathToServer = async (uri, addedId) => {
                   message="Successfully saved data!"
                 />
 
-<Button
-  mode="contained"
-  onPress={() => {
-    if (isFormValid()) {
-    navigation.navigate('BirdDataRecord', {
-      surveyPoint,
-      teamMembers: teamMembersList,
-      birdDataArray
-    });
-    setBirdCount((prevCount) => prevCount + 1); // Increment bird count on click
-   } }}
-  
-  style={[styles.button_signup, { borderRadius: 8 }]}
-  buttonColor="#4A7856"
-  textColor="white"
-  labelStyle={styles.button_label}
->
-  {`Add ${birdCount === 1 ? 'First Observed Bird Data ' : `Observed Bird Data ${birdCount}`}`} 
-</Button>
+{/* Bird Observations Section */}
+<View style={{ width: width * 0.9, marginTop: 15 }}>
+  <Text style={styles.sectionTitle}>Bird Observations</Text>
+  {birdDataArray.map((obs: any, idx: number) => (
+    <BirdObservationCard
+      key={obs.id}
+      observation={obs}
+      index={idx}
+      onUpdate={updateBirdObservation}
+      onDelete={() => deleteBirdObservation(obs.id)}
+      onToggle={() => toggleBirdObservation(obs.id)}
+    />
+  ))}
+  <Button
+    mode="contained"
+    onPress={addBirdObservation}
+    style={[styles.button_signup, { borderRadius: 8, marginTop: 10, marginBottom: 15 }]}
+    buttonColor="#4A7856"
+    textColor="white"
+    labelStyle={styles.button_label}
+    icon="plus"
+  >
+    {birdDataArray.length === 0 ? 'Add First Bird Observation' : 'Add Another Bird Observation'}
+  </Button>
+</View>
 
                 {/* Team Members Section */}
                 <View style={styles.teamMembersSection}>

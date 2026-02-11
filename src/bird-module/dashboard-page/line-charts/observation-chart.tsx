@@ -6,8 +6,8 @@ import { API_URL } from '../../../config';
 
 const LineChartModel = () => {
   const [chartData, setChartData] = useState({
-    labels: [], // Placeholder for months
-    datasets: [{ data: [] }], // Placeholder for bird counts
+    labels: ['No Data'], // Placeholder for months
+    datasets: [{ data: [0] }], // Placeholder for bird counts
   });
   const [loading, setLoading] = useState(true);
 
@@ -57,8 +57,8 @@ const LineChartModel = () => {
   
         // In case of error (e.g., offline or server error), set 0 as the default data
         setChartData({
-          labels: [], // You may still want to show labels even in error case
-          datasets: [{ data: [0] }], // Default to 0 count
+          labels: ['No Data'],
+          datasets: [{ data: [0] }],
         });
         setLoading(false);
       }
