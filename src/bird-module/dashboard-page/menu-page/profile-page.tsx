@@ -1,13 +1,8 @@
 import React, {useEffect, useState} from 'react';
 import {
-  Menu,
   Text,
   Avatar,
-  Divider,
-  Card,
-  Badge,
   IconButton,
-  Appbar,
   Button,
   Dialog,
   Portal,
@@ -18,22 +13,13 @@ import {
   TextInput,
   Alert,
   Appearance,
-  ImageBackground,
+  ScrollView,
   TouchableOpacity,
 } from 'react-native';
 import * as Keychain from 'react-native-keychain';
-import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
-import {Dropdown} from 'react-native-element-dropdown';
 import {useNavigation} from '@react-navigation/native';
-import { getDatabase } from '../../database/db';
+import {getDatabase} from '../../database/db';
 import {API_URL} from '../../../config';
-
-const data = [
-  {label: 'Birds', value: 'Birds'},
-  {label: 'Bivalve', value: 'Bivalve'},
-  {label: 'Trees', value: 'Trees'},
-  {label: 'Soil', value: 'Soil'},
-];
 
 const ProfileMenu = () => {
   const [theme, setTheme] = useState(Appearance.getColorScheme());
@@ -41,105 +27,25 @@ const ProfileMenu = () => {
   const [avatarUri, setAvatarUri] = useState('');
 
   const [isEditingName, setIsEditingName] = useState(false);
-  const [isEditingEmail, setIsEditingEmail] = useState(false);
-  const [isEditingArea, setIsEditingArea] = useState(false);
-  // const [name, setName] = useState('your name');
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [area, setArea] = useState('Birds');
 
-  const [value1, setValue1] = useState(null);
-  const [isFocus1, setIsFocus1] = useState(false);
-
   const [showDialog, setShowDialog] = useState(false);
 
-  const handleEditToggle = field => {
-    switch (field) {
-      case 'name':
-        setIsEditingName(!isEditingName);
-        break;
-      case 'email':
-        setIsEditingEmail(!isEditingEmail);
-        break;
-      case 'area':
-        setIsEditingArea(!isEditingArea);
-        break;
-      default:
-        break;
-    }
+  const handleEditToggle = () => {
+    setIsEditingName(!isEditingName);
   };
 
-  const _goBack = () => console.log('Went back');
-  const _handleSearch = () => console.log('Searching');
-  const _handleMore = () => console.log('Shown more');
-
-  const showData = async () => {
-    const db = await getDatabase();
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT * FROM Users',
-        [],
-        (tx, results) => {
-          if (results.rows.length > 0) {
-            console.log('Results:', results.rows._array); // This should give you an array of the rows
-          } else {
-            console.log('No data found.');
-          }
-        },
-        error => {
-          console.log('Error retrieving data: ', error);
-        },
-      );
-    });
-  };
-
-  const uploadImageToServer = async uri => {
-    if (!uri) {
-      Alert.alert('No image selected', 'Please select an image before saving.');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('profileImage', {
-      uri,
-      name: 'profileImage.jpg', // Use the appropriate file name and extension
-      type: 'image/jpeg', // Ensure this matches the file type
-    });
-
-    try {
-      const response = await fetch(`${API_URL}/upload`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        body: formData,
-      });
-
-      const responseText = await response.text(); // Log the response text for inspection
-      console.log('Server response:', responseText);
-
-      if (response.ok) {
-        const data = JSON.parse(responseText);
-        setAvatarUri(data.filePath);
-        Alert.alert('Success', 'Image uploaded successfully!');
-        console.log('Image uploaded successfully:', data.filePath);
-      } else {
-        console.error('Upload failed:', responseText);
-        Alert.alert('Error', 'Failed to upload image.');
-      }
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      Alert.alert('Error', 'An error occurred while uploading the image.');
-    }
+  const handleAvatarChange = () => {
+    navigation.navigate('ProfileImageChange', {email});
   };
 
   const handleDeleteAccount = async () => {
     try {
       const response = await fetch(`${API_URL}/delete-account`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({email}),
       });
 
@@ -149,8 +55,6 @@ const ProfileMenu = () => {
           "Account delete request sent to admin. We'll inform you when it's accepted.",
         );
       } else {
-        const errorData = await response.json();
-        console.error('Error deleting account:', errorData);
         Alert.alert(
           'Error',
           'Failed to send account delete request. Please try again.',
@@ -162,65 +66,6 @@ const ProfileMenu = () => {
     }
   };
 
-  const handleSaveImage = () => {
-    uploadImageToServer(avatarUri);
-  };
-
-  const handleAvatarChange = () => {
-    navigation.navigate('ProfileImageChange', {email});
-  };
-
-  const openCamera = () => {
-    launchCamera({}, response => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.errorCode) {
-        console.log('ImagePicker Error: ', response.errorMessage);
-      } else {
-        setAvatarUri(response.assets[0].uri);
-      }
-    });
-  };
-
-  const openGallery = () => {
-    launchImageLibrary({}, response => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.errorCode) {
-        console.log('ImagePicker Error: ', response.errorMessage);
-      } else {
-        setAvatarUri(response.assets[0].uri);
-      }
-    });
-  };
-
-  const renderLabel = (label, value, isFocus) => {
-    if (value || isFocus) {
-      return label;
-    }
-    return `Select ${label.toLowerCase()}`;
-  };
-
-  // Retrieving the email
-  const retrieveEmailSecurely = async () => {
-    try {
-      const credentials = await Keychain.getGenericPassword();
-
-      if (credentials) {
-        const email = credentials.username; // This will give you the email
-        setEmail(email);
-        console.log('Retrieved email profile : ', email);
-        retrieveNameFromSQLite(email);
-        return {email}; // Return the email and password
-      } else {
-        console.log('No email and password stored.');
-        return null;
-      }
-    } catch (error) {
-      console.error('Failed to retrieve email and password', error);
-    }
-  };
-
   const retriveEmailFromSQLite = async () => {
     const db = await getDatabase();
     db.transaction(tx => {
@@ -229,14 +74,9 @@ const ProfileMenu = () => {
         [],
         (tx, results) => {
           if (results.rows.length > 0) {
-            const email = results.rows.item(0).email;
-            setEmail(email);
-            console.log('Retrieved email profile : ', email);
-            retrieveNameFromSQLite(email);
-            return {email};
-          } else {
-            console.log('No email and password stored.');
-            return null;
+            const userEmail = results.rows.item(0).email;
+            setEmail(userEmail);
+            retrieveNameFromSQLite(userEmail);
           }
         },
         error => {
@@ -246,26 +86,7 @@ const ProfileMenu = () => {
     });
   };
 
-  useEffect(() => {
-    // retrieveEmailSecurely();
-    showData();
-    retriveEmailFromSQLite();
-  }, []);
-
-  const handleLogoutClick = () => {
-    navigation.navigate('LoginPage', {email});
-    setShowDialog(false);
-  };
-
-  const handleShowLogoutConfirmation = () => {
-    setShowDialog(true);
-  };
-  const closeDialog = () => {
-    setShowDialog(false);
-  };
-
-  // Function to retrieve email from SQLite
-  const retrieveNameFromSQLite = async (userEmail) => {
+  const retrieveNameFromSQLite = async (userEmail: string) => {
     const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
@@ -273,33 +94,10 @@ const ProfileMenu = () => {
         [userEmail],
         (tx, results) => {
           if (results.rows.length > 0) {
-            const retrievedName = results.rows.item(0).name; // Fetching name
-            const retrievedArea = results.rows.item(0).area; // Fetching area
-            const retrieveImage = results.rows.item(0).userImageUrl;
-            console.log(
-              'Name Email Image ',
-              retrievedName,
-              retrievedArea,
-              retrieveImage,
-            );
-            if (retrievedName) {
-              setName(retrievedName); // Updating name state
-            }
-
-            if (retrievedArea) {
-              setArea(retrievedArea); // Updating area state
-            }
-
-            if (retrieveImage) {
-              setAvatarUri(retrieveImage); // Use the image from the database if it exists
-            } else {
-              setAvatarUri(''); // Default to a local placeholder if no image is found
-            }
-
-            console.log('Name retrieved from SQLite: ', retrievedName);
-            console.log('Area retrieved from SQLite: ', retrievedArea);
-          } else {
-            console.log('No user found in SQLite');
+            const row = results.rows.item(0);
+            if (row.name) setName(row.name);
+            if (row.area) setArea(row.area);
+            if (row.userImageUrl) setAvatarUri(row.userImageUrl);
           }
         },
         error => {
@@ -309,9 +107,9 @@ const ProfileMenu = () => {
     });
   };
 
-  // useEffect(() => {
-  //   retrieveNameFromSQLite();
-  // }, []);
+  useEffect(() => {
+    retriveEmailFromSQLite();
+  }, []);
 
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({colorScheme}) => {
@@ -322,418 +120,293 @@ const ProfileMenu = () => {
 
   const isDarkMode = theme === 'dark';
 
-  return (
-    <ImageBackground
-      source={require('./../../../assets/image/Bird.jpeg')}
-      style={styles.backgroundImage}>
-      <Card style={styles.card}>
-        <View
-          style={[
-            styles.cardContent,
-            {
-              backgroundColor: isDarkMode
-                ? 'rgba(177, 177, 177, 0.2)'
-                : 'rgba(217, 217, 217, 0.7)',
-            },
-          ]}>
-          <View style={styles.avatarContainer}>
-            <Avatar.Image
-              size={120}
-              source={
-                avatarUri
-                  ? {uri: avatarUri}
-                  : require('../../../assets/image/prof.jpg')
-              }
-              style={styles.avatar}
-            />
+  const handleLogoutClick = () => {
+    navigation.navigate('LoginPage', {email});
+    setShowDialog(false);
+  };
 
+  const handleShowLogoutConfirmation = () => {
+    setShowDialog(true);
+  };
+
+  const closeDialog = () => {
+    setShowDialog(false);
+  };
+
+  const colors = {
+    bg: isDarkMode ? '#121212' : '#F5F5F5',
+    cardBg: isDarkMode ? '#1E1E1E' : '#FFFFFF',
+    headerBg: isDarkMode ? 'rgb(2, 93, 32)' : 'rgba(84, 200, 86, 0.85)',
+    text: isDarkMode ? '#FFFFFF' : '#333333',
+    subtext: isDarkMode ? '#AAAAAA' : '#777777',
+    border: isDarkMode ? '#333333' : '#E8E8E8',
+    iconBg: isDarkMode ? '#2A2A2A' : '#F0F0F0',
+  };
+
+  return (
+    <ScrollView
+      style={[styles.container, {backgroundColor: colors.bg}]}
+      contentContainerStyle={styles.contentContainer}>
+      {/* Header Section */}
+      <View style={[styles.headerSection, {backgroundColor: colors.headerBg}]}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}>
+          <IconButton icon="arrow-left" size={24} iconColor="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Profile</Text>
+        <View style={styles.avatarWrapper}>
+          <Avatar.Image
+            size={100}
+            source={
+              avatarUri
+                ? {uri: avatarUri}
+                : require('../../../assets/image/prof.jpg')
+            }
+            style={styles.avatar}
+          />
+          <TouchableOpacity
+            style={styles.avatarBadge}
+            onPress={handleAvatarChange}>
             <IconButton
-              style={[
-                styles.badge,
-                {
-                  backgroundColor: isDarkMode ? 'black' : 'white',
-                  borderColor: isDarkMode ? 'white' : 'black',
-                },
-              ]}
-              size={22}
-              icon="plus"
-              mode="contained"
-              iconColor={isDarkMode ? 'white' : 'black'}
-              rippleColor="#D0BBFF"
-              onPress={handleAvatarChange}></IconButton>
+              icon="camera"
+              size={16}
+              iconColor="#FFFFFF"
+              style={styles.badgeIcon}
+            />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.headerName}>{name || 'User'}</Text>
+        <Text style={styles.headerEmail}>{email}</Text>
+      </View>
+
+      {/* Info Cards Section */}
+      <View style={styles.cardsSection}>
+        {/* Name Card */}
+        <View style={[styles.infoCard, {backgroundColor: colors.cardBg, borderColor: colors.border}]}>
+          <View style={styles.cardIcon}>
+            <IconButton icon="account" size={22} iconColor={isDarkMode ? '#54C856' : '#2E7D32'} />
           </View>
-          <View style={styles.textContainer}>
+          <View style={styles.cardTextArea}>
+            <Text style={[styles.cardLabel, {color: colors.subtext}]}>Full Name</Text>
             {isEditingName ? (
               <TextInput
-                style={styles.input}
+                style={[styles.cardValueInput, {color: colors.text, borderBottomColor: colors.border}]}
                 value={name}
                 onChangeText={setName}
-                onBlur={() => handleEditToggle('name')}
+                onBlur={handleEditToggle}
+                autoFocus
               />
             ) : (
-              <Text style={styles.title}>{name}</Text>
+              <Text style={[styles.cardValue, {color: colors.text}]}>{name || 'Not set'}</Text>
             )}
           </View>
-          <View>
+          <TouchableOpacity onPress={handleEditToggle}>
             <IconButton
-              // style={styles.badge}
-              size={18}
-              icon={isEditingName ? 'check' : 'pencil'}
-              iconColor={isDarkMode ? 'white' : 'black'}
-              rippleColor="#D0BBFF"
-              onPress={() => handleEditToggle('name')}></IconButton>
+              icon={isEditingName ? 'check' : 'pencil-outline'}
+              size={20}
+              iconColor={colors.subtext}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Email Card */}
+        <View style={[styles.infoCard, {backgroundColor: colors.cardBg, borderColor: colors.border}]}>
+          <View style={styles.cardIcon}>
+            <IconButton icon="email-outline" size={22} iconColor={isDarkMode ? '#54C856' : '#2E7D32'} />
+          </View>
+          <View style={styles.cardTextArea}>
+            <Text style={[styles.cardLabel, {color: colors.subtext}]}>Email Address</Text>
+            <Text style={[styles.cardValue, {color: colors.text}]}>{email || 'Not set'}</Text>
           </View>
         </View>
-      </Card>
 
-      <Card style={styles.card}>
-        <View
-          style={[
-            styles.cardContent,
-            {
-              backgroundColor: isDarkMode
-                ? 'rgba(177, 177, 177, 0.2)'
-                : 'rgba(217, 217, 217, 0.9)',
-            },
-          ]}>
-          <View style={styles.textContainer}>
-            <Text
-              style={[
-                styles.subtitle,
-                {color: isDarkMode ? 'white' : 'black'},
-              ]}>
-              Email Address
-            </Text>
-
-            {/* <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                onBlur={() => handleEditToggle('email')}
-              /> */}
-
-            <Text style={styles.titleEmail}>{email}</Text>
+        {/* Area Card */}
+        <View style={[styles.infoCard, {backgroundColor: colors.cardBg, borderColor: colors.border}]}>
+          <View style={styles.cardIcon}>
+            <IconButton icon="leaf" size={22} iconColor={isDarkMode ? '#54C856' : '#2E7D32'} />
           </View>
-          {/* <View>
-            <IconButton
-              // style={styles.badge}
-              size={18}
-              icon={isEditingEmail ? 'check' : 'pencil'}
-              iconColor={isDarkMode ? 'white' : 'black'}
-              rippleColor="#D0BBFF"
-              onPress={() => handleEditToggle('email')}></IconButton>
-          </View> */}
-        </View>
-      </Card>
-
-      <Card style={styles.card}>
-        <View
-          style={[
-            styles.cardContent,
-            {
-              backgroundColor: isDarkMode
-                ? 'rgba(177, 177, 177, 0.2)'
-                : 'rgba(217, 217, 217, 0.9)',
-            },
-          ]}>
-          <View style={styles.textContainer}>
-            <Text
-              style={[
-                styles.subtitle,
-                {color: isDarkMode ? 'white' : 'black'},
-              ]}>
-              Preferred Area
-            </Text>
-            {/* {isEditingArea ? (
-              <Dropdown
-                style={[styles.dropdown, isFocus1 && styles.dropdownFocused]}
-                placeholderStyle={styles.placeholderStyle}
-                selectedTextStyle={styles.selectedTextStyle}
-                inputSearchStyle={styles.inputSearchStyle}
-                iconStyle={styles.iconStyle}
-                data={data}
-                maxHeight={300}
-                labelField="label"
-                valueField="value"
-                placeholder={!isFocus1 && !value1 ? `Preferred Area` : ''}
-                value={value1}
-                onFocus={() => setIsFocus1(true)}
-                onBlur={() => setIsFocus1(false)}
-                onChange={item => {
-                  setValue1(item.value);
-                  setArea(item.value); // Update the area state as well
-                  setIsFocus1(false);
-                }}
-              />
-            ) : (
-              <Text style={styles.title}>{area}</Text>
-            )} */}
-
-            <Text style={styles.title}>{area}</Text>
+          <View style={styles.cardTextArea}>
+            <Text style={[styles.cardLabel, {color: colors.subtext}]}>Preferred Area</Text>
+            <Text style={[styles.cardValue, {color: colors.text}]}>{area || 'Not set'}</Text>
           </View>
-          {/* <View>
-            <IconButton
-              // style={styles.badge}
-              size={18}
-              icon={isEditingArea ? 'check' : 'pencil'}
-              iconColor={isDarkMode ? 'white' : 'black'}
-              rippleColor="#D0BBFF"
-              onPress={() => handleEditToggle('area')}></IconButton>
-          </View> */}
         </View>
-      </Card>
+      </View>
 
-      {/* <Button
-        mode="contained"
-        onPress={handleSaveImage}
-        style={styles.saveButton}>
-        Save Image
-      </Button> */}
+      {/* Actions Section */}
+      <View style={styles.actionsSection}>
+        <TouchableOpacity
+          style={[styles.actionButton, styles.logoutButton]}
+          onPress={handleShowLogoutConfirmation}>
+          <IconButton icon="logout" size={20} iconColor="#FFFFFF" style={styles.actionBtnIcon} />
+          <Text style={styles.actionButtonText}>Sign Out</Text>
+        </TouchableOpacity>
 
-      <Button
-        mode="contained"
-        onPress={handleShowLogoutConfirmation}
-        style={[styles.button_signup, {borderRadius: 5}]}
-        buttonColor="#ff0000"
-        textColor="white"
-        labelStyle={styles.button_label}>
-        SIGN OUT
-      </Button>
+        <TouchableOpacity
+          style={[styles.actionButton, styles.deleteButton]}
+          onPress={handleDeleteAccount}>
+          <IconButton icon="delete-outline" size={20} iconColor="#FFFFFF" style={styles.actionBtnIcon} />
+          <Text style={styles.actionButtonText}>Delete Account</Text>
+        </TouchableOpacity>
+      </View>
 
-      <Button
-        mode="contained"
-        onPress={handleDeleteAccount}
-        style={[styles.button_deleteAcc, {borderRadius: 5}]}
-        buttonColor="rgba(67, 10, 255, 0.9)"
-        textColor="white"
-        labelStyle={styles.button_label}>
-        DELETE ACCOUNT
-      </Button>
-
-     
-
-      {/* <Card
-  style={[styles.bottomCardSecondary, { backgroundColor: 'transparent', elevation: 0 }]}
-  onPress={() => navigation.navigate('PrivacyPolicy')}
->
-  <View style={styles.textContainer}>
-    <Text style={styles.bottomTitleSecondary}>Privacy and Policies</Text>
-  </View>
-</Card> */}
-
-      {/* <Button onPress={() => navigation.navigate('PrivacyPolicy')} style={[
-      styles.privacyPolicyText,
-      { color: isDarkMode ? 'blue' : 'blue' },
-    ]}>
- 
-   Privacy and Policies
-
-</Button> */}
-
+      {/* Logout Confirmation Dialog */}
       <Portal>
-        <Dialog visible={showDialog} onDismiss={closeDialog}>
-          <Dialog.Title>Logout Confirmation</Dialog.Title>
+        <Dialog visible={showDialog} onDismiss={closeDialog} style={styles.dialog}>
+          <Dialog.Title style={styles.dialogTitle}>Logout Confirmation</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">
-              Are you sure to logout from application?
+              Are you sure you want to logout from the application?
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={handleLogoutClick}>Yes</Button>
-            <Button onPress={closeDialog}>No</Button>
+            <Button onPress={closeDialog} textColor="#777">Cancel</Button>
+            <Button onPress={handleLogoutClick} textColor="#E53935">Logout</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
-    </ImageBackground>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  backgroundImage: {
+  container: {
     flex: 1,
-    resizeMode: 'cover',
   },
-  card: {
-    marginTop: 10,
-    alignSelf: 'center',
+  contentContainer: {
+    paddingBottom: 30,
+  },
+  headerSection: {
     alignItems: 'center',
-    borderRadius: 10,
-    // backgroundColor: 'rgba(217, 217, 217, 0.9)',
+    paddingTop: 20,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  bottomCardSecondary: {
-    padding: 5, // Adjust padding if necessary
-    borderRadius: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent', // Ensure background is transparent
-    elevation: 0, // Remove shadow
-    marginTop: 420,
+  backButton: {
+    position: 'absolute',
+    top: 8,
+    left: 4,
+    zIndex: 1,
   },
-  button_label: {
+  headerTitle: {
     fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    fontFamily: 'InriaSerif-Bold',
+    marginBottom: 16,
   },
-  bottomTitleSecondary: {
-    fontSize: 16,
-    color: 'blue',
-    textDecorationLine: 'underline',
-  },
-
-  button_signup: {
-    width: '95%',
-    marginBottom: 2,
-    marginTop:'80%',
-    fontFamily: 'Inter-regular',
-    alignSelf: 'center',
-    // position:'absolute'
-  },
-
-  button_deleteAcc: {
-    width: '95%',
-    marginBottom: 2,
-    marginTop: '2%',
-    fontFamily: 'Inter-regular',
-    alignSelf: 'center',
-    // position:'absolute'
-  },
-
-  privacyPolicyText: {
-    color: 'blue',
-    textDecorationLine: 'underline',
-    fontSize: 14,
-    marginBottom: '1%',
-    alignSelf: 'center', // Center aligns the button text
-  },
-  bottomCard2: {
-    width: '95%',
-    position: 'absolute',
-    bottom: '7%',
-    // marginTop: 10,
-    alignSelf: 'center',
-    alignItems: 'center',
-    borderRadius: 3,
-    padding: 5,
-    backgroundColor: 'rgba(67, 10, 255, 0.9)',
-  },
-
-  bottomCard: {
-    width: '95%',
-    position: 'absolute',
-    bottom: '13%',
-    // marginTop: 10,
-    alignSelf: 'center',
-    alignItems: 'center',
-    borderRadius: 3,
-    padding: 5,
-    backgroundColor: 'rgba(255, 10, 10, 0.9)',
-  },
-  cardContent: {
-    width: '95%',
-    display: 'flex',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 10,
-    backgroundColor: 'rgba(217, 217, 217, 0.9)',
-    borderRadius: 10,
-  },
-  avatarContainer: {
+  avatarWrapper: {
     position: 'relative',
+    marginBottom: 12,
   },
   avatar: {
-    marginRight: 10,
+    backgroundColor: '#FFFFFF',
+    elevation: 4,
   },
-  badge: {
+  avatarBadge: {
     position: 'absolute',
-    bottom: 6,
-    right: 6,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#000000',
-    width: 24,
-    height: 24,
+    bottom: 0,
+    right: -4,
+    backgroundColor: '#2E7D32',
+    borderRadius: 20,
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
-  textContainer: {
-    flex: 1,
+  badgeIcon: {
+    margin: 0,
+    padding: 0,
   },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    fontFamily: 'InriaSerif-Bold',
-    marginLeft: 20,
-  },
-  bottomTitle: {
-    fontSize: 20,
-    fontWeight: 600,
-    // fontFamily: 'InriaSerif-Bold',
-    // marginLeft: 20,
-    color: 'white',
-  },
-  bottomTitle2: {
-    fontSize: 20,
-    fontWeight: 600,
-    // fontFamily: 'InriaSerif-Bold',
-    // marginLeft: 20,
-    color: 'white',
-  },
-  titleEmail: {
+  headerName: {
     fontSize: 22,
     fontWeight: 'bold',
+    color: '#FFFFFF',
     fontFamily: 'InriaSerif-Bold',
-    marginLeft: 20,
   },
-  subtitle: {
+  headerEmail: {
     fontSize: 14,
-    marginLeft: 20,
+    color: 'rgba(255, 255, 255, 0.85)',
+    marginTop: 4,
     fontFamily: 'Inter-regular',
-    color: '#000000',
-    textAlign: 'justify',
   },
-  input: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    fontFamily: 'InriaSerif-Bold',
-    marginLeft: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#000',
+  cardsSection: {
+    paddingHorizontal: 16,
+    marginTop: 20,
   },
-  pickerInput: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    fontFamily: 'InriaSerif-Bold',
-    marginLeft: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#000',
-  },
-  dropdown: {
-    height: 50,
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
     borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  cardIcon: {
+    marginRight: 4,
+  },
+  cardTextArea: {
+    flex: 1,
+  },
+  cardLabel: {
+    fontSize: 12,
+    fontFamily: 'Inter-regular',
+    marginBottom: 2,
+  },
+  cardValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: 'InriaSerif-Bold',
+  },
+  cardValueInput: {
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: 'InriaSerif-Bold',
+    borderBottomWidth: 1,
+    paddingVertical: 2,
+  },
+  actionsSection: {
+    paddingHorizontal: 16,
+    marginTop: 30,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 6,
+    borderRadius: 10,
+    marginBottom: 12,
+    elevation: 2,
   },
-  dropdownFocused: {
-    borderColor: 'blue',
+  actionBtnIcon: {
+    margin: 0,
   },
-  placeholderStyle: {
+  logoutButton: {
+    backgroundColor: '#E53935',
+  },
+  deleteButton: {
+    backgroundColor: '#5C6BC0',
+  },
+  actionButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    color: 'gray',
+    fontWeight: '600',
+    fontFamily: 'InriaSerif-Bold',
   },
-  selectedTextStyle: {
-    fontSize: 16,
-    color: 'black',
+  dialog: {
+    borderRadius: 16,
   },
-  inputSearchStyle: {
-    height: 40,
-    fontSize: 16,
-  },
-  iconStyle: {
-    width: 20,
-    height: 20,
-  },
-  saveButton: {
-    marginTop: 10,
-    alignSelf: 'center',
-    backgroundColor: '#4CAF50', // Customize button color as needed
+  dialogTitle: {
+    fontFamily: 'InriaSerif-Bold',
   },
 });
 
