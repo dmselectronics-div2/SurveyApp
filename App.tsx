@@ -50,10 +50,7 @@ import BirdMainDashboardPage from './src/bird-module/dashboard-page/dash-board';
 import BirdProfileMenu from './src/bird-module/dashboard-page/menu-page/profile-page';
 import BirdProfileImageChange from './src/bird-module/dashboard-page/menu-page/change-profile-image';
 import BirdSurveyComponent from './src/bird-module/survey-drafts/add-new-survey';
-import BirdSurveyPointData from './src/bird-module/survey-drafts/survey-point-data';
-import BirdTeamData from './src/bird-module/survey-drafts/team-members';
-import BirdCommonData from './src/bird-module/survey-drafts/common-data';
-import BirdDataRecord from './src/bird-module/survey-drafts/add-bird-data';
+import BirdSurveyForm from './src/bird-module/survey-drafts/bird-survey-form';
 import BirdCollectionPage from './src/bird-module/collection-page/collection';
 import BirdSearchOption from './src/bird-module/Search-page/search-option';
 import BirdSearchPage from './src/bird-module/Search-page/search-page';
@@ -262,10 +259,7 @@ const App = () => {
           <Stack.Screen name="ProfileMenu" component={BirdProfileMenu} />
           <Stack.Screen name="ProfileImageChange" component={BirdProfileImageChange} />
           <Stack.Screen name="SurveyComponent" component={BirdSurveyComponent} />
-          <Stack.Screen name="SurveyPointData" component={BirdSurveyPointData} />
-          <Stack.Screen name="TeamData" component={BirdTeamData} />
-          <Stack.Screen name="CommonData" component={BirdCommonData} />
-          <Stack.Screen name="BirdDataRecord" component={BirdDataRecord} />
+          <Stack.Screen name="BirdSurveyForm" component={BirdSurveyForm} />
           <Stack.Screen name="CollectionPage" component={BirdCollectionPage} />
           <Stack.Screen name="SearchOption" component={BirdSearchOption} />
           <Stack.Screen name="SearchPage" component={BirdSearchPage} />

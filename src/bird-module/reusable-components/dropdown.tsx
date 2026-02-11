@@ -37,10 +37,11 @@ const CustomDropdown = ({
   setValue,
   updateSummary = () => {},
   isDarkMode,
-  error
+  error,
+  defaultData = [] as {label: string; value: string}[],
 }) => {
-  const [db, setDb] = useState(null);
-  const [options, setOptions] = useState([]);
+  const [db, setDb] = useState<any>(null);
+  const [options, setOptions] = useState<{label: string; value: string}[]>([]);
   const [showInput, setShowInput] = useState(false);
   const [customValue, setCustomValue] = useState('');
   const [isFocus, setIsFocus] = useState(false);
@@ -77,6 +78,17 @@ const CustomDropdown = ({
          synced INTEGER DEFAULT 0
        );`
     );
+
+    // Seed default data if the table is empty
+    if (defaultData.length > 0) {
+      const [results] = await executeSqlPromise(db, `SELECT COUNT(*) as count FROM ${tableName};`);
+      const count = results.rows.item(0).count;
+      if (count === 0) {
+        for (const item of defaultData) {
+          await insertValue(db, item.label, item.value);
+        }
+      }
+    }
   };
 
   const insertValue = async (db, label, value) => {

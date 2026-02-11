@@ -11,7 +11,7 @@ import { Button } from 'react-native-paper';
 
 const SurveyComponent = () => {
   const [surveyAdded, setSurveyAdded] = useState(false);
-   const navigation = useNavigation();  
+   const navigation = useNavigation<any>();
 
   const handleAddSurvey = () => {
     Alert.alert(
@@ -25,7 +25,7 @@ const SurveyComponent = () => {
         },
         {
           text: 'OK',
-          onPress: () => { navigation.navigate('SurveyPointData');},
+          onPress: () => { navigation.navigate('BirdSurveyForm');},
         },
       ]
     );
