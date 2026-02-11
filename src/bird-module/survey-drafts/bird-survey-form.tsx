@@ -30,7 +30,7 @@ const {width} = Dimensions.get('window');
 // ========================================
 // CONSTANTS
 // ========================================
-const GREEN = '#4CAF50';
+const GREEN = '#4A7856';
 const GREEN_DARK = '#2E7D32';
 
 const habitatTypes = [
@@ -811,13 +811,17 @@ const BirdSurveyForm = () => {
     const now = new Date();
     const uniqueId = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}${now.getSeconds().toString().padStart(2,'0')}`;
 
+    const dateStr = date.toISOString().split('T')[0];
+    const startTimeStr = selectedStartTime.toISOString();
+    const endTimeStr = selectedEndTime.toISOString();
+
     const formData = {
       email, uniqueId, habitatType,
       point: point || '', pointTag: pointTag || '',
-      latitude, longitude, date,
-      observers, startTime: selectedStartTime, endTime: selectedEndTime,
-      weather: selectedWeatherString ? JSON.stringify(selectedWeatherString) : '',
-      water: JSON.stringify(selectedWaterString) || '',
+      latitude, longitude, date: dateStr,
+      observers, startTime: startTimeStr, endTime: endTimeStr,
+      weather: selectedWeatherString || '',
+      water: selectedWaterString || '',
       season: paddySeason || '', statusOfVegy: vegetationStatus || '',
       descriptor, radiusOfArea: radius,
       remark: '', imageUri: imageUri || '', teamMembers,

@@ -12,18 +12,18 @@ import MainDashboardPage from '../dashboard-page/dash-board';
 import MenuItems from '../dashboard-page/menu-page/menu-page';
 import {StyleSheet, TouchableOpacity} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
-import DropdownComponent from '../survey-form-page/new';
+import BirdSurveyForm from '../survey-drafts/bird-survey-form';
 import CollectionPage from '../collection-page/collection';
 import ProfileMenu from '../dashboard-page/menu-page/profile-page';
 import MyDataTable from '../data-table/display-table';
-import SearchPage from '../Search-page/search-page';
+import SearchOption from '../Search-page/search-option';
 import SelectEditMode from '../Edit-Survey/Edit-permition';
 
 // Bottom Nav Bar
 const DashboardRoute = () => <MainDashboardPage />;
-const AlbumsRoute = () => <DropdownComponent />;
+const AlbumsRoute = () => <BirdSurveyForm />;
 const RecentsRoute = () => <CollectionPage />;
-const NotificationsRoute = () => <SearchPage />;
+const NotificationsRoute = () => <SearchOption />;
 const ProfilePageRoute = () => <ProfileMenu />;
 
 const BottomNavbar = ({ setTitle }) => {

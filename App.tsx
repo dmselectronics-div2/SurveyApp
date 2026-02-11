@@ -49,7 +49,6 @@ import BirdBottomNav from './src/bird-module/bottom-navpage/bottom-nav';
 import BirdMainDashboardPage from './src/bird-module/dashboard-page/dash-board';
 import BirdProfileMenu from './src/bird-module/dashboard-page/menu-page/profile-page';
 import BirdProfileImageChange from './src/bird-module/dashboard-page/menu-page/change-profile-image';
-import BirdSurveyComponent from './src/bird-module/survey-drafts/add-new-survey';
 import BirdSurveyForm from './src/bird-module/survey-drafts/bird-survey-form';
 import BirdCollectionPage from './src/bird-module/collection-page/collection';
 import BirdSearchOption from './src/bird-module/Search-page/search-option';
@@ -60,7 +59,7 @@ import BirdNew from './src/bird-module/survey-form-page/new';
 import BirdSurveyFormPage from './src/bird-module/Edit-Survey/Edit-survey';
 import BirdSelectEditMode from './src/bird-module/Edit-Survey/Edit-permition';
 import BirdEditCount from './src/bird-module/Edit-Survey/Edit-count';
-import BirdDraftSurvey from './src/bird-module/submitted-draft-survey/draft-page';
+// import BirdDraftSurvey from './src/bird-module/submitted-draft-survey/draft-page';
 import BirdCountTable from './src/bird-module/count-table/count-table';
 import BirdMyDataTable from './src/bird-module/data-table/display-table';
 import BirdMyCitizenTable from './src/bird-module/data-table/data-table-display';
@@ -258,7 +257,6 @@ const App = () => {
           <Stack.Screen name="BirdMainDashboardPage" component={BirdMainDashboardPage} />
           <Stack.Screen name="ProfileMenu" component={BirdProfileMenu} />
           <Stack.Screen name="ProfileImageChange" component={BirdProfileImageChange} />
-          <Stack.Screen name="SurveyComponent" component={BirdSurveyComponent} />
           <Stack.Screen name="BirdSurveyForm" component={BirdSurveyForm} />
           <Stack.Screen name="CollectionPage" component={BirdCollectionPage} />
           <Stack.Screen name="SearchOption" component={BirdSearchOption} />
@@ -269,7 +267,7 @@ const App = () => {
           <Stack.Screen name="SurveyFormPage" component={BirdSurveyFormPage} />
           <Stack.Screen name="SelectEditMode" component={BirdSelectEditMode} />
           <Stack.Screen name="EditCount" component={BirdEditCount} />
-          <Stack.Screen name="DraftSurvey" component={BirdDraftSurvey} />
+          {/* <Stack.Screen name="DraftSurvey" component={BirdDraftSurvey} /> */}
           <Stack.Screen name="CountTable" component={BirdCountTable} />
           <Stack.Screen name="MyDataTable" component={BirdMyDataTable} />
           <Stack.Screen name="MyCitizenTable" component={BirdMyCitizenTable} />

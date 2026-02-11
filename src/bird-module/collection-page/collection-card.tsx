@@ -15,8 +15,7 @@ const CollectionCard = ({ entry }) => {
   }
   const birdObservation = entry.birdObservations[0];  // Get the first bird observation
   const species = birdObservation.species;
-  console.log(entry)
-  const description = `The ${species} was observed in a ${entry.habitatType} habitat at ${entry.pointTag}, characterized by ${entry.statusOfVegy} vegetation and ${entry.waterAvailability} water availability. The bird, identified as a ${entry.sex} ${entry.maturity}, was seen ${entry.behaviour}.`;
+  const description = `The ${species} was observed in a ${entry.habitatType} habitat at ${entry.pointTag}, characterized by ${entry.statusOfVegy} vegetation and ${entry.water} water availability. The bird, identified as a ${birdObservation.sex} ${birdObservation.maturity}, was seen ${birdObservation.behaviour}.`;
 
   const handleSurveyClick = () => {
     navigation.navigate('New', { selectedItemData: entry });
