@@ -93,13 +93,18 @@ useEffect(() => {
       <ScrollView>
         <View style={styles.title_container}>
           {loading ? (
-            <Text>Loading...</Text>
+            <Text style={styles.loadingText}>Loading...</Text>
+          ) : entries.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>No Submissions Yet</Text>
+              <Text style={styles.emptySubtitle}>
+                Your submitted surveys will appear here
+              </Text>
+            </View>
           ) : (
             entries.map((entry, index) => (
               <CollectionCard key={index} entry={entry} />
-            
             ))
-            
           )}
         </View>
       </ScrollView>
@@ -118,6 +123,27 @@ const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
     resizeMode: 'cover',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 40,
+  },
+  emptyState: {
+    alignItems: 'center',
+    marginTop: 80,
+    paddingHorizontal: 30,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
 

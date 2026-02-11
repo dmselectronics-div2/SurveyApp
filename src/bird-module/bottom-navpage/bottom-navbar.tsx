@@ -10,7 +10,7 @@ import {
 } from 'react-native-paper';
 import MainDashboardPage from '../dashboard-page/dash-board';
 import MenuItems from '../dashboard-page/menu-page/menu-page';
-import {StyleSheet, TouchableOpacity} from 'react-native';
+import {StyleSheet, TouchableOpacity, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import BirdSurveyForm from '../survey-drafts/bird-survey-form';
 import CollectionPage from '../collection-page/collection';
@@ -99,20 +99,49 @@ const BottomNavbar = ({ setTitle }) => {
     navigation.navigate('EditCount'); // Replace with your actual navigation logic
   };
 
+  const scenes = {
+    dashboard: DashboardRoute,
+    albums: AlbumsRoute,
+    recents: RecentsRoute,
+    notifications: NotificationsRoute,
+  };
+
+  const CurrentScene = scenes[routes[index].key as keyof typeof scenes];
+
   return (
     <PaperProvider>
       {showProfileMenu ? (
         <ProfileMenu />
       ) : (
-        <>
+        <View style={{flex: 1}}>
           {showBottomNav && (
-            <BottomNavigation
-              navigationState={{index, routes}}
-              onIndexChange={setIndex}
-              renderScene={renderScene}
-            />
+            <>
+              <View style={{flex: 1}}>
+                <CurrentScene />
+              </View>
+              <View style={blurStyles.footerBar}>
+                <BottomNavigation.Bar
+                  navigationState={{index, routes}}
+                  onTabPress={({route}) => {
+                    const idx = routes.findIndex(r => r.key === route.key);
+                    setIndex(idx);
+                  }}
+                  style={{backgroundColor: 'transparent', elevation: 0}}
+                  theme={{
+                    colors: {
+                      secondaryContainer: '#e8f5e9',
+                      onSecondaryContainer: '#2e7d32',
+                      onSurfaceVariant: '#757575',
+                      elevation: {level2: 'transparent'},
+                    },
+                  }}
+                  activeColor="#2e7d32"
+                  inactiveColor="#757575"
+                />
+              </View>
+            </>
           )}
-        </>
+        </View>
       )}
     </PaperProvider>
   );
@@ -132,6 +161,19 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
     alignSelf: 'center',
+  },
+});
+
+const blurStyles = StyleSheet.create({
+  footerBar: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0, 0, 0, 0.12)',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: -2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
 });
 

@@ -497,7 +497,7 @@ const WaterAvailabilityModal = ({visible, onClose, onSelect}: any) => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Enter Water Level (cm)</Text>
             <TextInput mode="outlined" placeholder="Water Level" value={waterLevel} onChangeText={setWaterLevel}
-              keyboardType="numeric" style={{width: '100%', backgroundColor: 'white'}} />
+              keyboardType="numeric" style={{width: '100%', backgroundColor: 'white'}} textColor="#333" />
             <Button mode="contained" onPress={() => { onSelect(buildResult(waterLevel)); setShowWaterLevel(false); onClose(); }}
               style={styles.modalButton} buttonColor={GREEN} textColor="white">Save</Button>
           </View>
@@ -728,8 +728,10 @@ const BirdSurveyForm = () => {
     if (teamMemberInput.trim() && !teamMembers.includes(teamMemberInput.trim())) {
       setTeamMembers([...teamMembers, teamMemberInput.trim()]);
       setTeamMemberInput('');
+    } else if (teamMembers.includes(teamMemberInput.trim())) {
+      Alert.alert('Duplicate', 'This team member already exists.');
     } else {
-      Alert.alert('Error', 'Please enter a valid and unique name.');
+      Alert.alert('Error', 'Please enter a valid name.');
     }
   };
 
@@ -988,23 +990,66 @@ const BirdSurveyForm = () => {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Team Members</Text>
         <View style={styles.teamInputRow}>
-          <TextInput mode="outlined" placeholder="Enter Team Member" value={teamMemberInput}
-            onChangeText={setTeamMemberInput} style={styles.teamInput}
-            outlineColor={GREEN} activeOutlineColor={GREEN} placeholderTextColor="#999" />
-          <TouchableOpacity onPress={editTeamIndex !== null ? saveTeamMemberEdit : addTeamMember} style={styles.teamAddButton}>
+          <TextInput 
+            mode="outlined" 
+            placeholder="Enter Team Member" 
+            value={teamMemberInput}
+            onChangeText={setTeamMemberInput} 
+            style={styles.teamInput}
+            outlineColor={GREEN} 
+            activeOutlineColor={GREEN} 
+            placeholderTextColor="#999"
+            textColor="#333"
+          />
+          {teamMemberInput.length > 0 && (
+            <TouchableOpacity 
+              onPress={() => {
+                setTeamMemberInput('');
+                setEditTeamIndex(null);
+              }} 
+              style={styles.teamClearButton}>
+              <Icon name="times-circle" size={20} color="#999" />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity 
+            onPress={editTeamIndex !== null ? saveTeamMemberEdit : addTeamMember} 
+            style={styles.teamAddButton}>
             <Icon name={editTeamIndex !== null ? 'check' : 'plus'} size={20} color="white" />
           </TouchableOpacity>
         </View>
+        {editTeamIndex !== null && (
+          <Text style={styles.editingHint}>
+            Editing: {teamMembers[editTeamIndex]}
+          </Text>
+        )}
         {errors.teamMembers && <Text style={styles.errorText}>{errors.teamMembers}</Text>}
         <View style={styles.teamList}>
           {teamMembers.length > 0 ? teamMembers.map((member, index) => (
-            <View key={index} style={styles.teamItem}>
+            <View 
+              key={index} 
+              style={[
+                styles.teamItem,
+                editTeamIndex === index && styles.teamItemEditing
+              ]}>
               <Text style={styles.teamItemText}>{member}</Text>
               <View style={styles.teamActions}>
-                <TouchableOpacity onPress={() => { setTeamMemberInput(member); setEditTeamIndex(index); }} style={styles.teamActionBtn}>
+                <TouchableOpacity 
+                  onPress={() => { 
+                    setTeamMemberInput(member); 
+                    setEditTeamIndex(index); 
+                  }} 
+                  style={styles.teamActionBtn}>
                   <Icon name="edit" size={18} color={GREEN} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setTeamMembers(teamMembers.filter((_, i) => i !== index))} style={styles.teamActionBtn}>
+                <TouchableOpacity 
+                  onPress={() => {
+                    if (editTeamIndex === index) {
+                      setEditTeamIndex(null);
+                      setTeamMemberInput('');
+                    }
+                    setTeamMembers(teamMembers.filter((_, i) => i !== index));
+                  }} 
+                  style={styles.teamActionBtn}>
                   <Icon name="trash" size={18} color="#D32F2F" />
                 </TouchableOpacity>
               </View>
@@ -1511,6 +1556,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 15,
+    position: 'relative',
   },
   teamInput: {
     flex: 1,
@@ -1518,10 +1564,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     marginRight: 10,
   },
+  teamClearButton: {
+    position: 'absolute',
+    right: 70,
+    padding: 5,
+    zIndex: 1,
+  },
   teamAddButton: {
     backgroundColor: GREEN,
     padding: 12,
     borderRadius: 8,
+  },
+  editingHint: {
+    fontSize: 12,
+    color: GREEN,
+    fontStyle: 'italic',
+    marginTop: -10,
+    marginBottom: 10,
   },
   teamList: {
     width: '100%',
@@ -1533,6 +1592,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
+  },
+  teamItemEditing: {
+    backgroundColor: '#FFF9C4',
+    borderLeftWidth: 3,
+    borderLeftColor: GREEN,
+    paddingLeft: 10,
   },
   teamItemText: {
     fontSize: 16,
