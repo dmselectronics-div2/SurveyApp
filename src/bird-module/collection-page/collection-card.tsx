@@ -7,6 +7,12 @@ import { Avatar, Card, IconButton, Text } from 'react-native-paper';
 import { StyleSheet, View, Image, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
+const parseSpeciesName = (speciesStr: string) => {
+  const match = speciesStr.match(/^(.*?)\s*\(([^)]+)\)$/);
+  if (match) return {common: match[1].trim(), scientific: match[2].trim()};
+  return {common: speciesStr, scientific: ''};
+};
+
 const CollectionCard = ({ entry }) => {
   const navigation = useNavigation();
 
@@ -15,6 +21,7 @@ const CollectionCard = ({ entry }) => {
   }
   const birdObservation = entry.birdObservations[0];  // Get the first bird observation
   const species = birdObservation.species;
+  const parsedSpecies = parseSpeciesName(species || '');
   const description = `The ${species} was observed in a ${entry.habitatType} habitat at ${entry.pointTag}, characterized by ${entry.statusOfVegy} vegetation and ${entry.water} water availability. The bird, identified as a ${birdObservation.sex} ${birdObservation.maturity}, was seen ${birdObservation.behaviour}.`;
 
   const handleSurveyClick = () => {
@@ -27,7 +34,10 @@ const CollectionCard = ({ entry }) => {
         <View style={styles.cardContent}>
           <Image source={{ uri: entry.imageUri }} style={styles.avatar} />
           <View style={styles.textContainer}>
-            <Text style={styles.title}>{species}</Text>
+            <Text style={styles.title}>
+              {parsedSpecies.common}
+              {parsedSpecies.scientific ? <Text style={styles.scientificName}> ({parsedSpecies.scientific})</Text> : null}
+            </Text>
             <Text style={styles.subtitle}>{description}</Text>
           </View>
         </View>
@@ -62,6 +72,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontFamily: 'InriaSerif-Bold',
     color: '#000000',
+  },
+  scientificName: {
+    fontStyle: 'italic',
+    fontWeight: 'normal',
+    color: '#444',
   },
   subtitle: {
     fontSize: 14,

@@ -11,6 +11,7 @@ import {
   Modal,
   Platform,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import {Dropdown} from 'react-native-element-dropdown';
 import {TextInput, Button} from 'react-native-paper';
@@ -160,6 +161,12 @@ const birdSpeciesData = birdSpecies.map(item => {
 
 const stepTitles = ['Survey Point Details', 'Common Detail Record', 'Bird Detail Record'];
 
+const parseSpeciesName = (speciesStr: string) => {
+  const match = speciesStr.match(/^(.*?)\s*\(([^)]+)\)$/);
+  if (match) return {common: match[1].trim(), scientific: match[2].trim()};
+  return {common: speciesStr, scientific: ''};
+};
+
 // ========================================
 // HELPERS
 // ========================================
@@ -221,7 +228,10 @@ const BirdObservationCard = ({observation, index, onUpdate, onDelete, onToggle}:
       <TouchableOpacity onPress={onToggle} style={cardStyles.cardHeader}>
         <Text style={cardStyles.cardTitle}>
           Bird #{index + 1}
-          {observation.species ? ` - ${observation.species.split('(')[0].trim()}` : ''}
+          {observation.species ? (() => {
+            const parsed = parseSpeciesName(observation.species);
+            return <Text>{` - ${parsed.common}`}{parsed.scientific ? <Text style={{fontStyle: 'italic'}}>{` (${parsed.scientific})`}</Text> : null}</Text>;
+          })() : ''}
         </Text>
         <View style={cardStyles.headerActions}>
           <Icon name={observation.expanded ? 'chevron-up' : 'chevron-down'} size={16} color={GREEN} />
@@ -239,13 +249,12 @@ const BirdObservationCard = ({observation, index, onUpdate, onDelete, onToggle}:
             selectedTextStyle={cardStyles.selectedTextStyle}
             inputSearchStyle={cardStyles.inputSearchStyle}
             iconStyle={cardStyles.iconStyle}
-            itemTextStyle={{color: '#333'}}
             data={birdSpeciesData}
             search
             maxHeight={300}
             labelField="label"
             valueField="value"
-            placeholder={observation.species ? observation.species.split('(')[0].trim() : 'Select Observed Species'}
+            placeholder="Select Observed Species"
             searchPlaceholder="Search species..."
             value={observation.species}
             onFocus={() => setSpeciesFocus(true)}
@@ -253,6 +262,15 @@ const BirdObservationCard = ({observation, index, onUpdate, onDelete, onToggle}:
             onChange={item => {
               onUpdate({...observation, species: item.value});
               setSpeciesFocus(false);
+            }}
+            renderItem={(item: any) => {
+              const parsed = parseSpeciesName(item.label);
+              return (
+                <View style={cardStyles.speciesDropdownItem}>
+                  <Text style={cardStyles.speciesCommon}>{parsed.common}</Text>
+                  {parsed.scientific ? <Text style={cardStyles.speciesScientific}> ({parsed.scientific})</Text> : null}
+                </View>
+              );
             }}
           />
 
@@ -532,6 +550,10 @@ const BirdSurveyForm = () => {
   // Step 3: Bird Observations
   const [birdDataArray, setBirdDataArray] = useState<any[]>([]);
 
+  // Submit state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+
   // Focus states
   const [focusStates, setFocusStates] = useState<{[key: string]: boolean}>({});
   const setFocus = (key: string, val: boolean) => setFocusStates(prev => ({...prev, [key]: val}));
@@ -796,18 +818,25 @@ const BirdSurveyForm = () => {
 
   // ===== SUBMIT =====
   const handleSubmit = async () => {
+    if (!email) {
+      Alert.alert('Error', 'User email not found. Please login again.');
+      return;
+    }
     if (!validateStep3()) return;
     if (birdDataArray.length === 0) {
       Alert.alert('Confirm', 'Submit without bird observations?', [
         {text: 'Cancel', style: 'cancel'},
-        {text: 'Proceed', onPress: submitSurvey},
+        {text: 'Proceed', onPress: () => setShowSubmitConfirm(true)},
       ]);
     } else {
-      submitSurvey();
+      setShowSubmitConfirm(true);
     }
   };
 
   const submitSurvey = async () => {
+    setShowSubmitConfirm(false);
+    setIsSubmitting(true);
+
     const now = new Date();
     const uniqueId = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}${now.getSeconds().toString().padStart(2,'0')}`;
 
@@ -840,12 +869,14 @@ const BirdSurveyForm = () => {
 
     axios.post(`${API_URL}/form-entry`, formData)
       .then(response => {
+        setIsSubmitting(false);
         const addedId = response.data._id || response.data.formEntry?._id;
         if (addedId) uploadImageToServer(imageUri, addedId);
         Alert.alert('Success', 'Survey submitted successfully!', [{text: 'OK'}]);
         navigation.navigate('BirdBottomNav');
       })
       .catch(error => {
+        setIsSubmitting(false);
         console.error('Submit error:', error);
         storeFailedSubmission(formData);
         Alert.alert('Saved Offline', 'Survey saved locally. Will sync when online.');
@@ -1097,10 +1128,120 @@ const BirdSurveyForm = () => {
         </Button>
       </View>
 
-      <Button mode="contained" onPress={handleSubmit} style={styles.submitButton}
-        buttonColor={GREEN_DARK} textColor="white" labelStyle={styles.buttonLabel}>
-        Submit Full Survey
-      </Button>
+      {/* Survey Summary Card */}
+      <View style={styles.summaryCard}>
+        <Text style={styles.summaryTitle}>Survey Summary</Text>
+        <View style={styles.summaryRow}>
+          <Icon name="tree" size={14} color={GREEN} />
+          <Text style={styles.summaryLabel}>Habitat:</Text>
+          <Text style={styles.summaryValue}>{habitatType || 'Not set'}</Text>
+        </View>
+        {point && (
+          <View style={styles.summaryRow}>
+            <Icon name="map-marker" size={14} color={GREEN} />
+            <Text style={styles.summaryLabel}>Point:</Text>
+            <Text style={styles.summaryValue}>{point}{pointTag ? ` (${pointTag})` : ''}</Text>
+          </View>
+        )}
+        <View style={styles.summaryRow}>
+          <Icon name="calendar" size={14} color={GREEN} />
+          <Text style={styles.summaryLabel}>Date:</Text>
+          <Text style={styles.summaryValue}>{dateText || 'Not set'}</Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Icon name="user" size={14} color={GREEN} />
+          <Text style={styles.summaryLabel}>Observer:</Text>
+          <Text style={styles.summaryValue}>{observers || 'Not set'}</Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Icon name="users" size={14} color={GREEN} />
+          <Text style={styles.summaryLabel}>Team:</Text>
+          <Text style={styles.summaryValue}>{teamMembers.length} member(s)</Text>
+        </View>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryRow}>
+          <Icon name="binoculars" size={14} color={GREEN} />
+          <Text style={styles.summaryLabel}>Birds Observed:</Text>
+          <Text style={[styles.summaryValue, {fontWeight: 'bold', color: GREEN_DARK}]}>
+            {birdDataArray.length}
+          </Text>
+        </View>
+        {birdDataArray.length > 0 && (
+          <View style={styles.summaryRow}>
+            <Icon name="calculator" size={14} color={GREEN} />
+            <Text style={styles.summaryLabel}>Total Count:</Text>
+            <Text style={[styles.summaryValue, {fontWeight: 'bold', color: GREEN_DARK}]}>
+              {birdDataArray.reduce((sum: number, b: any) => sum + (parseInt(b.count) || 0), 0)}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Submit Buttons */}
+      <View style={styles.submitRow}>
+        <TouchableOpacity
+          onPress={() => { setCurrentStep(1); setErrors({}); }}
+          style={styles.backStepButton}>
+          <Icon name="arrow-left" size={16} color={GREEN} />
+          <Text style={styles.backStepText}>Back</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={handleSubmit}
+          disabled={isSubmitting}
+          style={[styles.submitBtn, isSubmitting && {opacity: 0.6}]}>
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <>
+              <Icon name="cloud-upload" size={18} color="#FFFFFF" />
+              <Text style={styles.submitBtnText}>Submit Survey</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Submit Confirmation Modal */}
+      <Modal visible={showSubmitConfirm} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmModal}>
+            <View style={styles.confirmIconCircle}>
+              <Icon name="paper-plane" size={30} color={GREEN} />
+            </View>
+            <Text style={styles.confirmTitle}>Submit Survey?</Text>
+            <Text style={styles.confirmText}>
+              You are about to submit a survey with{' '}
+              <Text style={{fontWeight: 'bold'}}>{birdDataArray.length} bird observation(s)</Text>
+              {' '}at <Text style={{fontWeight: 'bold'}}>{habitatType}</Text>.
+              {'\n\n'}This will save to the database and sync with the server.
+            </Text>
+            <View style={styles.confirmButtons}>
+              <TouchableOpacity
+                onPress={() => setShowSubmitConfirm(false)}
+                style={styles.confirmCancelBtn}>
+                <Text style={styles.confirmCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={submitSurvey} style={styles.confirmSubmitBtn}>
+                <Icon name="check" size={16} color="#FFFFFF" />
+                <Text style={styles.confirmSubmitText}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Loading Overlay */}
+      {isSubmitting && (
+        <Modal visible={isSubmitting} transparent animationType="fade">
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingBox}>
+              <ActivityIndicator size="large" color={GREEN} />
+              <Text style={styles.loadingText}>Submitting survey...</Text>
+              <Text style={styles.loadingSubtext}>Please wait while we save your data</Text>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 
@@ -1215,6 +1356,21 @@ const cardStyles = StyleSheet.create({
     height: 100,
     marginTop: 10,
     borderRadius: 8,
+  },
+  speciesDropdownItem: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    padding: 10,
+  },
+  speciesCommon: {
+    color: '#333',
+    fontSize: 15,
+  },
+  speciesScientific: {
+    color: '#666',
+    fontSize: 13,
+    fontStyle: 'italic',
   },
 });
 
@@ -1404,6 +1560,176 @@ const styles = StyleSheet.create({
   submitButton: {
     borderRadius: 8,
     marginBottom: 30,
+  },
+  // Summary Card
+  summaryCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: GREEN,
+    ...Platform.select({
+      ios: {shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.1, shadowRadius: 4},
+      android: {elevation: 4},
+    }),
+  },
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  summaryRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingVertical: 6,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+    marginRight: 4,
+  },
+  summaryValue: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1,
+  },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: '#E8E8E8',
+    marginVertical: 8,
+  },
+  // Submit Row
+  submitRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    marginBottom: 30,
+    gap: 12,
+  },
+  backStepButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: GREEN,
+    backgroundColor: '#FFFFFF',
+  },
+  backStepText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: GREEN,
+    marginLeft: 8,
+  },
+  submitBtn: {
+    flex: 1,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    backgroundColor: GREEN_DARK,
+    elevation: 3,
+  },
+  submitBtnText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+    marginLeft: 8,
+  },
+  // Confirm Modal
+  confirmModal: {
+    width: '85%' as any,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center' as const,
+  },
+  confirmIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginBottom: 16,
+  },
+  confirmTitle: {
+    fontSize: 20,
+    fontWeight: 'bold' as const,
+    color: '#333',
+    marginBottom: 8,
+  },
+  confirmText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center' as const,
+    lineHeight: 20,
+  },
+  confirmButtons: {
+    flexDirection: 'row' as const,
+    marginTop: 20,
+    gap: 12,
+    width: '100%' as any,
+  },
+  confirmCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#DDD',
+    alignItems: 'center' as const,
+  },
+  confirmCancelText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#777',
+  },
+  confirmSubmitBtn: {
+    flex: 1,
+    flexDirection: 'row' as const,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: GREEN_DARK,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 6,
+  },
+  confirmSubmitText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+  },
+  // Loading Overlay
+  loadingOverlay: {
+    flex: 1,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  loadingBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 30,
+    alignItems: 'center' as const,
+    width: '75%' as any,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#333',
+    marginTop: 16,
+  },
+  loadingSubtext: {
+    fontSize: 13,
+    color: '#888',
+    marginTop: 6,
+    textAlign: 'center' as const,
   },
   // Modals
   modalOverlay: {
