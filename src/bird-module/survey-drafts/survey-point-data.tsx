@@ -41,6 +41,7 @@ import NetInfo from '@react-native-community/netinfo';
 import RNFS from 'react-native-fs';
 import { useNavigation } from '@react-navigation/native';
 import CustomDropdown from '../reusable-components/dropdown';
+import CustomAlert from '../custom-alert/alert-design';
 
 const { width, height } = Dimensions.get('window');
 
