@@ -76,38 +76,46 @@ const LineChartModel = () => {
     );
   }
 
+  // Check if all data values are 0 - charts crash with all-zero data (SVG Infinity bug)
+  const hasRealData = chartData && chartData.datasets && chartData.datasets[0] &&
+    chartData.datasets[0].data.some((v: number) => v > 0);
+
   return (
     <View>
       <View>
-        <LineChart
-          data={chartData}
-          width={400} // From your original styles
-          height={200}
-          yAxisLabel="" // Removed "$" as it might not fit bird counts
-          yAxisSuffix=" birds" // Added suffix for bird count context
-          yAxisInterval={1} // Optional, defaults to 1
-          chartConfig={{
-            backgroundColor: '#ffffff',
-            backgroundGradientFrom: '#ffffff',
-            backgroundGradientTo: '#ffffff',
-            decimalPlaces: 0, // No decimal points needed for counts
-            color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            style: {
-              borderRadius: 16,
-            },
-            propsForDots: {
-              r: '6',
-              strokeWidth: '2',
-              stroke: '#ffa726',
-            },
-          }}
-          bezier
-          style={{
-            marginVertical: 8,
-            borderRadius: 1,
-          }}
-        />
+        {hasRealData ? (
+          <LineChart
+            data={chartData}
+            width={400}
+            height={200}
+            yAxisLabel=""
+            yAxisSuffix=" birds"
+            yAxisInterval={1}
+            chartConfig={{
+              backgroundColor: '#ffffff',
+              backgroundGradientFrom: '#ffffff',
+              backgroundGradientTo: '#ffffff',
+              decimalPlaces: 0,
+              color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+              labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+              style: {
+                borderRadius: 16,
+              },
+              propsForDots: {
+                r: '6',
+                strokeWidth: '2',
+                stroke: '#ffa726',
+              },
+            }}
+            bezier
+            style={{
+              marginVertical: 8,
+              borderRadius: 1,
+            }}
+          />
+        ) : (
+          <Text style={{fontSize: 14, color: '#888', marginTop: 20}}>No observation data available</Text>
+        )}
       </View>
     </View>
   );

@@ -116,37 +116,45 @@ const MiniBarChartModel = ({ title }) => {
     );
   }
 
+  // Check if all data values are 0 - BarChart crashes with all-zero data (SVG Infinity bug)
+  const hasRealData = chartData && chartData.datasets && chartData.datasets[0] &&
+    chartData.datasets[0].data.some((v) => v > 0);
+
   return (
     <View style={styles.BlueBox}>
       <Text style={styles.sub_text}>{title}</Text>
       <View style={styles.chartWithLegendContainer}>
-        <BarChart
-          style={{
-            marginVertical: 1,
-            borderRadius: 1,
-          }}
-          data={chartData}
-          width={300}
-          height={220}
-          fromZero
-          yAxisLabel=""
-          chartConfig={{
-            backgroundColor: '#ffffff',
-            backgroundGradientFrom: '#ffffff',
-            backgroundGradientTo: '#ffffff',
-            decimalPlaces: 2,
-            color: (opacity = 1) => `rgba(255,0,0, ${opacity})`,
-            labelColor: (opacity = 1) => `rgba(0,0,0, ${opacity})`,
-            strokeWidth: 1,
-            barPercentage: 1.5, // Increase bar width (default is 0.7)
-            propsForBackgroundLines: {
-              stroke: '#e3e3e3',
-            },
-          }}
-          showBarTops={true}
-          showValuesOnTopOfBars={true}
-          withInnerLines={false} // Optional: Removes inner grid lines for cleaner appearance
-        />
+        {hasRealData ? (
+          <BarChart
+            style={{
+              marginVertical: 1,
+              borderRadius: 1,
+            }}
+            data={chartData}
+            width={300}
+            height={220}
+            fromZero
+            yAxisLabel=""
+            chartConfig={{
+              backgroundColor: '#ffffff',
+              backgroundGradientFrom: '#ffffff',
+              backgroundGradientTo: '#ffffff',
+              decimalPlaces: 2,
+              color: (opacity = 1) => `rgba(255,0,0, ${opacity})`,
+              labelColor: (opacity = 1) => `rgba(0,0,0, ${opacity})`,
+              strokeWidth: 1,
+              barPercentage: 1.5,
+              propsForBackgroundLines: {
+                stroke: '#e3e3e3',
+              },
+            }}
+            showBarTops={true}
+            showValuesOnTopOfBars={true}
+            withInnerLines={false}
+          />
+        ) : (
+          <Text style={{fontSize: 14, color: '#888', marginTop: 20}}>No data available</Text>
+        )}
       </View>
     </View>
   );

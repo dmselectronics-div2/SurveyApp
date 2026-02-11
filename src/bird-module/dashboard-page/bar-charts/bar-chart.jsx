@@ -131,31 +131,39 @@ const BarChartModel = () => {
   }
   
 
+  // Check if all data values are 0 - BarChart crashes with all-zero data (SVG Infinity bug)
+  const hasRealData = chartData && chartData.datasets && chartData.datasets[0] &&
+    chartData.datasets[0].data.some((v) => v > 0);
+
   return (
     <View style={styles.chartContainer}>
-      <BarChart
-        style={{
-          marginVertical: 8,
-          borderRadius: 8,
-        }}
-        data={chartData}
-        width={width - 20} // Dynamically set chart width
-        height={200}
-        fromZero
-        yAxisLabel=""
-        chartConfig={{
-          backgroundColor: '#ffffff',
-          backgroundGradientFrom: '#ffffff',
-          backgroundGradientTo: '#ffffff',
-          decimalPlaces: 0,
-          color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
-          labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-          style: {
+      {hasRealData ? (
+        <BarChart
+          style={{
+            marginVertical: 8,
             borderRadius: 8,
-          },
-        }}
-        verticalLabelRotation={30} // Rotate labels for better readability
-      />
+          }}
+          data={chartData}
+          width={width - 20}
+          height={200}
+          fromZero
+          yAxisLabel=""
+          chartConfig={{
+            backgroundColor: '#ffffff',
+            backgroundGradientFrom: '#ffffff',
+            backgroundGradientTo: '#ffffff',
+            decimalPlaces: 0,
+            color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            style: {
+              borderRadius: 8,
+            },
+          }}
+          verticalLabelRotation={30}
+        />
+      ) : (
+        <Text style={{fontSize: 14, color: '#888', marginTop: 20}}>No species data available</Text>
+      )}
     </View>
   );
 };
