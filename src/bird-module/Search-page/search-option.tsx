@@ -11,7 +11,7 @@ import CitySearchPage from './search-citizen';
 
 const theme = {
     colors: {
-        primary: '#56FF64',
+        primary: '#227729',
         text: 'red',
         placeholder: 'white',
         surface: 'rgba(217, 217, 217, 0.7)',

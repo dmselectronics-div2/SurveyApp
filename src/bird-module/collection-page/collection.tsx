@@ -6,6 +6,7 @@ import {
   Dimensions,
   ScrollView,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import CollectionCard from './collection-card';
 import { API_URL } from '../../config';
 import { getDatabase } from '../database/db';
@@ -24,6 +25,178 @@ const executeSql = (db: any, sql: string, params: any[] = []): Promise<any> => {
       );
     });
   });
+};
+
+// Dummy data for demonstration
+const getDummyCollectionData = () => {
+  return [
+    {
+      id: 1,
+      uniqueId: 'survey_001',
+      habitatType: 'Wetland',
+      point: 'Point A',
+      pointTag: 'Coastal Marsh',
+      latitude: '6.9271',
+      longitude: '80.7789',
+      date: '2024-02-10',
+      observers: 'John Smith, Sarah Johnson',
+      startTime: '06:00 AM',
+      endTime: '09:30 AM',
+      weather: 'Sunny',
+      water: 'Fresh',
+      season: 'Winter',
+      statusOfVegy: 'Dense',
+      descriptor: 'Well maintained wetland area',
+      radiusOfArea: '500m',
+      remark: 'Excellent bird diversity observed',
+      imageUri: null,
+      teamMembers: ['John Smith', 'Sarah Johnson'],
+      birdObservations: [
+        {
+          id: 1,
+          uniqueId: 'survey_001',
+          species: 'Common Moorhen (Gallinula chloropus)',
+          count: '8',
+          maturity: 'Adult',
+          sex: 'Mixed',
+          behaviour: 'Foraging',
+          identification: 'Clear',
+          status: 'Resident',
+          remarks: 'Active around reeds',
+          imageUri: null,
+        },
+        {
+          id: 2,
+          uniqueId: 'survey_001',
+          species: 'Purple Heron (Ardea purpurea)',
+          count: '3',
+          maturity: 'Adult',
+          sex: 'Male',
+          behaviour: 'Hunting',
+          identification: 'Confirmed',
+          status: 'Migrant',
+          remarks: 'Spotted in shallow water',
+          imageUri: null,
+        },
+        {
+          id: 3,
+          uniqueId: 'survey_001',
+          species: 'Great Cormorant (Phalacrocorax carbo)',
+          count: '5',
+          maturity: 'Mixed',
+          sex: 'Female',
+          behaviour: 'Resting',
+          identification: 'Clear',
+          status: 'Winter Visitor',
+          remarks: 'Perched on dead trees',
+          imageUri: null,
+        },
+      ],
+      syncStatus: 'cloud',
+    },
+    {
+      id: 2,
+      uniqueId: 'survey_002',
+      habitatType: 'Forest',
+      point: 'Point B',
+      pointTag: 'Dense Forest',
+      latitude: '7.0896',
+      longitude: '80.6270',
+      date: '2024-02-09',
+      observers: 'Mike Chen',
+      startTime: '07:15 AM',
+      endTime: '11:00 AM',
+      weather: 'Cloudy',
+      water: 'Fresh',
+      season: 'Winter',
+      statusOfVegy: 'Very Dense',
+      descriptor: 'Tropical dry evergreen forest',
+      radiusOfArea: '1000m',
+      remark: 'Good visibility, minimal disturbance',
+      imageUri: null,
+      teamMembers: ['Mike Chen'],
+      birdObservations: [
+        {
+          id: 4,
+          uniqueId: 'survey_002',
+          species: 'Indian Paradise Flycatcher (Terpsiphone paradisi)',
+          count: '2',
+          maturity: 'Adult',
+          sex: 'Male',
+          behaviour: 'Singing',
+          identification: 'Confirmed',
+          status: 'Resident',
+          remarks: 'Beautiful black and white plumage',
+          imageUri: null,
+        },
+        {
+          id: 5,
+          uniqueId: 'survey_002',
+          species: 'Asian Fairy-bluebird (Irena puella)',
+          count: '4',
+          maturity: 'Adult',
+          sex: 'Mixed',
+          behaviour: 'Feeding',
+          identification: 'Clear',
+          status: 'Resident',
+          remarks: 'Feeding on fruits in canopy',
+          imageUri: null,
+        },
+      ],
+      syncStatus: 'local',
+    },
+    {
+      id: 3,
+      uniqueId: 'survey_003',
+      habitatType: 'Grassland',
+      point: 'Point C',
+      pointTag: 'Open Plateau',
+      latitude: '7.2906',
+      longitude: '80.6350',
+      date: '2024-02-08',
+      observers: 'Emma Wilson, David Brown',
+      startTime: '05:30 AM',
+      endTime: '08:45 AM',
+      weather: 'Clear',
+      water: 'Dry',
+      season: 'Winter',
+      statusOfVegy: 'Sparse',
+      descriptor: 'High elevation grassland plateau',
+      radiusOfArea: '1500m',
+      remark: 'Early morning survey with excellent visibility',
+      imageUri: null,
+      teamMembers: ['Emma Wilson', 'David Brown'],
+      birdObservations: [
+        {
+          id: 6,
+          uniqueId: 'survey_003',
+          species: 'Steppe Eagle (Aquila nipalensis)',
+          count: '1',
+          maturity: 'Adult',
+          sex: 'Unknown',
+          behaviour: 'Soaring',
+          identification: 'Confirmed',
+          status: 'Winter Visitor',
+          remarks: 'Magnificent raptor in thermal soaring',
+          imageUri: null,
+        },
+        {
+          id: 7,
+          uniqueId: 'survey_003',
+          species: 'Indian Lark (Melanocorypha thesiger)',
+          count: '12',
+          maturity: 'Mixed',
+          sex: 'Mixed',
+          behaviour: 'Ground Foraging',
+          identification: 'Probable',
+          status: 'Resident',
+          remarks: 'Flock in grassland habitat',
+          imageUri: null,
+        },
+      ],
+      syncStatus: 'cloud',
+    },
+  ];
 };
 
 const CollectionPage = () => {
@@ -116,11 +289,12 @@ const CollectionPage = () => {
 
         // Merge: cloud entries first, then local-only
         const merged = [...cloudEntries, ...localOnly];
-        setEntries(merged);
+        setEntries(merged.length > 0 ? merged : getDummyCollectionData());
         console.log('Total entries:', merged.length, '(cloud:', cloudEntries.length, ', local-only:', localOnly.length, ')');
       } catch (error) {
         console.error('Error fetching data:', error);
-        setEntries([]);
+        // Show dummy data on error
+        setEntries(getDummyCollectionData());
       } finally {
         setLoading(false);
       }
@@ -142,9 +316,18 @@ const CollectionPage = () => {
             </Text>
           </View>
         ) : (
-          entries.map((entry, index) => (
-            <CollectionCard key={index} entry={entry} />
-          ))
+          <>
+            {/* Check if showing dummy data */}
+            {entries[0]?.uniqueId === 'survey_001' && (
+              <View style={styles.demoDataBanner}>
+                <Icon name="lightbulb" size={16} color="#FF6F00" />
+                <Text style={styles.demoDataText}>Showing demo data</Text>
+              </View>
+            )}
+            {entries.map((entry, index) => (
+              <CollectionCard key={index} entry={entry} />
+            ))}
+          </>
         )}
       </View>
     </ScrollView>
@@ -179,6 +362,24 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 8,
     textAlign: 'center',
+  },
+  demoDataBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF6F00',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginHorizontal: 10,
+    marginTop: 10,
+    borderRadius: 6,
+    gap: 8,
+  },
+  demoDataText: {
+    fontSize: 13,
+    color: '#E65100',
+    fontWeight: '600',
   },
 });
 

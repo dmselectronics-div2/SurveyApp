@@ -10,6 +10,9 @@ import {
 import {Avatar} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import {getDatabase} from '../database/db';
+import BarChartDummy from './bar-charts/bar-chart-dummy';
+import MiniBarChartDummy from './bar-charts/mini-bar-chart-dummy';
+import MiniBarChartDummy1 from './bar-charts/mini-bar-chart-dummy1';
 
 const MainDashboardPage = () => {
   const [theme, setTheme] = useState(Appearance.getColorScheme());
@@ -116,6 +119,44 @@ const MainDashboardPage = () => {
           </Text>
         </View>
       </View>
+
+      {/* Charts Section */}
+      <View style={styles.chartSectionTitle}>
+        <Text style={[styles.sectionTitle, {color: isDarkMode ? '#fff' : '#333'}]}>
+          📊 Bird Survey Analytics
+        </Text>
+      </View>
+
+      {/* Main Bar Chart */}
+      <View style={[styles.chartWrapper, {backgroundColor: isDarkMode ? '#1e1e1e' : '#fff'}]}>
+        <BarChartDummy />
+      </View>
+
+      {/* Mini Charts Container */}
+      <View style={styles.miniChartsContainer}>
+        <View style={[styles.miniChartWrapper, {backgroundColor: isDarkMode ? '#1e1e1e' : '#fff'}]}>
+          <MiniBarChartDummy title="Statistical Summary" />
+        </View>
+        <View style={[styles.miniChartWrapper, {backgroundColor: isDarkMode ? '#1e1e1e' : '#fff'}]}>
+          <MiniBarChartDummy1 title="Sex Distribution" />
+        </View>
+      </View>
+
+      {/* Summary Statistics */}
+      <View style={styles.summaryContainer}>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Total Observations</Text>
+          <Text style={[styles.statValue, {color: '#4A7856'}]}>245</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Species Recorded</Text>
+          <Text style={[styles.statValue, {color: '#1976D2'}]}>6</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Avg. Count</Text>
+          <Text style={[styles.statValue, {color: '#D32F2F'}]}>37.5</Text>
+        </View>
+      </View>
     </ScrollView>
   );
 };
@@ -154,6 +195,59 @@ const styles = StyleSheet.create({
     height: 200,
     marginHorizontal: 0,
     marginTop: 10,
+  },
+  chartSectionTitle: {
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    marginTop: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    fontFamily: 'InriaSerif-Bold',
+  },
+  chartWrapper: {
+    marginVertical: 10,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  miniChartsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 5,
+    marginVertical: 10,
+  },
+  miniChartWrapper: {
+    flex: 1,
+    marginHorizontal: 5,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  summaryContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 10,
+    marginVertical: 20,
+    marginBottom: 30,
+  },
+  statCard: {
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 12,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
+    minWidth: 100,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 8,
+    fontFamily: 'Inter-Bold',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    fontFamily: 'InriaSerif-Bold',
   },
 });
 
