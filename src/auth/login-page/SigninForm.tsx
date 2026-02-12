@@ -62,9 +62,21 @@ const SigninForm = ({navigation}: any) => {
     }
   };
 
+  // TODO: Remove dummy account before production release
+  const DEV_DUMMY_EMAIL = 'dev@surveyapp.com';
+  const DEV_DUMMY_PASSWORD = 'dev123';
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    // DEV ONLY: Dummy account for development access - remove in production
+    if (email === DEV_DUMMY_EMAIL && password === DEV_DUMMY_PASSWORD) {
+      setLoginEmail(DEV_DUMMY_EMAIL);
+      Alert.alert('Success', 'Dev login successful');
+      navigation.replace('Welcome', {email: DEV_DUMMY_EMAIL});
       return;
     }
 
@@ -72,14 +84,13 @@ const SigninForm = ({navigation}: any) => {
     try {
       const response = await axios.post(`${API_URL}/login`, {email, password});
 
-      if (response.data.status === 'ok') {
+      if (response.data.status === 'ok' || response.data.status === 'notConfirmed') {
+        // Bypass email verification for now - allow login even if email not confirmed
         setLoginEmail(email);
         Alert.alert('Success', 'Logged in successfully');
         navigation.replace('Welcome', {email});
       } else if (response.data.status === 'google') {
         Alert.alert('Error', 'This account uses Google Sign-In. Please use the Google button.');
-      } else if (response.data.status === 'notConfirmed') {
-        handleSendVerificationCode();
       } else if (response.data.status === 'notApproved') {
         Alert.alert('Pending', 'Your account is awaiting admin approval.');
         navigation.navigate('GetAdminApprove', {email});

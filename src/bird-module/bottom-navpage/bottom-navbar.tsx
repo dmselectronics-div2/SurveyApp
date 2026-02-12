@@ -18,6 +18,7 @@ import ProfileMenu from '../dashboard-page/menu-page/profile-page';
 import MyDataTable from '../data-table/display-table';
 import SearchOption from '../Search-page/search-option';
 import SelectEditMode from '../Edit-Survey/Edit-permition';
+import NetworkStatusBanner from '../../components/NetworkStatusBanner';
 
 // Bottom Nav Bar
 const DashboardRoute = () => <MainDashboardPage />;
@@ -116,6 +117,7 @@ const BottomNavbar = ({ setTitle }) => {
         <View style={{flex: 1}}>
           {showBottomNav && (
             <>
+              <NetworkStatusBanner />
               <View style={{flex: 1}}>
                 <CurrentScene />
               </View>
