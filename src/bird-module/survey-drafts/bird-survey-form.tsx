@@ -17,6 +17,7 @@ import {Dropdown} from 'react-native-element-dropdown';
 import {TextInput, Button} from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import GetLocation from 'react-native-get-location';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import axios from 'axios';
@@ -194,6 +195,7 @@ const createEmptyBirdObservation = () => ({
 // ========================================
 const BirdObservationCard = ({observation, index, onUpdate, onDelete, onToggle}: any) => {
   const [speciesFocus, setSpeciesFocus] = useState(false);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   const handleBehaviourChange = (item: any) => {
     const current = observation.behaviours || [];
@@ -203,24 +205,22 @@ const BirdObservationCard = ({observation, index, onUpdate, onDelete, onToggle}:
     onUpdate({...observation, behaviours: updated});
   };
 
-  const handleChoosePhoto = () => {
-    Alert.alert('Bird Photo', 'Choose an option', [
-      {text: 'Camera', onPress: () => {
-        launchCamera({mediaType: 'photo', quality: 1}, response => {
-          if (response.assets && response.assets.length > 0) {
-            onUpdate({...observation, imageUri: response.assets[0].uri});
-          }
-        });
-      }},
-      {text: 'Gallery', onPress: () => {
-        launchImageLibrary({mediaType: 'photo', quality: 1}, response => {
-          if (response.assets && response.assets.length > 0) {
-            onUpdate({...observation, imageUri: response.assets[0].uri});
-          }
-        });
-      }},
-      {text: 'Cancel', style: 'cancel'},
-    ]);
+  const handleCamera = () => {
+    setShowPhotoModal(false);
+    launchCamera({mediaType: 'photo', quality: 1}, response => {
+      if (response.assets && response.assets.length > 0) {
+        onUpdate({...observation, imageUri: response.assets[0].uri});
+      }
+    });
+  };
+
+  const handleGallery = () => {
+    setShowPhotoModal(false);
+    launchImageLibrary({mediaType: 'photo', quality: 1}, response => {
+      if (response.assets && response.assets.length > 0) {
+        onUpdate({...observation, imageUri: response.assets[0].uri});
+      }
+    });
   };
 
   return (
@@ -392,15 +392,50 @@ const BirdObservationCard = ({observation, index, onUpdate, onDelete, onToggle}:
             multiline
           />
 
-          <View style={cardStyles.photoRow}>
-            <Text style={{color: '#333', marginRight: 10}}>Upload a Photo</Text>
-            <TouchableOpacity style={cardStyles.photoButton} onPress={handleChoosePhoto}>
-              <Icon name="camera" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
-          {observation.imageUri && (
-            <Image source={{uri: observation.imageUri}} style={cardStyles.imagePreview} />
-          )}
+          <Text style={cardStyles.photoLabel}>Photo</Text>
+          <TouchableOpacity
+            style={cardStyles.photoUploadArea}
+            onPress={() => setShowPhotoModal(true)}
+            activeOpacity={0.7}>
+            {observation.imageUri ? (
+              <View style={cardStyles.photoContainer}>
+                <Image source={{uri: observation.imageUri}} style={cardStyles.uploadedPhoto} />
+                <TouchableOpacity
+                  style={cardStyles.removePhotoButton}
+                  onPress={() => onUpdate({...observation, imageUri: null})}
+                  activeOpacity={0.8}>
+                  <MaterialIcon name="close" size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={cardStyles.photoPlaceholder}>
+                <MaterialIcon name="photo-camera" size={50} color="#CCC" />
+                <Text style={cardStyles.photoPlaceholderText}>Tap to upload or capture a photo</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* Photo Picker Modal */}
+          <Modal visible={showPhotoModal} transparent animationType="fade">
+            <View style={cardStyles.imagePickerOverlay}>
+              <View style={cardStyles.imagePickerContainer}>
+                <Text style={cardStyles.imagePickerTitle}>Choose an option</Text>
+                <View style={cardStyles.imagePickerOptions}>
+                  <TouchableOpacity style={cardStyles.imagePickerOption} onPress={handleCamera} activeOpacity={0.7}>
+                    <MaterialIcon name="photo-camera" size={50} color={GREEN} />
+                    <Text style={cardStyles.imagePickerOptionText}>Camera</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={cardStyles.imagePickerOption} onPress={handleGallery} activeOpacity={0.7}>
+                    <MaterialIcon name="photo-library" size={50} color={GREEN} />
+                    <Text style={cardStyles.imagePickerOptionText}>Gallery</Text>
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity style={cardStyles.imagePickerCancelButton} onPress={() => setShowPhotoModal(false)}>
+                  <Text style={cardStyles.imagePickerCancelText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
         </View>
       )}
     </View>
@@ -433,6 +468,9 @@ const WeatherConditionModal = ({visible, onClose, onSelect}: any) => {
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
+          <TouchableOpacity style={styles.modalCloseBtn} onPress={onClose}>
+            <Icon name="close" size={24} color="#333" />
+          </TouchableOpacity>
           <Text style={styles.modalTitle}>{summary || 'Select Weather Condition'}</Text>
           <Dropdown style={modalDd} placeholderStyle={{color: 'black'}} selectedTextStyle={{color: 'black'}} itemTextStyle={{color: 'black'}} containerStyle={containerS}
             data={cloudCoverOptions} labelField="label" valueField="value" placeholder="Cloud Cover" value={cloudCover}
@@ -468,7 +506,7 @@ const WaterAvailabilityModal = ({visible, onClose, onSelect}: any) => {
   const buildResult = (level?: string) => {
     const parts = [];
     if (onLand) parts.push(`On Land - ${onLand}`);
-    if (waterReservoir === 'Yes') parts.push(`Water Reservoir - Yes (Level: ${level || waterLevel})`);
+    if (waterReservoir === 'Yes') parts.push(`Water Reservoir - Yes (Level: ${level || waterLevel} cm)`);
     else if (waterReservoir) parts.push(`Water Reservoir - ${waterReservoir}`);
     return parts.join(', ');
   };
@@ -478,6 +516,9 @@ const WaterAvailabilityModal = ({visible, onClose, onSelect}: any) => {
       <Modal visible={visible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <TouchableOpacity style={styles.modalCloseBtn} onPress={onClose}>
+              <Icon name="close" size={24} color="#333" />
+            </TouchableOpacity>
             <Text style={styles.modalTitle}>Select Water Availability</Text>
             <Dropdown style={modalDd} placeholderStyle={{color: 'black'}} selectedTextStyle={{color: 'black'}} itemTextStyle={{color: 'black'}} containerStyle={containerS}
               data={yesNoOptions} labelField="label" valueField="value" placeholder="On Land" value={onLand}
@@ -495,6 +536,9 @@ const WaterAvailabilityModal = ({visible, onClose, onSelect}: any) => {
       <Modal visible={showWaterLevel} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => { setShowWaterLevel(false); onClose(); }}>
+              <Icon name="close" size={24} color="#333" />
+            </TouchableOpacity>
             <Text style={styles.modalTitle}>Enter Water Level (cm)</Text>
             <TextInput mode="outlined" placeholder="Water Level" value={waterLevel} onChangeText={setWaterLevel}
               keyboardType="numeric" style={{width: '100%', backgroundColor: 'white'}} textColor="#333" />
@@ -578,16 +622,16 @@ const BirdSurveyForm = () => {
     try {
       const db = await getDatabase();
       db.transaction((tx: any) => {
+        // Drop and recreate to fix schema mismatches
+        tx.executeSql('DROP TABLE IF EXISTS bird_survey;');
         tx.executeSql(
           `CREATE TABLE IF NOT EXISTS bird_survey (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT, uniqueId TEXT, habitatType TEXT, point TEXT, pointTag TEXT,
+            uniqueId TEXT, habitatType TEXT, point TEXT, pointTag TEXT,
             latitude TEXT, longitude TEXT, date TEXT, observers TEXT,
             startTime TEXT, endTime TEXT, weather TEXT, water TEXT,
             season TEXT, statusOfVegy TEXT, descriptor TEXT, radiusOfArea TEXT,
-            remark TEXT, imageUri TEXT, cloudIntensity TEXT, rainIntensity TEXT,
-            windIntensity TEXT, sunshineIntensity TEXT, waterAvailability TEXT,
-            waterLevelOnLand TEXT, waterLevelOnResources TEXT, teamMembers TEXT
+            remark TEXT, imageUri TEXT, teamMembers TEXT
           );`, [], () => {}, (_: any, e: any) => console.log('Error:', e),
         );
         tx.executeSql(
@@ -798,6 +842,9 @@ const BirdSurveyForm = () => {
     } else if (currentStep === 1 && validateStep2()) {
       setCurrentStep(2);
       setErrors({});
+      if (birdDataArray.length === 0) {
+        setBirdDataArray([createEmptyBirdObservation()]);
+      }
     }
   };
 
@@ -820,10 +867,6 @@ const BirdSurveyForm = () => {
 
   // ===== SUBMIT =====
   const handleSubmit = async () => {
-    if (!email) {
-      Alert.alert('Error', 'User email not found. Please login again.');
-      return;
-    }
     if (!validateStep3()) return;
     if (birdDataArray.length === 0) {
       Alert.alert('Confirm', 'Submit without bird observations?', [
@@ -847,7 +890,7 @@ const BirdSurveyForm = () => {
     const endTimeStr = selectedEndTime.toISOString();
 
     const formData = {
-      email, uniqueId, habitatType,
+      uniqueId, habitatType,
       point: point || '', pointTag: pointTag || '',
       latitude, longitude, date: dateStr,
       observers, startTime: startTimeStr, endTime: endTimeStr,
@@ -867,54 +910,75 @@ const BirdSurveyForm = () => {
       })),
     };
 
-    saveFormDataSQL(formData);
+    // Save locally first
+    await saveFormDataSQL(formData);
+    console.log('Local save completed for uniqueId:', formData.uniqueId);
 
-    axios.post(`${API_URL}/form-entry`, formData)
-      .then(response => {
-        setIsSubmitting(false);
-        const addedId = response.data._id || response.data.formEntry?._id;
-        if (addedId) uploadImageToServer(imageUri, addedId);
-        Alert.alert('Success', 'Survey submitted successfully!', [{text: 'OK'}]);
-        navigation.navigate('BirdBottomNav');
-      })
-      .catch(error => {
-        setIsSubmitting(false);
-        console.error('Submit error:', error);
-        storeFailedSubmission(formData);
-        Alert.alert('Saved Offline', 'Survey saved locally. Will sync when online.');
-        navigation.navigate('BirdBottomNav');
-      });
+    // Then try cloud
+    try {
+      const response = await axios.post(`${API_URL}/form-entry`, formData);
+      setIsSubmitting(false);
+      const addedId = response.data._id || response.data.formEntry?._id;
+      if (addedId) uploadImageToServer(imageUri, addedId);
+      Alert.alert('Success', 'Survey submitted successfully!', [{text: 'OK'}]);
+      navigation.navigate('BirdBottomNav');
+    } catch (error: any) {
+      setIsSubmitting(false);
+      console.log('Submit error:', error?.message);
+      console.log('Server response:', error?.response?.status, error?.response?.data);
+      storeFailedSubmission(formData);
+      Alert.alert('Saved Offline', 'Survey saved locally. Will sync when online.');
+      navigation.navigate('BirdBottomNav');
+    }
   };
 
-  const saveFormDataSQL = async (formData: any) => {
-    const db = await getDatabase();
-    db.transaction((tx: any) => {
-      tx.executeSql(
-        `INSERT INTO bird_survey (
-          email, uniqueId, habitatType, point, pointTag, latitude, longitude,
-          date, observers, startTime, endTime, weather, water, season,
-          statusOfVegy, descriptor, radiusOfArea, remark, imageUri, teamMembers
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
-        [
-          formData.email, formData.uniqueId, formData.habitatType,
-          formData.point, formData.pointTag, formData.latitude, formData.longitude,
-          formData.date, formData.observers, formData.startTime, formData.endTime,
-          formData.weather, formData.water, formData.season,
-          formData.statusOfVegy, formData.descriptor, formData.radiusOfArea,
-          formData.remark, formData.imageUri, JSON.stringify(formData.teamMembers),
-        ],
-        (_: any, results: any) => {
-          if (results.rowsAffected > 0) {
-            formData.birdObservations.forEach((bird: any) => {
-              tx.executeSql(
-                `INSERT INTO bird_observations (uniqueId, species, count, maturity, sex, behaviour, identification, status, remarks, imageUri)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
-                [bird.uniqueId, bird.species, bird.count, bird.maturity, bird.sex, bird.behaviour, bird.identification, bird.status, bird.remarks, bird.imageUri],
-              );
-            });
-          }
-        },
-      );
+  const saveFormDataSQL = (formData: any): Promise<void> => {
+    return new Promise(async (resolve) => {
+      try {
+        const db = await getDatabase();
+        db.transaction(
+          (tx: any) => {
+            // Insert survey
+            tx.executeSql(
+              `INSERT INTO bird_survey (
+                uniqueId, habitatType, point, pointTag, latitude, longitude,
+                date, observers, startTime, endTime, weather, water, season,
+                statusOfVegy, descriptor, radiusOfArea, remark, imageUri, teamMembers
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+              [
+                formData.uniqueId, formData.habitatType || '',
+                formData.point || '', formData.pointTag || '', formData.latitude || '', formData.longitude || '',
+                formData.date || '', formData.observers || '', formData.startTime || '', formData.endTime || '',
+                formData.weather || '', formData.water || '', formData.season || '',
+                formData.statusOfVegy || '', formData.descriptor || '', formData.radiusOfArea || '',
+                formData.remark || '', formData.imageUri || '', JSON.stringify(formData.teamMembers || []),
+              ],
+            );
+            // Insert bird observations
+            if (formData.birdObservations) {
+              formData.birdObservations.forEach((bird: any) => {
+                tx.executeSql(
+                  `INSERT INTO bird_observations (uniqueId, species, count, maturity, sex, behaviour, identification, status, remarks, imageUri)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+                  [bird.uniqueId || '', bird.species || '', bird.count || '', bird.maturity || '', bird.sex || '',
+                   bird.behaviour || '', bird.identification || '', bird.status || '', bird.remarks || '', bird.imageUri || ''],
+                );
+              });
+            }
+          },
+          (error: any) => {
+            console.log('Transaction error:', error.message || error);
+            resolve();
+          },
+          () => {
+            console.log('Survey saved to SQLite successfully');
+            resolve();
+          },
+        );
+      } catch (err) {
+        console.log('saveFormDataSQL error:', err);
+        resolve();
+      }
     });
   };
 
@@ -1156,7 +1220,12 @@ const BirdSurveyForm = () => {
   const renderStepThree = () => (
     <View>
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Bird Detail Record</Text>
+        <View style={styles.cardTitleRow}>
+          <Text style={styles.cardTitle}>Bird Detail Record</Text>
+          <TouchableOpacity style={styles.addBirdSmallBtn} onPress={addBirdObservation}>
+            <Icon name="plus" size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
 
         {birdDataArray.map((obs: any, idx: number) => (
           <BirdObservationCard
@@ -1166,60 +1235,6 @@ const BirdSurveyForm = () => {
             onToggle={() => toggleBirdObservation(obs.id)}
           />
         ))}
-
-        <Button mode="contained" onPress={addBirdObservation} style={styles.addBirdButton}
-          buttonColor={GREEN} textColor="white" labelStyle={styles.buttonLabel} icon="plus">
-          {`Add ${getOrdinalText(birdDataArray.length)} Observed Bird Data`}
-        </Button>
-      </View>
-
-      {/* Survey Summary Card */}
-      <View style={styles.summaryCard}>
-        <Text style={styles.summaryTitle}>Survey Summary</Text>
-        <View style={styles.summaryRow}>
-          <Icon name="tree" size={14} color={GREEN} />
-          <Text style={styles.summaryLabel}>Habitat:</Text>
-          <Text style={styles.summaryValue}>{habitatType || 'Not set'}</Text>
-        </View>
-        {point && (
-          <View style={styles.summaryRow}>
-            <Icon name="map-marker" size={14} color={GREEN} />
-            <Text style={styles.summaryLabel}>Point:</Text>
-            <Text style={styles.summaryValue}>{point}{pointTag ? ` (${pointTag})` : ''}</Text>
-          </View>
-        )}
-        <View style={styles.summaryRow}>
-          <Icon name="calendar" size={14} color={GREEN} />
-          <Text style={styles.summaryLabel}>Date:</Text>
-          <Text style={styles.summaryValue}>{dateText || 'Not set'}</Text>
-        </View>
-        <View style={styles.summaryRow}>
-          <Icon name="user" size={14} color={GREEN} />
-          <Text style={styles.summaryLabel}>Observer:</Text>
-          <Text style={styles.summaryValue}>{observers || 'Not set'}</Text>
-        </View>
-        <View style={styles.summaryRow}>
-          <Icon name="users" size={14} color={GREEN} />
-          <Text style={styles.summaryLabel}>Team:</Text>
-          <Text style={styles.summaryValue}>{teamMembers.length} member(s)</Text>
-        </View>
-        <View style={styles.summaryDivider} />
-        <View style={styles.summaryRow}>
-          <Icon name="binoculars" size={14} color={GREEN} />
-          <Text style={styles.summaryLabel}>Birds Observed:</Text>
-          <Text style={[styles.summaryValue, {fontWeight: 'bold', color: GREEN_DARK}]}>
-            {birdDataArray.length}
-          </Text>
-        </View>
-        {birdDataArray.length > 0 && (
-          <View style={styles.summaryRow}>
-            <Icon name="calculator" size={14} color={GREEN} />
-            <Text style={styles.summaryLabel}>Total Count:</Text>
-            <Text style={[styles.summaryValue, {fontWeight: 'bold', color: GREEN_DARK}]}>
-              {birdDataArray.reduce((sum: number, b: any) => sum + (parseInt(b.count) || 0), 0)}
-            </Text>
-          </View>
-        )}
       </View>
 
       {/* Submit Buttons */}
@@ -1383,24 +1398,130 @@ const cardStyles = StyleSheet.create({
     padding: 10,
   },
   itemSelected: {backgroundColor: '#E8F5E9'},
-  photoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 5,
+  photoLabel: {
+    fontSize: 14,
+    color: '#2e7d32',
+    fontWeight: '500',
+    marginBottom: 6,
   },
-  photoButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: GREEN,
+  photoUploadArea: {
+    borderWidth: 2,
+    borderColor: '#DDD',
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    height: 200,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FAFAFA',
+    marginBottom: 10,
   },
-  imagePreview: {
-    width: 100,
-    height: 100,
+  photoPlaceholder: {
+    alignItems: 'center',
+  },
+  photoPlaceholderText: {
     marginTop: 10,
+    fontSize: 14,
+    color: '#999',
+  },
+  photoContainer: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
+  uploadedPhoto: {
+    width: '100%',
+    height: '100%',
     borderRadius: 8,
+  },
+  removePhotoButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#E74C3C',
+    borderRadius: 20,
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: 'black',
+        shadowOffset: {width: 0, height: 2},
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
+  },
+  imagePickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 30,
+  },
+  imagePickerContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    padding: 20,
+    width: '100%',
+    maxWidth: 350,
+    borderWidth: 3,
+    borderColor: '#4A7856',
+    ...Platform.select({
+      ios: {
+        shadowColor: 'black',
+        shadowOffset: {width: 0, height: 4},
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 10,
+      },
+    }),
+  },
+  imagePickerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 25,
+  },
+  imagePickerOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+  },
+  imagePickerOption: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    width: 130,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  imagePickerOptionText: {
+    fontSize: 16,
+    color: '#333',
+    marginTop: 10,
+    fontWeight: '600',
+  },
+  imagePickerCancelButton: {
+    backgroundColor: '#F5F5F5',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  imagePickerCancelText: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '600',
   },
   speciesDropdownItem: {
     flexDirection: 'row',
@@ -1497,6 +1618,21 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'center',
     marginBottom: 16,
+    flex: 1,
+  },
+  cardTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  addBirdSmallBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#2e7d32',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   formDropdown: {
     height: 50,
@@ -1809,6 +1945,13 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 10,
     alignItems: 'center',
+  },
+  modalCloseBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 1,
+    padding: 4,
   },
   modalTitle: {
     fontSize: 18,
