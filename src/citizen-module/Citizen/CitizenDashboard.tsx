@@ -1,9 +1,10 @@
 //import libraries
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, SafeAreaView, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, SafeAreaView, Platform, Linking, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BarChart } from 'react-native-chart-kit';
 
 // component
 const CitizenDashboard = () => {
@@ -101,7 +102,7 @@ const CitizenDashboard = () => {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <View style={styles.container}>
+            <ScrollView style={styles.container}>
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity 
@@ -200,63 +201,62 @@ const CitizenDashboard = () => {
                     <Text style={styles.viewDataButtonText}>{t.viewData}</Text>
                 </TouchableOpacity>
 
-                {/* Advertisement Section */}
-                {/* <View style={styles.adContainer}>
-                    <View style={styles.adContent}>
-                        <Icon name="local-offer" size={24} color="#4A7856" />
-                        <View style={styles.adTextContainer}>
-                            <Text style={styles.adTitle}>{t.adTitle}</Text>
-                            <Text style={styles.adMessage}>{t.adMessage}</Text>
+                {/* Charts Section */}
+                <View style={styles.chartsSection}>
+                    <Text style={styles.chartsSectionTitle}>📊 Observation Analytics</Text>
+
+                    {/* Bar Chart */}
+                    <View style={styles.chartCard}>
+                        <Text style={styles.chartCardTitle}>Observations by Category</Text>
+                        <BarChart
+                            data={{
+                                labels: ['Plants', 'Nature', 'Animals', 'Human Activity'],
+                                datasets: [
+                                    {
+                                        data: [32, 28, 41, 18],
+                                    },
+                                ],
+                            }}
+                            width={320}
+                            height={200}
+                            yAxisLabel=""
+                            chartConfig={{
+                                backgroundColor: '#ffffff',
+                                backgroundGradientFrom: '#ffffff',
+                                backgroundGradientTo: '#ffffff',
+                                decimalPlaces: 0,
+                                color: (opacity = 1) => `rgba(74, 120, 86, ${opacity})`,
+                                labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                                style: {
+                                    borderRadius: 8,
+                                },
+                            }}
+                            style={{
+                                marginVertical: 8,
+                                borderRadius: 8,
+                                marginHorizontal: -20,
+                            }}
+                            verticalLabelRotation={30}
+                        />
+                    </View>
+
+                    {/* Summary Cards */}
+                    <View style={styles.summaryRow}>
+                        <View style={styles.summaryCard}>
+                            <Text style={styles.summaryLabel}>Total Submissions</Text>
+                            <Text style={styles.summaryValue}>119</Text>
+                        </View>
+                        <View style={styles.summaryCard}>
+                            <Text style={styles.summaryLabel}>Categories</Text>
+                            <Text style={styles.summaryValue}>4</Text>
+                        </View>
+                        <View style={styles.summaryCard}>
+                            <Text style={styles.summaryLabel}>This Month</Text>
+                            <Text style={styles.summaryValue}>42</Text>
                         </View>
                     </View>
-                    <TouchableOpacity
-                        style={styles.adButton}
-                        onPress={handleAdClick}
-                        activeOpacity={0.8}
-                    >
-                        <Text style={styles.adButtonText}>{t.clickHere}</Text>
-                    </TouchableOpacity>
-                </View> */}
-
-                {/* Bottom Navigation */}
-                {/* <View style={styles.bottomNav}>
-                    <TouchableOpacity 
-                        style={styles.navItem}
-                        onPress={() => handleNavigation('Home')}
-                        activeOpacity={0.7}
-                    >
-                        <Icon name="home" size={28} color="#666" />
-                        <Text style={styles.navText}>{t.home}</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                        style={styles.navItem}
-                        onPress={() => handleNavigation('Feed')}
-                        activeOpacity={0.7}
-                    >
-                        <Icon name="wb-sunny" size={28} color="#666" />
-                        <Text style={styles.navText}>{t.feed}</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                        style={styles.navItem}
-                        onPress={() => handleNavigation('Explore')}
-                        activeOpacity={0.7}
-                    >
-                        <Icon name="search" size={28} color="#666" />
-                        <Text style={styles.navText}>{t.explore}</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                        style={styles.navItem}
-                        onPress={() => handleNavigation('Highlights')}
-                        activeOpacity={0.7}
-                    >
-                        <Icon name="account-circle" size={28} color="#666" />
-                        <Text style={styles.navText}>{t.highlights}</Text>
-                    </TouchableOpacity>
-                </View> */}
-            </View>
+                </View>
+            </ScrollView>
         </SafeAreaView>
     );
 }
@@ -427,6 +427,70 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 16,
         fontWeight: 'bold',
+        fontFamily: 'Times New Roman',
+    },
+    chartsSection: {
+        paddingHorizontal: 20,
+        marginTop: 30,
+        marginBottom: 30,
+    },
+    chartsSectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#4A7856',
+        marginBottom: 15,
+        fontFamily: 'Times New Roman',
+    },
+    chartCard: {
+        backgroundColor: '#f9f9f9',
+        borderRadius: 12,
+        padding: 15,
+        marginBottom: 20,
+        ...Platform.select({
+            ios: {
+                shadowColor: 'black',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+            },
+            android: {
+                elevation: 3,
+            },
+        }),
+    },
+    chartCardTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 15,
+        fontFamily: 'Times New Roman',
+    },
+    summaryRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+    },
+    summaryCard: {
+        flex: 1,
+        backgroundColor: '#E8F5E9',
+        padding: 15,
+        borderRadius: 10,
+        marginHorizontal: 5,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#C8E6C9',
+    },
+    summaryLabel: {
+        fontSize: 12,
+        color: '#666',
+        marginBottom: 8,
+        textAlign: 'center',
+        fontFamily: 'Times New Roman',
+    },
+    summaryValue: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#2E7D32',
         fontFamily: 'Times New Roman',
     },
 });

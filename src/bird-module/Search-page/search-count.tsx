@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ImageBackground,
   ScrollView,
   TouchableOpacity,
   TextInput,
@@ -16,13 +15,14 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import MyCountTable from '../count-table/count-table';
 import { getDatabase } from '../database/db';
 import DateTimePicker from '@react-native-community/datetimepicker';
+
 // Define the custom themes
 const themes = {
   light: {
     colors: {
       background: '#ffffff',
       text: '#000000',
-      button: '#516E9E',
+      button: '#086411a7',
       placeholder: 'gray',
     },
   },
@@ -38,7 +38,7 @@ const themes = {
 
 const SearchCount = ({ setShowBirdCount }) => {
   const navigation = useNavigation();
-  // const [isDarkTheme, setIsDarkTheme] = useState(false);
+
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [startText, setStartText] = useState('');
@@ -49,11 +49,9 @@ const SearchCount = ({ setShowBirdCount }) => {
   const [species, setSpecies] = useState('');
   const [rowEmail, setRowEmail] = useState('');
   const [email, setEmail] = useState('');
-  const [isDarkTheme, setIsDarkTheme] = useState(false); // Add state for theme
+  const [isDarkTheme, setIsDarkTheme] = useState(false);
 
-  console.log('Search by Count page');
-
-  console.log('row data are ', rowEmail);
+  const currentTheme = isDarkTheme ? themes.dark : themes.light;
 
   const showData = async () => {
     const db = await getDatabase();
@@ -63,9 +61,7 @@ const SearchCount = ({ setShowBirdCount }) => {
         [],
         (tx, results) => {
           if (results.rows.length > 0) {
-            console.log('Results:', results.rows._array); // This should give you an array of the rows
-          } else {
-            console.log('No data found.');
+            console.log('Results:', results.rows._array);
           }
         },
         error => {
@@ -83,13 +79,8 @@ const SearchCount = ({ setShowBirdCount }) => {
         [],
         (tx, results) => {
           if (results.rows.length > 0) {
-            const email = results.rows.item(0).email;
-            setEmail(email);
-            console.log('Retrieved email edit permission : ', email);
-            return {email};
-          } else {
-            console.log('No email and password stored.');
-            return null;
+            const storedEmail = results.rows.item(0).email;
+            setEmail(storedEmail);
           }
         },
         error => {
@@ -111,14 +102,6 @@ const SearchCount = ({ setShowBirdCount }) => {
     setShowTable(true);
   };
 
-  const showStartDatepicker = () => {
-    setShowStart(true);
-  };
-
-  const showEndDatepicker = () => {
-    setShowEnd(true);
-  };
-
   const onChangeStart = (event, selectedDate) => {
     const currentDate = selectedDate || startDate;
     setShowStart(Platform.OS === 'ios');
@@ -132,63 +115,76 @@ const SearchCount = ({ setShowBirdCount }) => {
     setEndDate(currentDate);
     setEndText(currentDate.toDateString());
   };
-  const currentTheme = isDarkTheme ? themes.dark : themes.light;
+
   return (
-    <ImageBackground
-      source={require('./../../assets/image/imageD1.jpg')}
-      style={[styles.backgroundImage, { backgroundColor: currentTheme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+      
       <TouchableOpacity onPress={() => setShowBirdCount(false)}>
         <IconButton
           icon="keyboard-backspace"
-          iconColor="black"
+          iconColor={currentTheme.colors.text}
           size={30}
-          style={{ marginRight: 20 }}
         />
       </TouchableOpacity>
+
       <ScrollView style={styles.title_container}>
-         <View style={[styles.whiteBox, { backgroundColor: currentTheme.colors.background }]}>
-          <View>
-            <TextInput
-              mode="outlined"
-              placeholder="Observed Species"
-              value={species}
-              onChangeText={setSpecies}
-              style={[styles.text_input, styles.text_input_gap, { color: currentTheme.colors.text ,borderColor: '#ccc',
-                borderWidth: 1, }]}
-              placeholderTextColor={currentTheme.colors.placeholder}
-            />
-          </View>
+        <View style={[styles.whiteBox, { backgroundColor: currentTheme.colors.background }]}>
+          
+          <TextInput
+            placeholder="Observed Species"
+            value={species}
+            onChangeText={setSpecies}
+            style={[
+              styles.text_input,
+              styles.text_input_gap,
+              {
+                color: currentTheme.colors.text,
+                borderColor: '#ccc',
+                borderWidth: 1,
+              },
+            ]}
+            placeholderTextColor={currentTheme.colors.placeholder}
+          />
 
           <View style={styles.dateContainer}>
+            
             <TouchableOpacity
-              onPress={showStartDatepicker}
+              onPress={() => setShowStart(true)}
               style={[styles.dateInput, { backgroundColor: 'white' }]}>
-              <Text style={{ color: currentTheme.colors.text }}>{startText || 'Start Date'}</Text>
-              <Icon name="calendar" size={15} color="gray" style={styles.icon} />
+
+              <Text style={{ color: currentTheme.colors.text }}>
+                {startText || 'Start Date'}
+              </Text>
+
+              <Icon name="calendar" size={15} color="gray" />
             </TouchableOpacity>
+
             {showStart && (
               <DateTimePicker
-                testID="startDateTimePicker"
                 value={startDate}
                 mode="date"
-                is24Hour={true}
+                is24Hour
                 display="default"
                 onChange={onChangeStart}
               />
             )}
 
             <TouchableOpacity
-              onPress={showEndDatepicker}
+              onPress={() => setShowEnd(true)}
               style={[styles.dateInput, { backgroundColor: 'white' }]}>
-              <Text style={{ color: currentTheme.colors.text }}>{endText || 'End Date'}</Text>
-              <Icon name="calendar" size={15} color="gray" style={styles.icon} />
+
+              <Text style={{ color: currentTheme.colors.text }}>
+                {endText || 'End Date'}
+              </Text>
+
+              <Icon name="calendar" size={15} color="gray" />
             </TouchableOpacity>
+
             {showEnd && (
               <DateTimePicker
-                testID="endDateTimePicker"
                 value={endDate}
                 mode="date"
-                is24Hour={true}
+                is24Hour
                 display="default"
                 onChange={onChangeEnd}
               />
@@ -199,17 +195,14 @@ const SearchCount = ({ setShowBirdCount }) => {
             mode="contained"
             onPress={handleSignUp}
             style={styles.button_signup}
-            buttonColor="#516E9E"
+            buttonColor={currentTheme.colors.button}
             textColor="white"
             labelStyle={styles.button_label}>
             Search
           </Button>
         </View>
-        <View
-          style={{
-            marginTop: 30,
-            backgroundColor: 'white',
-          }}>
+
+        <View style={{ marginTop: 30 }}>
           {showTable && (
             <MyCountTable
               species={species}
@@ -218,68 +211,52 @@ const SearchCount = ({ setShowBirdCount }) => {
             />
           )}
         </View>
+
       </ScrollView>
-   
-    
-    </ImageBackground>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
-    width: '55%',
-    height: 150,
-    marginLeft: 'auto',
-    marginRight: 24,
-    marginTop: '60%',
+    flex: 1,
   },
   dateContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '90%',
-    marginRight: 15,
-    marginTop: 0,
     alignItems: 'center',
   },
   title_container: {
     flex: 1,
-    fontFamily: 'Inter-Bold',
     marginTop: '2%',
   },
   text_input_gap: {
     marginBottom: 10,
   },
   whiteBox: {
-    justifyContent: 'flex-start',
     alignItems: 'center',
-    height: 230,
-    marginLeft: 14,
-    marginRight: 14,
+    marginHorizontal: 14,
     marginTop: 80,
     paddingVertical: 20,
-  },
-  backgroundImage: {
-    flex: 1,
-    resizeMode: 'cover',
   },
   text_input: {
     backgroundColor: 'white',
     width: 350,
     borderRadius: 10,
+    paddingHorizontal: 10,
+    height: 50,
   },
   button_signup: {
     width: '90%',
     marginTop: 20,
-    fontFamily: 'Inter-regular',
     borderRadius: 8,
   },
   button_label: {
     fontSize: 18,
   },
   dateInput: {
-    width: 180,
+    width: 170,
     height: 55,
     padding: 10,
     borderRadius: 10,
@@ -288,17 +265,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     flexDirection: 'row',
-  },
-  icon: {
-    marginLeft: 10,
-  },
-  toggleButton: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    padding: 10,
-    backgroundColor: '#516E9E',
-    borderRadius: 5,
   },
 });
 

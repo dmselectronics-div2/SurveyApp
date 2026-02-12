@@ -19,12 +19,14 @@ import MyDataTable from '../data-table/display-table';
 import SearchOption from '../Search-page/search-option';
 import SelectEditMode from '../Edit-Survey/Edit-permition';
 import NetworkStatusBanner from '../../components/NetworkStatusBanner';
+import TeamMembersPage from '../team-members/team-members-page';
 
 // Bottom Nav Bar
 const DashboardRoute = () => <MainDashboardPage />;
 const AlbumsRoute = () => <BirdSurveyForm />;
 const RecentsRoute = () => <CollectionPage />;
 const NotificationsRoute = () => <SearchOption />;
+const TeamRoute = () => <TeamMembersPage />;
 const ProfilePageRoute = () => <ProfileMenu />;
 
 const BottomNavbar = ({ setTitle }) => {
@@ -55,10 +57,10 @@ const BottomNavbar = ({ setTitle }) => {
     },
     {
       key: 'recents',
-      title: 'Collection',
-      topTitle: 'Birds Collection',
-      focusedIcon: 'folder-multiple',
-      unfocusedIcon: 'folder-multiple-outline',
+      title: 'Drafts',
+      topTitle: 'Survey Drafts',
+      focusedIcon: 'file-document-edit',
+      unfocusedIcon: 'file-document-edit-outline',
     },
     {
       key: 'notifications',
@@ -66,6 +68,13 @@ const BottomNavbar = ({ setTitle }) => {
       topTitle: 'Birds Details',
       focusedIcon: 'database',
       unfocusedIcon: 'database-outline',
+    },
+    {
+      key: 'team',
+      title: 'Team',
+      topTitle: 'Team Members',
+      focusedIcon: 'account-group',
+      unfocusedIcon: 'account-group-outline',
     },
   ]);
 

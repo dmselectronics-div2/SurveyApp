@@ -24,7 +24,7 @@ import axios from 'axios';
 import {API_URL} from '../../config';
 import {getDatabase} from '../database/db';
 import NetInfo from '@react-native-community/netinfo';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute} from '@react-navigation/native';
 import {birdSpecies} from './bird-list';
 
 const {width} = Dimensions.get('window');
@@ -556,6 +556,9 @@ const WaterAvailabilityModal = ({visible, onClose, onSelect}: any) => {
 // ========================================
 const BirdSurveyForm = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const draftData = route?.params?.draftData || null;
+  const existingDraftId = route?.params?.draftId || null;
   const [currentStep, setCurrentStep] = useState(0);
   const [errors, setErrors] = useState<any>({});
   const [email, setEmail] = useState('');
@@ -618,6 +621,113 @@ const BirdSurveyForm = () => {
     if (email) fetchTeamMembers();
   }, [email]);
 
+  // Load draft data if navigated from Drafts page
+  useEffect(() => {
+    if (draftData) {
+      if (draftData.habitatType) setHabitatType(draftData.habitatType);
+      if (draftData.point) setPoint(draftData.point);
+      if (draftData.pointTag) setPointTag(draftData.pointTag);
+      if (draftData.descriptor) setDescriptor(draftData.descriptor);
+      if (draftData.latitude) setLatitude(draftData.latitude);
+      if (draftData.longitude) setLongitude(draftData.longitude);
+      if (draftData.radius) setRadius(draftData.radius);
+      if (draftData.teamMembers) setTeamMembers(draftData.teamMembers);
+      if (draftData.dateText) setDateText(draftData.dateText);
+      if (draftData.date) setDate(new Date(draftData.date));
+      if (draftData.observers) setObservers(draftData.observers);
+      if (draftData.startTime) setSelectedStartTime(new Date(draftData.startTime));
+      if (draftData.endTime) setSelectedEndTime(new Date(draftData.endTime));
+      if (draftData.weather) setSelectedWeatherString(draftData.weather);
+      if (draftData.water) setSelectedWaterString(draftData.water);
+      if (draftData.paddySeason) setPaddySeason(draftData.paddySeason);
+      if (draftData.vegetationStatus) setVegetationStatus(draftData.vegetationStatus);
+      if (draftData.imageUri) setImageUri(draftData.imageUri);
+      if (draftData.birdDataArray && draftData.birdDataArray.length > 0) {
+        setBirdDataArray(draftData.birdDataArray);
+      }
+      if (draftData.currentStep !== undefined) {
+        setCurrentStep(draftData.currentStep);
+      }
+    }
+  }, []);
+
+  // ===== DRAFT HELPERS =====
+  const collectFormState = () => ({
+    habitatType, point, pointTag, descriptor,
+    latitude, longitude, radius, teamMembers,
+    dateText, date: date.toISOString(),
+    observers,
+    startTime: selectedStartTime.toISOString(),
+    endTime: selectedEndTime.toISOString(),
+    weather: selectedWeatherString,
+    water: selectedWaterString,
+    paddySeason, vegetationStatus, imageUri,
+    birdDataArray, currentStep,
+  });
+
+  const saveDraft = async () => {
+    try {
+      const db = await getDatabase();
+      const now = new Date();
+      const draftIdToUse = existingDraftId ||
+        `DRAFT_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}${now.getSeconds().toString().padStart(2,'0')}`;
+
+      const formState = collectFormState();
+      const lastModified = now.toISOString();
+
+      db.transaction((tx: any) => {
+        tx.executeSql(
+          `CREATE TABLE IF NOT EXISTS bird_drafts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            draftId TEXT UNIQUE,
+            habitatType TEXT,
+            pointTag TEXT,
+            date TEXT,
+            lastModified TEXT,
+            currentStep INTEGER DEFAULT 0,
+            formData TEXT
+          );`,
+        );
+        tx.executeSql(
+          `INSERT OR REPLACE INTO bird_drafts
+            (draftId, habitatType, pointTag, date, lastModified, currentStep, formData)
+           VALUES (?, ?, ?, ?, ?, ?, ?);`,
+          [
+            draftIdToUse,
+            habitatType || '',
+            pointTag || '',
+            dateText || '',
+            lastModified,
+            currentStep,
+            JSON.stringify(formState),
+          ],
+          () => {
+            Alert.alert('Draft Saved', 'Your incomplete survey has been saved as a draft.', [
+              {text: 'OK', onPress: () => navigation.navigate('BirdBottomNav')}
+            ]);
+          },
+          (_: any, error: any) => {
+            console.log('Error saving draft:', error);
+            Alert.alert('Error', 'Failed to save draft.');
+          },
+        );
+      });
+    } catch (error) {
+      console.error('saveDraft error:', error);
+    }
+  };
+
+  const deleteDraft = async (draftIdToDelete: string) => {
+    try {
+      const db = await getDatabase();
+      db.transaction((tx: any) => {
+        tx.executeSql('DELETE FROM bird_drafts WHERE draftId = ?;', [draftIdToDelete]);
+      });
+    } catch (error) {
+      console.error('deleteDraft error:', error);
+    }
+  };
+
   const initDatabase = async () => {
     try {
       const db = await getDatabase();
@@ -645,6 +755,18 @@ const BirdSurveyForm = () => {
         tx.executeSql(
           `CREATE TABLE IF NOT EXISTS failed_submissions (
             id INTEGER PRIMARY KEY AUTOINCREMENT, formData TEXT
+          );`, [], () => {}, (_: any, e: any) => console.log('Error:', e),
+        );
+        tx.executeSql(
+          `CREATE TABLE IF NOT EXISTS bird_drafts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            draftId TEXT UNIQUE,
+            habitatType TEXT,
+            pointTag TEXT,
+            date TEXT,
+            lastModified TEXT,
+            currentStep INTEGER DEFAULT 0,
+            formData TEXT
           );`, [], () => {}, (_: any, e: any) => console.log('Error:', e),
         );
       });
@@ -867,15 +989,23 @@ const BirdSurveyForm = () => {
 
   // ===== SUBMIT =====
   const handleSubmit = async () => {
-    if (!validateStep3()) return;
-    if (birdDataArray.length === 0) {
-      Alert.alert('Confirm', 'Submit without bird observations?', [
-        {text: 'Cancel', style: 'cancel'},
-        {text: 'Proceed', onPress: () => setShowSubmitConfirm(true)},
-      ]);
-    } else {
-      setShowSubmitConfirm(true);
+    const step1Valid = habitatType && teamMembers.length > 0;
+    const step2Valid = dateText && observers && selectedWeatherString;
+    const step3Valid = birdDataArray.length > 0 && birdDataArray.every((bird: any) => bird.species && bird.count);
+
+    if (!step1Valid || !step2Valid || !step3Valid) {
+      Alert.alert(
+        'Incomplete Form',
+        'Some required fields are missing. Would you like to save this as a draft?',
+        [
+          {text: 'Cancel', style: 'cancel'},
+          {text: 'Save as Draft', onPress: saveDraft},
+        ],
+      );
+      return;
     }
+
+    setShowSubmitConfirm(true);
   };
 
   const submitSurvey = async () => {
@@ -920,6 +1050,7 @@ const BirdSurveyForm = () => {
       setIsSubmitting(false);
       const addedId = response.data._id || response.data.formEntry?._id;
       if (addedId) uploadImageToServer(imageUri, addedId);
+      if (existingDraftId) await deleteDraft(existingDraftId);
       Alert.alert('Success', 'Survey submitted successfully!', [{text: 'OK'}]);
       navigation.navigate('BirdBottomNav');
     } catch (error: any) {
@@ -927,6 +1058,7 @@ const BirdSurveyForm = () => {
       console.log('Submit error:', error?.message);
       console.log('Server response:', error?.response?.status, error?.response?.data);
       storeFailedSubmission(formData);
+      if (existingDraftId) await deleteDraft(existingDraftId);
       Alert.alert('Saved Offline', 'Survey saved locally. Will sync when online.');
       navigation.navigate('BirdBottomNav');
     }
@@ -1124,6 +1256,10 @@ const BirdSurveyForm = () => {
         <Button mode="contained" onPress={handleNext} style={styles.nextButton} buttonColor={GREEN} textColor="white" labelStyle={styles.buttonLabel}>
           Go To Next Step
         </Button>
+        <TouchableOpacity onPress={saveDraft} style={styles.saveDraftLink}>
+          <Icon name="floppy-o" size={16} color={GREEN} />
+          <Text style={styles.saveDraftText}>Save as Draft</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -1210,6 +1346,10 @@ const BirdSurveyForm = () => {
         <Button mode="contained" onPress={handleNext} style={styles.nextButton} buttonColor={GREEN} textColor="white" labelStyle={styles.buttonLabel}>
           Go To Next Step
         </Button>
+        <TouchableOpacity onPress={saveDraft} style={styles.saveDraftLink}>
+          <Icon name="floppy-o" size={16} color={GREEN} />
+          <Text style={styles.saveDraftText}>Save as Draft</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -1260,6 +1400,10 @@ const BirdSurveyForm = () => {
           )}
         </TouchableOpacity>
       </View>
+      <TouchableOpacity onPress={saveDraft} style={styles.saveDraftLink}>
+        <Icon name="floppy-o" size={16} color={GREEN} />
+        <Text style={styles.saveDraftText}>Save as Draft</Text>
+      </TouchableOpacity>
 
       {/* Submit Confirmation Modal */}
       <Modal visible={showSubmitConfirm} transparent animationType="fade">
@@ -1968,5 +2112,18 @@ const styles = StyleSheet.create({
     color: 'red',
     fontSize: 12,
     marginBottom: 8,
+  },
+  saveDraftLink: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingVertical: 12,
+    marginTop: 4,
+    gap: 8,
+  },
+  saveDraftText: {
+    color: '#2e7d32',
+    fontSize: 14,
+    fontWeight: '600' as const,
   },
 });

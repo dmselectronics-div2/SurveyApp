@@ -11,7 +11,7 @@ import CitySearchPage from './search-citizen';
 
 const theme = {
     colors: {
-        primary: '#56FF64',
+        primary: '#227729',
         text: 'red',
         placeholder: 'white',
         surface: 'rgba(217, 217, 217, 0.7)',
@@ -76,10 +76,7 @@ const SearchOption = () => {
     }
 
     return (
-        <ImageBackground
-            source={require('./../../assets/image/imageD1.jpg')}
-            style={styles.backgroundImage}
-        >
+        
             <ScrollView style={styles.title_container}>
                 <View style={styles.whiteBox}>
                     <View style={styles.text_container}>
@@ -91,7 +88,7 @@ const SearchOption = () => {
                             mode="contained"
                             onPress={handleDate}
                             style={styles.button_signup}
-                            buttonColor='#516E9E'
+                            buttonColor='rgba(13, 100, 58, 0.86)'
                             textColor='white'
                             labelStyle={styles.button_label}
                         >
@@ -102,7 +99,7 @@ const SearchOption = () => {
                             mode="contained"
                             onPress={handlePoint}
                             style={styles.button_signup}
-                            buttonColor='#516E9E'
+                            buttonColor='rgba(13, 100, 58, 0.86)'
                             textColor='white'
                             labelStyle={styles.button_label}
                         >
@@ -113,7 +110,7 @@ const SearchOption = () => {
                             mode="contained"
                             onPress={handleCount}
                             style={styles.button_signup}
-                            buttonColor='#516E9E'
+                            buttonColor='rgba(13, 100, 58, 0.86)'
                             textColor='white'
                             labelStyle={styles.button_label}
                         >
@@ -123,7 +120,7 @@ const SearchOption = () => {
                             mode="contained"
                             onPress={handleCitizenData}
                             style={styles.button_signup}
-                            buttonColor='#516E9E'
+                            buttonColor='rgba(13, 100, 58, 0.86)'
                             textColor='white'
                             labelStyle={styles.button_label}
                         >
@@ -132,7 +129,7 @@ const SearchOption = () => {
                     </View>
                 </View>
             </ScrollView>
-        </ImageBackground>
+        
     );
 }
 
