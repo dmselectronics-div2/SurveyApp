@@ -138,6 +138,25 @@ const initializeUserDb = async (database: SQLite.SQLiteDatabase) => {
       console.error('Error setting up failed_submissions table:', error.message);
     }
 
+    // Create bird_drafts table
+    try {
+      await executeSqlAsync(database, `
+        CREATE TABLE IF NOT EXISTS bird_drafts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          draftId TEXT UNIQUE,
+          habitatType TEXT,
+          pointTag TEXT,
+          date TEXT,
+          lastModified TEXT,
+          currentStep INTEGER DEFAULT 0,
+          formData TEXT
+        )
+      `);
+      console.log('bird_drafts table ready');
+    } catch (error: any) {
+      console.error('Error setting up bird_drafts table:', error.message);
+    }
+
     initialized = true;
   } catch (error) {
     console.error('Error initializing user_db:', error);

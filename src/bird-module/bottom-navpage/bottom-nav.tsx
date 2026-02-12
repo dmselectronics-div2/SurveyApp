@@ -32,9 +32,9 @@ const BottomNav = () => {
     },
     {
       key: 'recents',
-      title: 'Collection',
-      focusedIcon: 'folder-multiple',
-      unfocusedIcon: 'folder-multiple-outline',
+      title: 'Drafts',
+      focusedIcon: 'file-document-edit',
+      unfocusedIcon: 'file-document-edit-outline',
     },
     {
       key: 'notifications',

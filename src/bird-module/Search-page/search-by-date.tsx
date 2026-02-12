@@ -22,7 +22,7 @@ const themes = {
     colors: {
       background: '#ffffff',
       text: '#000000',
-      button: '#516E9E',
+      button: '#086411a7',
       placeholder: 'gray',
     },
   },
