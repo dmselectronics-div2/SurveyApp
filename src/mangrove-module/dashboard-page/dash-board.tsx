@@ -13,7 +13,7 @@ import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {BarChart, PieChart} from 'react-native-chart-kit';
 
 const screenWidth = Dimensions.get('window').width;
-const GREEN = '#2e7d32';
+const GREEN = '#2e7d32d7';
 
 const ByvalviDashboard = () => {
   const navigation = useNavigation<any>();
