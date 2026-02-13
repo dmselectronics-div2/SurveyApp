@@ -29,7 +29,7 @@ const ModuleSelector: React.FC = () => {
       title: 'Byvalvi Survey',
       description: 'Bivalve & gastropod observation and monitoring data collection',
       icon: 'snail',
-      screen: 'MangroveNew',
+      screen: 'ByvalviBottomNav',
     },
     {
       id: 'phenology',
@@ -102,6 +102,7 @@ const ModuleSelector: React.FC = () => {
               </View>
             </TouchableOpacity>
           ))}
+
         </ScrollView>
 
       </View>

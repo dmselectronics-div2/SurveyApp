@@ -4,28 +4,23 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Appearance,
   TouchableOpacity,
 } from 'react-native';
 import {Avatar} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {getDatabase} from '../database/db';
 import BarChartDummy from './bar-charts/bar-chart-dummy';
 import MiniBarChartDummy from './bar-charts/mini-bar-chart-dummy';
 import MiniBarChartDummy1 from './bar-charts/mini-bar-chart-dummy1';
 
+const GREEN = '#2e7d32';
+
 const MainDashboardPage = () => {
-  const [theme, setTheme] = useState(Appearance.getColorScheme());
   const [avatarUri, setAvatarUri] = useState('');
   const [userName, setUserName] = useState('');
   const navigation = useNavigation<any>();
-
-  useEffect(() => {
-    const subscription = Appearance.addChangeListener(({colorScheme}) => {
-      setTheme(colorScheme);
-    });
-    return () => subscription.remove();
-  }, []);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -60,27 +55,18 @@ const MainDashboardPage = () => {
     loadUserData();
   }, []);
 
-  const isDarkMode = theme === 'dark';
-
   return (
-    <ScrollView
-      style={[
-        styles.container,
-        {backgroundColor: isDarkMode ? '#121212' : '#fff'},
-      ]}>
-      {/* Header with avatar */}
-      <View
-        style={[
-          styles.header,
-          {backgroundColor: isDarkMode ? '#1e1e1e' : '#fff'},
-        ]}>
-        <Text
-          style={[
-            styles.headerTitle,
-            {color: isDarkMode ? '#fff' : '#333'},
-          ]}>
-          Birds Dashboard
-        </Text>
+    <ScrollView style={styles.page} contentContainerStyle={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('ModuleSelector')}
+            style={styles.backButton}>
+            <Icon name="arrow-back" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Birds Dashboard</Text>
+        </View>
         <TouchableOpacity onPress={() => navigation.navigate('ProfileMenu')}>
           <Avatar.Image
             size={40}
@@ -93,68 +79,56 @@ const MainDashboardPage = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Welcome card */}
-      <View style={styles.title_container}>
-        <View
-          style={[
-            styles.whiteBox,
-            {
-              backgroundColor: isDarkMode
-                ? 'rgb(2, 93, 32)'
-                : 'rgba(84, 200, 86, 0.7)',
-            },
-          ]}>
-          <Text
-            style={[styles.main_text, {color: isDarkMode ? 'white' : 'black'}]}>
-            {userName ? `Welcome, ${userName}` : 'Welcome to the Bird Survey Module'}
-          </Text>
-          <Text
-            style={{
-              fontSize: 16,
-              color: isDarkMode ? '#ccc' : '#59c959',
-              marginTop: 20,
-              textAlign: 'center',
-            }}>
-            Start collecting bird observation data
-          </Text>
+      {/* Welcome Card */}
+      <View style={styles.welcomeCard}>
+        <View style={styles.iconContainer}>
+          <MCIcon name="bird" size={48} color={GREEN} />
         </View>
-      </View>
-
-      {/* Charts Section */}
-      <View style={styles.chartSectionTitle}>
-        <Text style={[styles.sectionTitle, {color: isDarkMode ? '#fff' : '#333'}]}>
-          📊 Bird Survey Analytics
+        <Text style={styles.title}>
+          {userName
+            ? `Welcome, ${userName}`
+            : 'Welcome to the Bird Survey Module'}
+        </Text>
+        <Text style={styles.subtitle}>
+          Start collecting bird observation data
         </Text>
       </View>
 
+      {/* Analytics Section */}
+      <Text style={styles.sectionTitle}>Bird Survey Analytics</Text>
+
       {/* Main Bar Chart */}
-      <View style={[styles.chartWrapper, {backgroundColor: isDarkMode ? '#1e1e1e' : '#fff'}]}>
+      <View style={styles.chartCard}>
         <BarChartDummy />
       </View>
 
-      {/* Mini Charts Container */}
-      <View style={styles.miniChartsContainer}>
-        <View style={[styles.miniChartWrapper, {backgroundColor: isDarkMode ? '#1e1e1e' : '#fff'}]}>
+      {/* Mini Charts */}
+      <View style={styles.miniChartsRow}>
+        <View style={[styles.chartCard, styles.miniChartCard]}>
           <MiniBarChartDummy title="Statistical Summary" />
         </View>
-        <View style={[styles.miniChartWrapper, {backgroundColor: isDarkMode ? '#1e1e1e' : '#fff'}]}>
+        <View style={[styles.chartCard, styles.miniChartCard]}>
           <MiniBarChartDummy1 title="Sex Distribution" />
         </View>
       </View>
 
       {/* Summary Statistics */}
-      <View style={styles.summaryContainer}>
+      <Text style={styles.sectionTitle}>Summary</Text>
+      <View style={styles.summaryRow}>
         <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Total Observations</Text>
-          <Text style={[styles.statValue, {color: '#4A7856'}]}>245</Text>
+          <MCIcon name="eye-outline" size={24} color={GREEN} />
+          <Text style={styles.statValue}>245</Text>
+          <Text style={styles.statLabel}>Observations</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Species Recorded</Text>
-          <Text style={[styles.statValue, {color: '#1976D2'}]}>6</Text>
+          <MCIcon name="feather" size={24} color={GREEN} />
+          <Text style={styles.statValue}>6</Text>
+          <Text style={styles.statLabel}>Species</Text>
         </View>
         <View style={styles.statCard}>
+          <MCIcon name="chart-bar" size={24} color={GREEN} />
+          <Text style={styles.statValue}>37.5</Text>
           <Text style={styles.statLabel}>Avg. Count</Text>
-          <Text style={[styles.statValue, {color: '#D32F2F'}]}>37.5</Text>
         </View>
       </View>
     </ScrollView>
@@ -162,92 +136,116 @@ const MainDashboardPage = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  page: {
     flex: 1,
+    backgroundColor: '#f4f7f5',
+  },
+  container: {
+    padding: 16,
+    paddingBottom: 40,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 15,
-    paddingBottom: 10,
+    marginBottom: 18,
+  },
+  backButton: {
+    marginRight: 10,
+    padding: 4,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    fontFamily: 'InriaSerif-Bold',
+    color: '#333',
   },
-  title_container: {
-    flex: 1,
-    fontFamily: 'Inter-Bold',
-    marginTop: '2%',
-    marginBottom: '5%',
-  },
-  main_text: {
-    fontSize: 22,
-    fontFamily: 'InriaSerif-Bold',
-    marginTop: 10,
-  },
-  whiteBox: {
-    justifyContent: 'flex-start',
+  welcomeCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 22,
+    marginBottom: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
     alignItems: 'center',
-    height: 200,
-    marginHorizontal: 0,
-    marginTop: 10,
   },
-  chartSectionTitle: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    marginTop: 10,
+  iconContainer: {
+    width: 85,
+    height: 85,
+    borderRadius: 42,
+    backgroundColor: '#e8f5e9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  sectionTitle: {
+  title: {
     fontSize: 18,
     fontWeight: 'bold',
-    fontFamily: 'InriaSerif-Bold',
+    color: '#1b5e20',
+    textAlign: 'center',
+    marginBottom: 6,
   },
-  chartWrapper: {
-    marginVertical: 10,
-    borderRadius: 12,
-    overflow: 'hidden',
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
   },
-  miniChartsContainer: {
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: GREEN,
+    marginBottom: 12,
+  },
+  chartCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+  },
+  miniChartsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 5,
-    marginVertical: 10,
+    marginBottom: 6,
   },
-  miniChartWrapper: {
+  miniChartCard: {
     flex: 1,
-    marginHorizontal: 5,
-    borderRadius: 12,
-    overflow: 'hidden',
+    marginHorizontal: 4,
+    padding: 8,
   },
-  summaryContainer: {
+  summaryRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 10,
-    marginVertical: 20,
-    marginBottom: 30,
+    justifyContent: 'space-between',
   },
   statCard: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 4,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
     alignItems: 'center',
-    paddingVertical: 15,
-    paddingHorizontal: 12,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 10,
-    minWidth: 100,
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1b5e20',
+    marginTop: 8,
   },
   statLabel: {
     fontSize: 12,
     color: '#666',
-    marginBottom: 8,
-    fontFamily: 'Inter-Bold',
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    fontFamily: 'InriaSerif-Bold',
+    marginTop: 4,
   },
 });
 

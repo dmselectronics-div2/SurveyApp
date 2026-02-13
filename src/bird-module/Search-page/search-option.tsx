@@ -1,205 +1,165 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform, ImageBackground } from 'react-native';
-import { Button } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
-import { useRoute } from '@react-navigation/native';
+import React, {useState} from 'react';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import PureSearchPage from './search-by-date';
 import SearchPage from './search-page';
 import SearchCount from './search-count';
 import CitySearchPage from './search-citizen';
 
+const GREEN = '#2e7d32';
+const GREEN_LIGHT = '#e8f5e9';
 
-const theme = {
-    colors: {
-        primary: '#227729',
-        text: 'red',
-        placeholder: 'white',
-        surface: 'rgba(217, 217, 217, 0.7)',
-    },
-};
+const filterOptions = [
+  {
+    key: 'date',
+    title: 'Date Filter',
+    subtitle: 'Search records by date range',
+    icon: 'calendar-search',
+  },
+  {
+    key: 'point',
+    title: 'Date & Point Filter',
+    subtitle: 'Filter by date and survey point',
+    icon: 'map-marker-radius',
+  },
+  {
+    key: 'count',
+    title: 'Count Filter',
+    subtitle: 'Search by bird observation count',
+    icon: 'counter',
+  },
+
+];
 
 const SearchOption = () => {
-    const route = useRoute();
-    // const { rowData } = route.params;
-    const navigation = useNavigation();
-    const [selectedArea, setSelectedArea] = useState("Select your GPS location");
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [showPointFilter, setShowPointFilter] = useState(false);
+  const [showBirdCount, setShowBirdCount] = useState(false);
+  const [showCitizen, setShowCitizen] = useState(false);
 
-    const [showDateFilter, setShowDateFilter] = useState(false);
-    const [showPointFilter, setShowPointFilter] = useState(false);
-    const [showBirdCount, setShowBirdCount] = useState(false);
-    const [showCitizen, setShowCitizen] = useState(false);
-    console.log('Search Option Page');
-
-    const handlePoint = () => {
-        // console.log('Row data:', rowData);
-        // navigation.navigate('SearchPage');
-        setShowPointFilter(true);
-    };
-    const handleCitizenData = () => {
-        // console.log('Row data:', rowData);
-        // navigation.navigate('SearchPage');
-        setShowCitizen(true);
-    };
-
-    const handleDate = () => {
-        // console.log('Row data:', rowData);
-        // navigation.navigate('PureSearchPage', );
+  const handlePress = (key: string) => {
+    switch (key) {
+      case 'date':
         setShowDateFilter(true);
-    };
-    const handleCount = () => {
-        // console.log('Row data:', rowData);
-        // navigation.navigate('SearchCount', );
+        break;
+      case 'point':
+        setShowPointFilter(true);
+        break;
+      case 'count':
         setShowBirdCount(true);
-    };
-
-    if (showDateFilter) {
-        return (
-            <PureSearchPage setShowDateFilter={setShowDateFilter} />
-        );
+        break;
+      case 'citizen':
+        setShowCitizen(true);
+        break;
     }
+  };
 
-    if (showPointFilter) {
-        return (
-            <SearchPage setShowPointFilter={setShowPointFilter} />
-        );
-    }
+  if (showDateFilter) {
+    return <PureSearchPage setShowDateFilter={setShowDateFilter} />;
+  }
+  if (showPointFilter) {
+    return <SearchPage setShowPointFilter={setShowPointFilter} />;
+  }
+  if (showBirdCount) {
+    return <SearchCount setShowBirdCount={setShowBirdCount} />;
+  }
+  if (showCitizen) {
+    return <CitySearchPage setShowCitizen={setShowCitizen} />;
+  }
 
-    if (showBirdCount) {
-        return (
-            <SearchCount setShowBirdCount={setShowBirdCount} />
-        );
-    }
-    if (showCitizen) {
-        return (
-            < CitySearchPage setShowCitizen={setShowCitizen} />
-        );
-    }
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Search & Filter</Text>
+        <Text style={styles.subtitle}>
+          Select a filter to explore bird survey data
+        </Text>
+      </View>
 
-    return (
-        
-            <ScrollView style={styles.title_container}>
-                <View style={styles.whiteBox}>
-                    <View style={styles.text_container}>
-                        <Text style={styles.sub_text_bold}>Select the preferred search option </Text>
-                    </View>
-
-                    <View style={styles.buttonContainer}>
-                        <Button
-                            mode="contained"
-                            onPress={handleDate}
-                            style={styles.button_signup}
-                            buttonColor='rgba(13, 100, 58, 0.86)'
-                            textColor='white'
-                            labelStyle={styles.button_label}
-                        >
-                            Date Filter
-                        </Button>
-
-                        <Button
-                            mode="contained"
-                            onPress={handlePoint}
-                            style={styles.button_signup}
-                            buttonColor='rgba(13, 100, 58, 0.86)'
-                            textColor='white'
-                            labelStyle={styles.button_label}
-                        >
-                            Date & Point Filter
-                        </Button>
-
-                        <Button
-                            mode="contained"
-                            onPress={handleCount}
-                            style={styles.button_signup}
-                            buttonColor='rgba(13, 100, 58, 0.86)'
-                            textColor='white'
-                            labelStyle={styles.button_label}
-                        >
-                            Count Filter
-                        </Button>
-                        <Button
-                            mode="contained"
-                            onPress={handleCitizenData}
-                            style={styles.button_signup}
-                            buttonColor='rgba(13, 100, 58, 0.86)'
-                            textColor='white'
-                            labelStyle={styles.button_label}
-                        >
-                            Citizen Data
-                        </Button>
-                    </View>
-                </View>
-            </ScrollView>
-        
-    );
-}
+      {/* Filter Cards */}
+      {filterOptions.map(option => (
+        <TouchableOpacity
+          key={option.key}
+          style={styles.card}
+          activeOpacity={0.7}
+          onPress={() => handlePress(option.key)}>
+          <View style={styles.iconContainer}>
+            <Icon name={option.icon} size={24} color={GREEN} />
+          </View>
+          <View style={styles.cardTextContainer}>
+            <Text style={styles.cardTitle}>{option.title}</Text>
+            <Text style={styles.cardSubtitle}>{option.subtitle}</Text>
+          </View>
+          <Icon name="chevron-right" size={22} color="#bbb" />
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+};
 
 const styles = StyleSheet.create({
-    container: {
-        justifyContent: 'flex-end',
-        alignItems: 'flex-end',
-        width: '55%',
-        height: 142,
-        marginLeft: 'auto',
-        marginRight: 24,
-        marginTop: '60%',
-    },
-    title_container: {
-        flex: 1,
-        fontFamily: 'Inter-Bold',
-        marginTop: '20%',
-    },
-    main_text: {
-        fontSize: 40,
-        fontFamily: 'Inter-Bold',
-        color: 'black',
-        fontWeight: 'bold',
-        marginTop: 10,
-        textAlign: 'center',
-    },
-    sub_text: {
-        fontSize: 18,
-        fontFamily: 'Inter-regular',
-        color: '#000000',
-        textAlign: 'center',
-    },
-    sub_text_bold: {
-        fontSize: 20,
-        fontFamily: 'Inter-regular',
-        color: '#000000',
-        textAlign: 'center',
-        fontWeight: 'bold',
-        marginTop: 5,
-    },
-    text_container: {
-        marginTop: 5,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    whiteBox: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: 350,
-        backgroundColor: 'rgba(217, 217, 217, 0.7)',
-        marginLeft: 14,
-        marginRight: 14,
-        marginTop: 80,
-        borderRadius: 15,
-    },
-    backgroundImage: {
-        flex: 1,
-        resizeMode: 'cover',
-    },
-    buttonContainer: {
-        width: '90%',
-        marginTop: 20,
-    },
-    button_signup: {
-        width: '100%',
-        marginVertical: 10, // Adds equal spacing between buttons
-    },
-    button_label: {
-        fontSize: 18,
-    },
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 30,
+    paddingBottom: 40,
+  },
+  header: {
+    marginBottom: 28,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    fontFamily: 'InriaSerif-Bold',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#888',
+    marginTop: 4,
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: GREEN_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  cardTextContainer: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
+  cardSubtitle: {
+    fontSize: 13,
+    color: '#999',
+    marginTop: 2,
+  },
 });
 
 export default SearchOption;

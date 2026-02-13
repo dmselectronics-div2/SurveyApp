@@ -29,7 +29,7 @@ const CustomAlert: React.FC<CustomAlertProps> = ({ visible, onClose, message }) 
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.alertContainer}>
+         <View style={styles.alertContainer}>
           <Text style={styles.alertMessage}>{message}</Text>
           <FastImage
             style={styles.iconStyles}

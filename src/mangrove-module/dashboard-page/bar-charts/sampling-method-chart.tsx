@@ -1,22 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import { BarChart } from 'react-native-chart-kit';
+import React, {useState, useEffect} from 'react';
+import {View, Text, StyleSheet} from 'react-native';
+import {BarChart} from 'react-native-chart-kit';
 
-const CHART_WIDTH = (Dimensions.get('window').width - 64) / 2;
-
-const MiniBarChartDummy = ({ title }) => {
+const MiniSamplingChart = ({title}) => {
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Simulate loading with dummy data
     setTimeout(() => {
-      // Dummy data for mean and median
       const dummyData = {
-        labels: ['Mean', 'Median'],
+        labels: ['Quadrat', 'Transect', 'Grab', 'Core'],
         datasets: [
           {
-            data: [37.5, 38.0],
+            data: [38, 22, 15, 20],
             color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`,
           },
         ],
@@ -34,8 +31,11 @@ const MiniBarChartDummy = ({ title }) => {
     );
   }
 
-  const hasRealData = chartData && chartData.datasets && chartData.datasets[0] &&
-    chartData.datasets[0].data.some((v) => v > 0);
+  const hasRealData =
+    chartData &&
+    chartData.datasets &&
+    chartData.datasets[0] &&
+    chartData.datasets[0].data.some(v => v > 0);
 
   return (
     <View style={styles.chartBox}>
@@ -49,7 +49,7 @@ const MiniBarChartDummy = ({ title }) => {
               borderRadius: 8,
             }}
             data={chartData}
-            width={CHART_WIDTH}
+            width={290}
             height={200}
             fromZero
             yAxisLabel=""
@@ -57,7 +57,7 @@ const MiniBarChartDummy = ({ title }) => {
               backgroundColor: '#ffffff',
               backgroundGradientFrom: '#ffffff',
               backgroundGradientTo: '#ffffff',
-              decimalPlaces: 2,
+              decimalPlaces: 0,
               color: (opacity = 1) => `rgba(74, 120, 86, ${opacity})`,
               labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
               strokeWidth: 1,
@@ -82,19 +82,25 @@ const styles = StyleSheet.create({
   chartBox: {
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 4,
+    backgroundColor: 'rgba(52, 168, 83, 0.2)',
+    borderRadius: 12,
+    padding: 15,
+    marginHorizontal: 10,
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(52, 168, 83, 0.4)',
   },
   chartTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#2e7d32',
+    color: '#333',
     textAlign: 'center',
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#999',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   chartContainer: {
     flexDirection: 'row',
@@ -104,7 +110,11 @@ const styles = StyleSheet.create({
   loadingContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    height: 200,
+    height: 220,
+    backgroundColor: 'rgba(52, 168, 83, 0.1)',
+    borderRadius: 10,
+    marginHorizontal: 10,
+    marginVertical: 10,
   },
   loadingText: {
     fontSize: 12,
@@ -116,4 +126,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MiniBarChartDummy;
+export default MiniSamplingChart;

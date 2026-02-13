@@ -239,9 +239,6 @@ const GastropodBivalveForm = () => {
   // State for basic information
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [teamName, setTeamName] = useState('');
-  const [teamMembers, setTeamMembers] = useState<string[]>([]);
-  const [newMemberName, setNewMemberName] = useState('');
   const [timeOfDataCollection, setTimeOfDataCollection] = useState(null);
   const [isTimeOfDataFocused, setIsTimeOfDataFocused] = useState(false);
 
@@ -279,11 +276,7 @@ const GastropodBivalveForm = () => {
   // Quadrat information (for Quadrat sampling)
   const [quadratId, setQuadratId] = useState('');
   const [quadratObservedBy, setQuadratObservedBy] = useState('');
-  const [isObservedByFocused, setIsObservedByFocused] = useState(false);
-  const [customObservedBy, setCustomObservedBy] = useState('');
   const [dataEnteredBy, setDataEnteredBy] = useState('');
-  const [isDataEnteredByFocused, setIsDataEnteredByFocused] = useState(false);
-  const [customDataEnteredBy, setCustomDataEnteredBy] = useState('');
   const [quadratSize, setQuadratSize] = useState('');
   const [quadratLocation, setQuadratLocation] = useState(null);
   const [isQuadratLocationFocused, setIsQuadratLocationFocused] = useState(false);
@@ -389,13 +382,6 @@ const GastropodBivalveForm = () => {
 
       // Populate basic information
       if (data.select_date) setDate(new Date(data.select_date));
-      if (data.teamMembers && data.teamMembers !== 'N/A') {
-        if (Array.isArray(data.teamMembers)) {
-          setTeamMembers(data.teamMembers);
-        } else if (typeof data.teamMembers === 'string') {
-          setTeamMembers(data.teamMembers.split(',').map((m: string) => m.trim()).filter(Boolean));
-        }
-      }
       if (data.time_of_data_collection && data.time_of_data_collection !== 'N/A') setTimeOfDataCollection(data.time_of_data_collection);
 
       // Parse time strings to Date objects
@@ -605,26 +591,6 @@ const GastropodBivalveForm = () => {
     }
   };
 
-  // Add team member to the list
-  const addTeamMember = () => {
-    if (newMemberName.trim() && !teamMembers.includes(newMemberName.trim())) {
-      setTeamMembers([...teamMembers, newMemberName.trim()]);
-      setNewMemberName('');
-    }
-  };
-
-  // Remove team member from the list
-  const removeTeamMember = (index: number) => {
-    setTeamMembers(teamMembers.filter((_, i) => i !== index));
-  };
-
-  // Get team member options for dropdowns (including "Other" option)
-  const getTeamMemberOptions = () => {
-    const options = teamMembers.map(member => ({ label: member, value: member }));
-    options.push({ label: 'Other', value: 'Other' });
-    return options;
-  };
-
   // Add text to notes
   const addText = () => {
     if (text.trim()) {
@@ -794,7 +760,6 @@ const GastropodBivalveForm = () => {
 
     // Validate required fields
     if (!date) newErrors.date = 'Date is required';
-    if (!teamMembers) newErrors.teamMembers = 'Team members are required';
     if (!timeOfDataCollection) newErrors.timeOfDataCollection = 'Time of data collection is required';
     if (!location) newErrors.location = 'Location is required';
     if (location === 'Other' && !customLocation) newErrors.customLocation = 'Custom location is required';
@@ -936,7 +901,6 @@ const GastropodBivalveForm = () => {
         // Basic information - with exact field names from backend schema
         survey_no: surveyNo,
         select_date: date.toISOString(),
-        teamMembers: convertEmptyToNA(teamMembers),
         time_of_data_collection: convertEmptyToNA(timeOfDataCollection),
         nearest_high_tide_time: formatTime(nearestHighTideTime),
         time_of_sampling: formatTime(timeOfSampling),
@@ -1199,7 +1163,6 @@ const GastropodBivalveForm = () => {
 
   const resetForm = () => {
     setDate(new Date());
-    setTeamMembers('');
     setTimeOfDataCollection(null);
     setNearestHighTideTime(new Date());
     setTimeOfSampling(new Date());
@@ -1349,53 +1312,6 @@ const GastropodBivalveForm = () => {
                   onConfirm={handleDateConfirm}
                   onCancel={handleDateCancel}
                 />
-              </View>
-
-              {/* Team Name */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Team Name</Text>
-                <TextInput
-                  style={[styles.textInput, errors.teamName && styles.inputError]}
-                  value={teamName}
-                  onChangeText={setTeamName}
-                  placeholder="Enter team name"
-                  activeUnderlineColor="#4A7856"
-                  underlineColor="#DDD"
-                  selectionColor="#4A7856"
-                />
-              </View>
-
-              {/* Team Members */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Team Members</Text>
-                <View style={styles.teamMemberInputRow}>
-                  <TextInput
-                    style={[styles.textInput, { flex: 1, marginRight: 10 }]}
-                    value={newMemberName}
-                    onChangeText={setNewMemberName}
-                    placeholder="Enter member name"
-                    activeUnderlineColor="#4A7856"
-                    underlineColor="#DDD"
-                    selectionColor="#4A7856"
-                  />
-                  <TouchableOpacity style={styles.addMemberButton} onPress={addTeamMember}>
-                    <Icon name="plus" size={20} color="#FFFFFF" />
-                  </TouchableOpacity>
-                </View>
-                {/* Display team members list */}
-                {teamMembers.length > 0 && (
-                  <View style={styles.teamMembersList}>
-                    {teamMembers.map((member, index) => (
-                      <View key={index} style={styles.teamMemberChip}>
-                        <Text style={styles.teamMemberChipText}>{member}</Text>
-                        <TouchableOpacity onPress={() => removeTeamMember(index)}>
-                          <Icon name="times" size={16} color="#FFFFFF" />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
-                )}
-                {errors.teamMembers && <Text style={styles.errorText}>{errors.teamMembers}</Text>}
               </View>
 
               {/* Time of Data Collection */}
@@ -1652,82 +1568,30 @@ const GastropodBivalveForm = () => {
                 {/* Quadrat Observed By */}
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Quadrat Observed By</Text>
-                  <Dropdown
-                    style={[styles.dropdown, isObservedByFocused && styles.dropdownFocused, errors.quadratObservedBy && styles.inputError]}
-                    placeholderStyle={styles.placeholderStyle}
-                    selectedTextStyle={styles.selectedTextStyle}
-                    inputSearchStyle={styles.inputSearchStyle}
-                    iconStyle={styles.iconStyle}
-                    itemTextStyle={styles.dropdownItemStyle}
-                    containerStyle={styles.dropdownContainerStyle}
-                    data={getTeamMemberOptions()}
-                    maxHeight={300}
-                    labelField="label"
-                    valueField="value"
-                    placeholder="Select observer"
+                  <TextInput
+                    style={[styles.textInput, errors.quadratObservedBy && styles.inputError]}
                     value={quadratObservedBy}
-                    onFocus={() => setIsObservedByFocused(true)}
-                    onBlur={() => setIsObservedByFocused(false)}
-                    onChange={item => {
-                      setQuadratObservedBy(item.value);
-                      setIsObservedByFocused(false);
-                      if (item.value !== 'Other') {
-                        setCustomObservedBy('');
-                      }
-                    }}
+                    onChangeText={setQuadratObservedBy}
+                    placeholder="Enter observer name"
+                    activeUnderlineColor="#4A7856"
+                    underlineColor="#DDD"
+                    selectionColor="#4A7856"
                   />
-                  {quadratObservedBy === 'Other' && (
-                    <TextInput
-                      style={[styles.textInput, { marginTop: 10 }]}
-                      value={customObservedBy}
-                      onChangeText={setCustomObservedBy}
-                      placeholder="Enter observer name"
-                      activeUnderlineColor="#4A7856"
-                      underlineColor="#DDD"
-                      selectionColor="#4A7856"
-                    />
-                  )}
                   {errors.quadratObservedBy && <Text style={styles.errorText}>{errors.quadratObservedBy}</Text>}
                 </View>
 
                 {/* Data Entered By */}
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Data Entered By</Text>
-                  <Dropdown
-                    style={[styles.dropdown, isDataEnteredByFocused && styles.dropdownFocused, errors.dataEnteredBy && styles.inputError]}
-                    placeholderStyle={styles.placeholderStyle}
-                    selectedTextStyle={styles.selectedTextStyle}
-                    inputSearchStyle={styles.inputSearchStyle}
-                    iconStyle={styles.iconStyle}
-                    itemTextStyle={styles.dropdownItemStyle}
-                    containerStyle={styles.dropdownContainerStyle}
-                    data={getTeamMemberOptions()}
-                    maxHeight={300}
-                    labelField="label"
-                    valueField="value"
-                    placeholder="Select data entry person"
+                  <TextInput
+                    style={[styles.textInput, errors.dataEnteredBy && styles.inputError]}
                     value={dataEnteredBy}
-                    onFocus={() => setIsDataEnteredByFocused(true)}
-                    onBlur={() => setIsDataEnteredByFocused(false)}
-                    onChange={item => {
-                      setDataEnteredBy(item.value);
-                      setIsDataEnteredByFocused(false);
-                      if (item.value !== 'Other') {
-                        setCustomDataEnteredBy('');
-                      }
-                    }}
+                    onChangeText={setDataEnteredBy}
+                    placeholder="Enter data entry person"
+                    activeUnderlineColor="#4A7856"
+                    underlineColor="#DDD"
+                    selectionColor="#4A7856"
                   />
-                  {dataEnteredBy === 'Other' && (
-                    <TextInput
-                      style={[styles.textInput, { marginTop: 10 }]}
-                      value={customDataEnteredBy}
-                      onChangeText={setCustomDataEnteredBy}
-                      placeholder="Enter data entry person"
-                      activeUnderlineColor="#4A7856"
-                      underlineColor="#DDD"
-                      selectionColor="#4A7856"
-                    />
-                  )}
                   {errors.dataEnteredBy && <Text style={styles.errorText}>{errors.dataEnteredBy}</Text>}
                 </View>
 
@@ -3120,41 +2984,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#4A7856',
     fontFamily: 'Times New Roman',
-  },
-  // Team member styles
-  teamMemberInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  addMemberButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    backgroundColor: '#4A7856',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  teamMembersList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 10,
-    gap: 8,
-  },
-  teamMemberChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#4A7856',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  teamMemberChipText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontFamily: 'Times New Roman',
-    marginRight: 8,
   },
 });
 

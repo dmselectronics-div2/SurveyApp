@@ -40,9 +40,6 @@ android {
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
-    implementation 'com.facebook.react:react-native:+'
-
-    // Exclude Flipper integration if not used
     implementation('com.facebook.react:react-native:+') {
         exclude group: 'com.facebook.flipper'
     }

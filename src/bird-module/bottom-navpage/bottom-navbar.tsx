@@ -29,7 +29,7 @@ const NotificationsRoute = () => <SearchOption />;
 const TeamRoute = () => <TeamMembersPage />;
 const ProfilePageRoute = () => <ProfileMenu />;
 
-const BottomNavbar = ({ setTitle }) => {
+const BottomNavbar = ({ setTitle }: { setTitle?: (title: string) => void }) => {
   const navigation = useNavigation();
   const [index, setIndex] = useState(0);
 //   const [title, setTitle] = useState('Dashboard');
@@ -72,7 +72,7 @@ const BottomNavbar = ({ setTitle }) => {
     {
       key: 'team',
       title: 'Team',
-      topTitle: 'Team Members',
+      topTitle: 'Byvalvi Team Member Adding',
       focusedIcon: 'account-group',
       unfocusedIcon: 'account-group-outline',
     },
@@ -88,9 +88,9 @@ const BottomNavbar = ({ setTitle }) => {
   // Update the title based on the index
   useEffect(() => {
     if (showProfileMenu) {
-      setTitle('Profile Menu');
+      setTitle?.('Profile Menu');
     } else {
-      setTitle(routes[index].topTitle);
+      setTitle?.(routes[index].topTitle);
     }
   }, [index, routes, showProfileMenu]);
 
@@ -114,6 +114,7 @@ const BottomNavbar = ({ setTitle }) => {
     albums: AlbumsRoute,
     recents: RecentsRoute,
     notifications: NotificationsRoute,
+    team: TeamRoute,
   };
 
   const CurrentScene = scenes[routes[index].key as keyof typeof scenes];

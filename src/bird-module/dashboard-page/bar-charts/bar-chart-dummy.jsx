@@ -97,20 +97,16 @@ const styles = StyleSheet.create({
   chartContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 10,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    marginHorizontal: 10,
-    marginVertical: 10,
+    padding: 4,
   },
   titleContainers: {
     alignItems: 'center',
     marginBottom: 10,
   },
   chartTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#2e7d32',
   },
   chartSubtitle: {
     fontSize: 12,

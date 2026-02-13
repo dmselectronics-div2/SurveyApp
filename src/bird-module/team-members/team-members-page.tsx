@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useRef} from 'react';
 import {
   View,
   Text,
@@ -17,30 +17,43 @@ import {getDatabase} from '../database/db';
 
 const GREEN = '#2e7d32';
 
-const TeamMembersPage = () => {
+interface TeamMembersPageProps {
+  moduleType?: string;
+  readOnly?: boolean;
+}
+
+const TeamMembersPage = ({moduleType = 'bird', readOnly = false}: TeamMembersPageProps) => {
   const [teamMembers, setTeamMembers] = useState<string[]>([]);
   const [memberInput, setMemberInput] = useState('');
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [email, setEmail] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const emailRef = useRef('');
 
-  const retrieveEmail = async () => {
-    try {
-      const db = await getDatabase();
-      db.transaction((tx: any) => {
-        tx.executeSql('SELECT email FROM LoginData LIMIT 1', [], (_: any, results: any) => {
-          if (results.rows.length > 0) setEmail(results.rows.item(0).email);
+  const retrieveEmail = async (): Promise<string> => {
+    return new Promise((resolve) => {
+      getDatabase().then(db => {
+        db.transaction((tx: any) => {
+          tx.executeSql('SELECT email FROM LoginData LIMIT 1', [], (_: any, results: any) => {
+            if (results.rows.length > 0) {
+              const userEmail = results.rows.item(0).email;
+              setEmail(userEmail);
+              emailRef.current = userEmail;
+              resolve(userEmail);
+            } else {
+              resolve('');
+            }
+          });
         });
-      });
-    } catch (error) {
-      console.error('Error retrieving email:', error);
-    }
+      }).catch(() => resolve(''));
+    });
   };
 
-  const fetchTeamMembers = async () => {
-    if (!email) return;
+  const fetchTeamMembers = async (userEmail?: string) => {
+    const emailToUse = userEmail || emailRef.current || email;
+    if (!emailToUse) return;
     try {
-      const response = await axios.get(`${API_URL}/getTeamMembers`, {params: {email}});
+      const response = await axios.get(`${API_URL}/getTeamMembers`, {params: {email: emailToUse, moduleType}});
       if (response.data.teamMembers) setTeamMembers(response.data.teamMembers);
     } catch (error) {
       console.log('Could not fetch team members from server');
@@ -51,23 +64,24 @@ const TeamMembersPage = () => {
     try {
       await axios.post(`${API_URL}/saveOrUpdateTeamData`, {
         teamMembers: updatedMembers,
-        email,
+        email: emailRef.current || email,
+        moduleType,
       });
     } catch (error) {
       console.log('Team save (will sync later):', error);
     }
   };
 
+  // Fetch email and team members every time this screen gets focus
   useFocusEffect(
     useCallback(() => {
-      retrieveEmail();
-    }, []),
+      const loadData = async () => {
+        const userEmail = await retrieveEmail();
+        if (userEmail) fetchTeamMembers(userEmail);
+      };
+      loadData();
+    }, [moduleType]),
   );
-
-  // Fetch team members when email is ready
-  React.useEffect(() => {
-    if (email) fetchTeamMembers();
-  }, [email]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -142,39 +156,41 @@ const TeamMembersPage = () => {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
 
       {/* Add / Edit Input */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>
-          {editIndex !== null ? 'Edit Team Member' : 'Add Team Member'}
-        </Text>
-        <View style={styles.inputRow}>
-          <TextInput
-            mode="outlined"
-            placeholder="Enter member name"
-            value={memberInput}
-            onChangeText={setMemberInput}
-            style={styles.input}
-            outlineColor={GREEN}
-            activeOutlineColor={GREEN}
-            placeholderTextColor="#999"
-            textColor="#333"
-          />
-          {memberInput.length > 0 && (
-            <TouchableOpacity onPress={cancelEdit} style={styles.clearBtn}>
-              <Icon name="times-circle" size={20} color="#999" />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            onPress={editIndex !== null ? saveEdit : addMember}
-            style={styles.addBtn}>
-            <Icon name={editIndex !== null ? 'check' : 'plus'} size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
-        {editIndex !== null && (
-          <Text style={styles.editingHint}>
-            Editing: {teamMembers[editIndex]}
+      {!readOnly && (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>
+            {editIndex !== null ? 'Edit Team Member' : 'Add Team Member'}
           </Text>
-        )}
-      </View>
+          <View style={styles.inputRow}>
+            <TextInput
+              mode="outlined"
+              placeholder="Enter member name"
+              value={memberInput}
+              onChangeText={setMemberInput}
+              style={styles.input}
+              outlineColor={GREEN}
+              activeOutlineColor={GREEN}
+              placeholderTextColor="#999"
+              textColor="#333"
+            />
+            {memberInput.length > 0 && (
+              <TouchableOpacity onPress={cancelEdit} style={styles.clearBtn}>
+                <Icon name="times-circle" size={20} color="#999" />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={editIndex !== null ? saveEdit : addMember}
+              style={styles.addBtn}>
+              <Icon name={editIndex !== null ? 'check' : 'plus'} size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          {editIndex !== null && (
+            <Text style={styles.editingHint}>
+              Editing: {teamMembers[editIndex]}
+            </Text>
+          )}
+        </View>
+      )}
 
       {/* Team Members List */}
       <View style={styles.card}>
@@ -195,14 +211,16 @@ const TeamMembersPage = () => {
                 </View>
                 <Text style={styles.memberName}>{member}</Text>
               </View>
-              <View style={styles.memberActions}>
-                <TouchableOpacity onPress={() => startEdit(index)} style={styles.actionBtn}>
-                  <Icon name="edit" size={18} color={GREEN} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => deleteMember(index)} style={styles.actionBtn}>
-                  <Icon name="trash" size={18} color="#D32F2F" />
-                </TouchableOpacity>
-              </View>
+              {!readOnly && (
+                <View style={styles.memberActions}>
+                  <TouchableOpacity onPress={() => startEdit(index)} style={styles.actionBtn}>
+                    <Icon name="edit" size={18} color={GREEN} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => deleteMember(index)} style={styles.actionBtn}>
+                    <Icon name="trash" size={18} color="#D32F2F" />
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           ))
         ) : (

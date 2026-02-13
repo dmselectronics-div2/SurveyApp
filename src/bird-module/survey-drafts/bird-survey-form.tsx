@@ -561,8 +561,6 @@ const BirdSurveyForm = () => {
   const existingDraftId = route?.params?.draftId || null;
   const [currentStep, setCurrentStep] = useState(0);
   const [errors, setErrors] = useState<any>({});
-  const [email, setEmail] = useState('');
-
   // Step 1: Survey Point Details
   const [habitatType, setHabitatType] = useState<string | null>(null);
   const [point, setPoint] = useState<string | null>(null);
@@ -572,16 +570,12 @@ const BirdSurveyForm = () => {
   const [longitude, setLongitude] = useState('');
   const [radius, setRadius] = useState('');
 
-  // Team Members (part of step 1)
-  const [teamMemberInput, setTeamMemberInput] = useState('');
-  const [teamMembers, setTeamMembers] = useState<string[]>([]);
-  const [editTeamIndex, setEditTeamIndex] = useState<number | null>(null);
-
   // Step 2: Common Data
   const [date, setDate] = useState(new Date());
   const [dateText, setDateText] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [observers, setObservers] = useState('');
+  const [teamMembers, setTeamMembers] = useState<{label: string; value: string}[]>([]);
   const [selectedStartTime, setSelectedStartTime] = useState(new Date());
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [selectedEndTime, setSelectedEndTime] = useState(new Date());
@@ -609,17 +603,35 @@ const BirdSurveyForm = () => {
   useEffect(() => {
     initDatabase();
     requestLocationPermission();
-    retrieveEmail();
+    fetchTeamMembers();
     const subscription = NetInfo.addEventListener(state => {
       if (state.isConnected) retryFailedSubmissions();
     });
     return () => subscription();
   }, []);
 
-  // Fetch team members when email is ready
-  useEffect(() => {
-    if (email) fetchTeamMembers();
-  }, [email]);
+  const fetchTeamMembers = async () => {
+    try {
+      const db = await getDatabase();
+      db.transaction((tx: any) => {
+        tx.executeSql('SELECT email FROM LoginData LIMIT 1', [], async (_: any, results: any) => {
+          if (results.rows.length > 0) {
+            const userEmail = results.rows.item(0).email;
+            const response = await axios.get(`${API_URL}/getTeamMembers`, {
+              params: {email: userEmail, moduleType: 'bird'},
+            });
+            if (response.data.teamMembers) {
+              setTeamMembers(
+                response.data.teamMembers.map((name: string) => ({label: name, value: name})),
+              );
+            }
+          }
+        });
+      });
+    } catch (error) {
+      console.log('Could not fetch team members:', error);
+    }
+  };
 
   // Load draft data if navigated from Drafts page
   useEffect(() => {
@@ -631,7 +643,6 @@ const BirdSurveyForm = () => {
       if (draftData.latitude) setLatitude(draftData.latitude);
       if (draftData.longitude) setLongitude(draftData.longitude);
       if (draftData.radius) setRadius(draftData.radius);
-      if (draftData.teamMembers) setTeamMembers(draftData.teamMembers);
       if (draftData.dateText) setDateText(draftData.dateText);
       if (draftData.date) setDate(new Date(draftData.date));
       if (draftData.observers) setObservers(draftData.observers);
@@ -654,7 +665,7 @@ const BirdSurveyForm = () => {
   // ===== DRAFT HELPERS =====
   const collectFormState = () => ({
     habitatType, point, pointTag, descriptor,
-    latitude, longitude, radius, teamMembers,
+    latitude, longitude, radius,
     dateText, date: date.toISOString(),
     observers,
     startTime: selectedStartTime.toISOString(),
@@ -741,7 +752,7 @@ const BirdSurveyForm = () => {
             latitude TEXT, longitude TEXT, date TEXT, observers TEXT,
             startTime TEXT, endTime TEXT, weather TEXT, water TEXT,
             season TEXT, statusOfVegy TEXT, descriptor TEXT, radiusOfArea TEXT,
-            remark TEXT, imageUri TEXT, teamMembers TEXT
+            remark TEXT, imageUri TEXT
           );`, [], () => {}, (_: any, e: any) => console.log('Error:', e),
         );
         tx.executeSql(
@@ -772,28 +783,6 @@ const BirdSurveyForm = () => {
       });
     } catch (error) {
       console.error('DB init error:', error);
-    }
-  };
-
-  const retrieveEmail = async () => {
-    try {
-      const db = await getDatabase();
-      db.transaction((tx: any) => {
-        tx.executeSql('SELECT email FROM LoginData LIMIT 1', [], (_: any, results: any) => {
-          if (results.rows.length > 0) setEmail(results.rows.item(0).email);
-        });
-      });
-    } catch (error) {
-      console.error('Error retrieving email:', error);
-    }
-  };
-
-  const fetchTeamMembers = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/getTeamMembers`, {params: {email}});
-      if (response.data.teamMembers) setTeamMembers(response.data.teamMembers);
-    } catch (error) {
-      console.log('Could not fetch team members from server');
     }
   };
 
@@ -889,28 +878,6 @@ const BirdSurveyForm = () => {
     ]);
   };
 
-  // ===== TEAM MEMBERS =====
-  const addTeamMember = () => {
-    if (teamMemberInput.trim() && !teamMembers.includes(teamMemberInput.trim())) {
-      setTeamMembers([...teamMembers, teamMemberInput.trim()]);
-      setTeamMemberInput('');
-    } else if (teamMembers.includes(teamMemberInput.trim())) {
-      Alert.alert('Duplicate', 'This team member already exists.');
-    } else {
-      Alert.alert('Error', 'Please enter a valid name.');
-    }
-  };
-
-  const saveTeamMemberEdit = () => {
-    if (editTeamIndex !== null) {
-      const updated = [...teamMembers];
-      updated[editTeamIndex] = teamMemberInput.trim();
-      setTeamMembers(updated);
-      setTeamMemberInput('');
-      setEditTeamIndex(null);
-    }
-  };
-
   // ===== BIRD OBSERVATIONS =====
   const addBirdObservation = () => setBirdDataArray(prev => [...prev, createEmptyBirdObservation()]);
 
@@ -931,7 +898,6 @@ const BirdSurveyForm = () => {
   const validateStep1 = () => {
     const e: any = {};
     if (!habitatType) e.habitatType = 'Habitat Type is required';
-    if (teamMembers.length === 0) e.teamMembers = 'Add at least one team member';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -958,7 +924,6 @@ const BirdSurveyForm = () => {
   // ===== STEP NAVIGATION =====
   const handleNext = () => {
     if (currentStep === 0 && validateStep1()) {
-      saveTeamData();
       setCurrentStep(1);
       setErrors({});
     } else if (currentStep === 1 && validateStep2()) {
@@ -975,21 +940,9 @@ const BirdSurveyForm = () => {
     else navigation.navigate('BirdBottomNav');
   };
 
-  const saveTeamData = async () => {
-    try {
-      const netState = await NetInfo.fetch();
-      if (netState.isConnected) {
-        await axios.post(`${API_URL}/saveOrUpdateTeamData`, {
-          surveyPoint: [habitatType, point, pointTag],
-          teamMembers, email,
-        });
-      }
-    } catch (error) { console.log('Team save (will sync later):', error); }
-  };
-
   // ===== SUBMIT =====
   const handleSubmit = async () => {
-    const step1Valid = habitatType && teamMembers.length > 0;
+    const step1Valid = !!habitatType;
     const step2Valid = dateText && observers && selectedWeatherString;
     const step3Valid = birdDataArray.length > 0 && birdDataArray.every((bird: any) => bird.species && bird.count);
 
@@ -1028,7 +981,7 @@ const BirdSurveyForm = () => {
       water: selectedWaterString || '',
       season: paddySeason || '', statusOfVegy: vegetationStatus || '',
       descriptor, radiusOfArea: radius,
-      remark: '', imageUri: imageUri || '', teamMembers,
+      remark: '', imageUri: imageUri || '',
       birdObservations: birdDataArray.map((bird: any) => ({
         uniqueId, species: bird.species || '', count: bird.count || '',
         maturity: bird.maturity || '', sex: bird.sex || '',
@@ -1075,15 +1028,15 @@ const BirdSurveyForm = () => {
               `INSERT INTO bird_survey (
                 uniqueId, habitatType, point, pointTag, latitude, longitude,
                 date, observers, startTime, endTime, weather, water, season,
-                statusOfVegy, descriptor, radiusOfArea, remark, imageUri, teamMembers
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+                statusOfVegy, descriptor, radiusOfArea, remark, imageUri
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
               [
                 formData.uniqueId, formData.habitatType || '',
                 formData.point || '', formData.pointTag || '', formData.latitude || '', formData.longitude || '',
                 formData.date || '', formData.observers || '', formData.startTime || '', formData.endTime || '',
                 formData.weather || '', formData.water || '', formData.season || '',
                 formData.statusOfVegy || '', formData.descriptor || '', formData.radiusOfArea || '',
-                formData.remark || '', formData.imageUri || '', JSON.stringify(formData.teamMembers || []),
+                formData.remark || '', formData.imageUri || '',
               ],
             );
             // Insert bird observations
@@ -1131,7 +1084,7 @@ const BirdSurveyForm = () => {
   };
 
   // ========================================
-  // RENDER STEP 1: Survey Point Details + Team Members
+  // RENDER STEP 1: Survey Point Details
   // ========================================
   const renderStepOne = () => (
     <View>
@@ -1182,77 +1135,7 @@ const BirdSurveyForm = () => {
           keyboardType="numeric" outlineStyle={styles.inputOutline} style={styles.formInput} textColor="#333" />
       </View>
 
-      {/* Team Members */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Team Members</Text>
-        <View style={styles.teamInputRow}>
-          <TextInput 
-            mode="outlined" 
-            placeholder="Enter Team Member" 
-            value={teamMemberInput}
-            onChangeText={setTeamMemberInput} 
-            style={styles.teamInput}
-            outlineColor={GREEN} 
-            activeOutlineColor={GREEN} 
-            placeholderTextColor="#999"
-            textColor="#333"
-          />
-          {teamMemberInput.length > 0 && (
-            <TouchableOpacity 
-              onPress={() => {
-                setTeamMemberInput('');
-                setEditTeamIndex(null);
-              }} 
-              style={styles.teamClearButton}>
-              <Icon name="times-circle" size={20} color="#999" />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity 
-            onPress={editTeamIndex !== null ? saveTeamMemberEdit : addTeamMember} 
-            style={styles.teamAddButton}>
-            <Icon name={editTeamIndex !== null ? 'check' : 'plus'} size={20} color="white" />
-          </TouchableOpacity>
-        </View>
-        {editTeamIndex !== null && (
-          <Text style={styles.editingHint}>
-            Editing: {teamMembers[editTeamIndex]}
-          </Text>
-        )}
-        {errors.teamMembers && <Text style={styles.errorText}>{errors.teamMembers}</Text>}
-        <View style={styles.teamList}>
-          {teamMembers.length > 0 ? teamMembers.map((member, index) => (
-            <View 
-              key={index} 
-              style={[
-                styles.teamItem,
-                editTeamIndex === index && styles.teamItemEditing
-              ]}>
-              <Text style={styles.teamItemText}>{member}</Text>
-              <View style={styles.teamActions}>
-                <TouchableOpacity 
-                  onPress={() => { 
-                    setTeamMemberInput(member); 
-                    setEditTeamIndex(index); 
-                  }} 
-                  style={styles.teamActionBtn}>
-                  <Icon name="edit" size={18} color={GREEN} />
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  onPress={() => {
-                    if (editTeamIndex === index) {
-                      setEditTeamIndex(null);
-                      setTeamMemberInput('');
-                    }
-                    setTeamMembers(teamMembers.filter((_, i) => i !== index));
-                  }} 
-                  style={styles.teamActionBtn}>
-                  <Icon name="trash" size={18} color="#D32F2F" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          )) : <Text style={styles.noDataText}>No team members added yet.</Text>}
-        </View>
-
         <Button mode="contained" onPress={handleNext} style={styles.nextButton} buttonColor={GREEN} textColor="white" labelStyle={styles.buttonLabel}>
           Go To Next Step
         </Button>
@@ -1280,14 +1163,14 @@ const BirdSurveyForm = () => {
         {errors.date && <Text style={styles.errorText}>{errors.date}</Text>}
 
         <Dropdown
-          style={[styles.formDropdown, focusStates.observer && styles.dropdownFocused]}
+          style={[styles.formDropdown, focusStates.observers && styles.dropdownFocused]}
           placeholderStyle={styles.placeholderStyle} selectedTextStyle={styles.selectedTextStyle}
           inputSearchStyle={styles.inputSearchStyle} iconStyle={styles.iconStyle}
-          itemTextStyle={{color: '#333'}} data={teamMembers.map(m => ({label: m, value: m}))}
-          search maxHeight={300} labelField="label" valueField="value"
-          placeholder="Select Observer" searchPlaceholder="Search..." value={observers}
-          onFocus={() => setFocus('observer', true)} onBlur={() => setFocus('observer', false)}
-          onChange={item => { setObservers(item.value); setFocus('observer', false); }}
+          itemTextStyle={{color: '#333'}} data={teamMembers} search maxHeight={300}
+          labelField="label" valueField="value" placeholder="Select Observer"
+          searchPlaceholder="Search observer..." value={observers}
+          onFocus={() => setFocus('observers', true)} onBlur={() => setFocus('observers', false)}
+          onChange={item => { setObservers(item.value); setFocus('observers', false); }}
         />
         {errors.observers && <Text style={styles.errorText}>{errors.observers}</Text>}
 
@@ -1830,72 +1713,6 @@ const styles = StyleSheet.create({
   buttonLabel: {
     fontSize: 16,
     fontWeight: '600',
-  },
-  // Team Members
-  teamInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-    position: 'relative',
-  },
-  teamInput: {
-    flex: 1,
-    height: 50,
-    backgroundColor: 'white',
-    marginRight: 10,
-  },
-  teamClearButton: {
-    position: 'absolute',
-    right: 70,
-    padding: 5,
-    zIndex: 1,
-  },
-  teamAddButton: {
-    backgroundColor: GREEN,
-    padding: 12,
-    borderRadius: 8,
-  },
-  editingHint: {
-    fontSize: 12,
-    color: GREEN,
-    fontStyle: 'italic',
-    marginTop: -10,
-    marginBottom: 10,
-  },
-  teamList: {
-    width: '100%',
-  },
-  teamItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  teamItemEditing: {
-    backgroundColor: '#FFF9C4',
-    borderLeftWidth: 3,
-    borderLeftColor: GREEN,
-    paddingLeft: 10,
-  },
-  teamItemText: {
-    fontSize: 16,
-    color: '#333',
-    flex: 1,
-  },
-  teamActions: {
-    flexDirection: 'row',
-  },
-  teamActionBtn: {
-    marginLeft: 10,
-    padding: 5,
-  },
-  noDataText: {
-    fontSize: 14,
-    color: '#888',
-    textAlign: 'center',
-    marginTop: 10,
   },
   // Bird Section
   addBirdButton: {

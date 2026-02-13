@@ -1,261 +1,320 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Platform,
   Alert,
-  Appearance,
+  Platform,
+  ActivityIndicator,
 } from 'react-native';
-import { Button, IconButton } from 'react-native-paper';
-import { Dropdown } from 'react-native-element-dropdown';
+import {IconButton} from 'react-native-paper';
+import {Dropdown} from 'react-native-element-dropdown';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import Icon from 'react-native-vector-icons/FontAwesome';
-import MyDataTable from '../data-table/display-table';
-import SelectEditMode from '../Edit-Survey/Edit-permition';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import axios from 'axios';
+import {API_URL} from '../../config';
 
-const themes = {
-  light: {
-    colors: {
-      background: '#ffffff',
-      card: '#f2f2f2',
-      text: '#000000',
-      button: '#516E9E',
-      placeholder: 'gray',
-      border: '#cccccc',
-    },
-  },
-  dark: {
-    colors: {
-      background: '#121212',
-      card: '#1e1e1e',
-      text: '#ffffff',
-      button: '#BB86FC',
-      placeholder: '#b0b0b0',
-      border: '#444444',
-    },
-  },
-};
+const GREEN = '#2e7d32';
+const GREEN_LIGHT = '#e8f5e9';
 
-const SearchPage = ({ setShowPointFilter }) => {
-  const systemTheme = Appearance.getColorScheme();
-  const [isDarkTheme, setIsDarkTheme] = useState(systemTheme === 'dark');
+const POINT_OPTIONS = [
+  {label: 'Point 1', value: 'Point 1'},
+  {label: 'Point 2', value: 'Point 2'},
+  {label: 'Point 3', value: 'Point 3'},
+  {label: 'Point 4', value: 'Point 4'},
+  {label: 'Point 5', value: 'Point 5'},
+];
 
-  const [value2, setValue2] = useState(null);
-  const [isFocus2, setIsFocus2] = useState(false);
+const SearchPage = ({setShowPointFilter}: {setShowPointFilter: (v: boolean) => void}) => {
+  const [selectedPoint, setSelectedPoint] = useState<string | null>(null);
+  const [isFocus, setIsFocus] = useState(false);
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [startText, setStartText] = useState('');
   const [endText, setEndText] = useState('');
   const [showStart, setShowStart] = useState(false);
   const [showEnd, setShowEnd] = useState(false);
-  const [showTable, setShowTable] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [rowData, setRowData] = useState(null);
-  const [email] = useState('');
-  const [rowEmail, setRowEmail] = useState('');
+  const [showResults, setShowResults] = useState(false);
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      setIsDarkTheme(colorScheme === 'dark');
-    });
+  const handleSearch = async () => {
+    const formatDate = (dateStr: string) => {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      return d.toISOString().split('T')[0];
+    };
+    const start = formatDate(startText);
+    const end = formatDate(endText);
 
-    return () => subscription.remove();
-  }, []);
-
-  const currentTheme = isDarkTheme ? themes.dark : themes.light;
-
-  const handleSearch = () => {
-    setShowTable(true);
-  };
-
-  const handleEdit = (data) => {
-    setRowData(data);
-    setRowEmail(data.email);
-
-    if (email === data.email) {
-      setIsEditMode(true);
-    } else {
-      Alert.alert('Error', `You can't edit this form`);
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API_URL}/form-entries?page=1&limit=500`);
+      const data = response.data || [];
+      const filtered = data.filter((item: any) => {
+        const matchPoint = !selectedPoint || item.point === selectedPoint;
+        const matchStart = !start || item.date >= start;
+        const matchEnd = !end || item.date <= end;
+        return matchPoint && matchStart && matchEnd;
+      });
+      setResults(filtered);
+    } catch {
+      setResults([]);
     }
+    setShowResults(true);
+    setLoading(false);
   };
 
-  const onChangeStart = (event, selectedDate) => {
+  const handleEdit = (item: any) => {
+    Alert.alert('Edit Survey', `Edit survey at ${item.point} on ${item.date}?`, [
+      {text: 'Cancel', style: 'cancel'},
+      {text: 'Edit', onPress: () => console.log('Edit:', item._id)},
+    ]);
+  };
+
+  const handleDelete = (item: any, index: number) => {
+    Alert.alert('Delete Survey', `Delete survey at ${item.point} on ${item.date}?`, [
+      {text: 'Cancel', style: 'cancel'},
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          setResults(prev => prev.filter((_, i) => i !== index));
+        },
+      },
+    ]);
+  };
+
+  const onChangeStart = (_event: any, selectedDate: any) => {
     const currentDate = selectedDate || startDate;
     setShowStart(Platform.OS === 'ios');
     setStartDate(currentDate);
     setStartText(currentDate.toDateString());
   };
 
-  const onChangeEnd = (event, selectedDate) => {
+  const onChangeEnd = (_event: any, selectedDate: any) => {
     const currentDate = selectedDate || endDate;
     setShowEnd(Platform.OS === 'ios');
     setEndDate(currentDate);
     setEndText(currentDate.toDateString());
   };
 
-  if (isEditMode) {
-    return <SelectEditMode rowData={rowData} setIsEditMode={setIsEditMode} />;
-  }
+  const renderSpeciesName = (name: string) => {
+    const match = name.match(/^(.*?)\s*\((.+?)\)$/);
+    if (match) {
+      return (
+        <Text style={styles.speciesText}>
+          {match[1]} <Text style={styles.speciesScientific}>({match[2]})</Text>
+        </Text>
+      );
+    }
+    return <Text style={styles.speciesText}>{name}</Text>;
+  };
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: currentTheme.colors.background },
-      ]}>
-      
-      <TouchableOpacity onPress={() => setShowPointFilter(false)}>
-        <IconButton
-          icon="keyboard-backspace"
-          iconColor={currentTheme.colors.text}
-          size={30}
-          style={{ marginRight: 20 }}
-        />
-      </TouchableOpacity>
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => setShowPointFilter(false)}
+          style={styles.backBtn}>
+          <IconButton icon="arrow-left" iconColor="#333" size={22} />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.headerTitle}>Date & Point Filter</Text>
+          <Text style={styles.headerSubtitle}>Filter by date and survey point</Text>
+        </View>
+      </View>
 
-      <ScrollView>
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: currentTheme.colors.card },
-          ]}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Filter Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.iconContainer}>
+              <Icon name="map-marker-radius" size={22} color={GREEN} />
+            </View>
+            <Text style={styles.cardTitle}>Filter Options</Text>
+          </View>
 
+          {/* Point Dropdown */}
+          <Text style={styles.fieldLabel}>Survey Point</Text>
           <Dropdown
-            style={[
-              styles.dropdown,
-              isFocus2 && styles.dropdownFocused,
-              {
-                borderColor: currentTheme.colors.border,
-                backgroundColor: currentTheme.colors.background,
-              },
-            ]}
-            placeholderStyle={[
-              styles.placeholderStyle,
-              { color: currentTheme.colors.placeholder },
-            ]}
-            selectedTextStyle={[
-              styles.selectedTextStyle,
-              { color: currentTheme.colors.text },
-            ]}
-            inputSearchStyle={[
-              styles.inputSearchStyle,
-              { color: currentTheme.colors.text },
-            ]}
-            iconStyle={styles.iconStyle}
-            data={[
-              { label: 'Point 1', value: 'Point 1' },
-              { label: 'Point 2', value: 'Point 2' },
-              { label: 'Point 3', value: 'Point 3' },
-              { label: 'Point 4', value: 'Point 4' },
-              { label: 'Point 5', value: 'Point 5' },
-            ]}
+            style={[styles.dropdown, isFocus && styles.dropdownFocused]}
+            placeholderStyle={styles.dropdownPlaceholder}
+            selectedTextStyle={styles.dropdownSelected}
+            data={POINT_OPTIONS}
             labelField="label"
             valueField="value"
-            placeholder={!isFocus2 ? 'Select Point' : ''}
-            value={value2}
-            onFocus={() => setIsFocus2(true)}
-            onBlur={() => setIsFocus2(false)}
-            onChange={(item) => {
-              setValue2(item.value);
-              setIsFocus2(false);
+            placeholder="Select Point"
+            value={selectedPoint}
+            onFocus={() => setIsFocus(true)}
+            onBlur={() => setIsFocus(false)}
+            onChange={item => {
+              setSelectedPoint(item.value);
+              setIsFocus(false);
             }}
-            renderItem={(item) => (
-              <View
-                style={[
-                  styles.itemContainer,
-                  { backgroundColor: currentTheme.colors.card },
-                ]}>
-                <Text
-                  style={{
-                    color: currentTheme.colors.text,
-                    fontSize: 16,
-                  }}>
-                  {item.label}
-                </Text>
+            renderItem={item => (
+              <View style={styles.dropdownItem}>
+                <Text style={styles.dropdownItemText}>{item.label}</Text>
               </View>
             )}
           />
 
-          <View style={styles.dateContainer}>
+          {/* Date Range */}
+          <Text style={[styles.fieldLabel, {marginTop: 16}]}>Date Range (Optional)</Text>
+          <View style={styles.dateRow}>
             <TouchableOpacity
               onPress={() => setShowStart(true)}
-              style={[
-                styles.dateInput,
-                {
-                  backgroundColor: currentTheme.colors.background,
-                  borderColor: currentTheme.colors.border,
-                },
-              ]}>
-              <Text style={{ color: currentTheme.colors.text }}>
-                {startText || 'Start Date'}
-              </Text>
-              <Icon
-                name="calendar"
-                size={15}
-                color={currentTheme.colors.placeholder}
-              />
+              style={[styles.dateInput, startText ? styles.dateInputFilled : null]}>
+              <View>
+                <Text style={styles.dateLabel}>Start Date</Text>
+                <Text style={[styles.dateValue, !startText && styles.datePlaceholder]}>
+                  {startText || 'Select date'}
+                </Text>
+              </View>
+              <Icon name="calendar" size={20} color={startText ? GREEN : '#bbb'} />
             </TouchableOpacity>
-
-            {showStart && (
-              <DateTimePicker
-                value={startDate}
-                mode="date"
-                display="default"
-                onChange={onChangeStart}
-              />
-            )}
 
             <TouchableOpacity
               onPress={() => setShowEnd(true)}
-              style={[
-                styles.dateInput,
-                {
-                  backgroundColor: currentTheme.colors.background,
-                  borderColor: currentTheme.colors.border,
-                },
-              ]}>
-              <Text style={{ color: currentTheme.colors.text }}>
-                {endText || 'End Date'}
-              </Text>
-              <Icon
-                name="calendar"
-                size={15}
-                color={currentTheme.colors.placeholder}
-              />
+              style={[styles.dateInput, endText ? styles.dateInputFilled : null]}>
+              <View>
+                <Text style={styles.dateLabel}>End Date</Text>
+                <Text style={[styles.dateValue, !endText && styles.datePlaceholder]}>
+                  {endText || 'Select date'}
+                </Text>
+              </View>
+              <Icon name="calendar" size={20} color={endText ? GREEN : '#bbb'} />
             </TouchableOpacity>
-
-            {showEnd && (
-              <DateTimePicker
-                value={endDate}
-                mode="date"
-                display="default"
-                onChange={onChangeEnd}
-              />
-            )}
           </View>
 
-          <Button
-            mode="contained"
-            onPress={handleSearch}
-            style={[
-              styles.button,
-              { backgroundColor: currentTheme.colors.button },
-            ]}
-            labelStyle={{ fontSize: 18 }}>
-            Search
-          </Button>
+          {showStart && (
+            <DateTimePicker value={startDate} mode="date" display="default" onChange={onChangeStart} />
+          )}
+          {showEnd && (
+            <DateTimePicker value={endDate} mode="date" display="default" onChange={onChangeEnd} />
+          )}
+
+          <TouchableOpacity
+            style={styles.searchBtn}
+            activeOpacity={0.8}
+            onPress={handleSearch}>
+            <Icon name="magnify" size={20} color="#fff" />
+            <Text style={styles.searchBtnText}>Search</Text>
+          </TouchableOpacity>
         </View>
 
-        {showTable && (
-          <MyDataTable
-            point={value2}
-            startDate={startText}
-            endDate={endText}
-            handleEdit={handleEdit}
-          />
+        {/* Results */}
+        {loading && (
+          <ActivityIndicator size="large" color={GREEN} style={{marginTop: 24}} />
+        )}
+        {showResults && !loading && (
+          <View style={styles.resultsSection}>
+            <Text style={styles.resultsTitle}>Search Results ({results.length})</Text>
+
+            {results.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Icon name="map-search-outline" size={48} color="#ccc" />
+                <Text style={styles.emptyText}>No records found</Text>
+                <Text style={styles.emptySubtext}>Try a different point or date range</Text>
+              </View>
+            ) : (
+              results.map((item, index) => (
+                <View key={item._id} style={styles.resultCard}>
+                  <View style={styles.resultHeader}>
+                    <View style={styles.resultHeaderLeft}>
+                      <View style={styles.pointBadge}>
+                        <Text style={styles.pointBadgeText}>{item.point}</Text>
+                      </View>
+                      <View>
+                        <Text style={styles.resultDate}>{item.date}</Text>
+                        <Text style={styles.resultTime}>{item.startTime} - {item.endTime}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.actionRow}>
+                      <TouchableOpacity style={styles.editBtn} onPress={() => handleEdit(item)}>
+                        <Icon name="pencil-outline" size={18} color={GREEN} />
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item, index)}>
+                        <Icon name="trash-can-outline" size={18} color="#D32F2F" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={styles.detailsGrid}>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.detailLabel}>Habitat</Text>
+                      <Text style={styles.detailValue}>{item.habitatType}</Text>
+                    </View>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.detailLabel}>Point Tag</Text>
+                      <Text style={styles.detailValue}>{item.pointTag}</Text>
+                    </View>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.detailLabel}>Observer</Text>
+                      <Text style={styles.detailValue}>{item.observers}</Text>
+                    </View>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.detailLabel}>Weather</Text>
+                      <Text style={styles.detailValue}>{item.weather}</Text>
+                    </View>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.detailLabel}>Latitude</Text>
+                      <Text style={styles.detailValue}>{item.latitude}</Text>
+                    </View>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.detailLabel}>Longitude</Text>
+                      <Text style={styles.detailValue}>{item.longitude}</Text>
+                    </View>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.detailLabel}>Radius</Text>
+                      <Text style={styles.detailValue}>{item.radiusOfArea}</Text>
+                    </View>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.detailLabel}>Water</Text>
+                      <Text style={styles.detailValue}>{item.water}</Text>
+                    </View>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.detailLabel}>Season</Text>
+                      <Text style={styles.detailValue}>{item.season}</Text>
+                    </View>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.detailLabel}>Vegetation</Text>
+                      <Text style={styles.detailValue}>{item.statusOfVegy}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.observationsSection}>
+                    <View style={styles.obsSectionHeader}>
+                      <Icon name="bird" size={16} color={GREEN} />
+                      <Text style={styles.obsSectionTitle}>Bird Observations ({item.birdObservations.length})</Text>
+                    </View>
+                    {item.birdObservations.map((bird: any, bIdx: number) => (
+                      <View key={bIdx} style={styles.birdRow}>
+                        <View style={styles.birdHeader}>
+                          <View style={styles.birdCountBadge}>
+                            <Text style={styles.birdCountText}>{bird.count}</Text>
+                          </View>
+                          {renderSpeciesName(bird.species)}
+                        </View>
+                        <View style={styles.birdDetails}>
+                          <View style={styles.birdTag}><Text style={styles.birdTagText}>{bird.maturity}</Text></View>
+                          <View style={styles.birdTag}><Text style={styles.birdTagText}>{bird.sex}</Text></View>
+                          <View style={styles.birdTag}><Text style={styles.birdTagText}>{bird.behaviour}</Text></View>
+                          <View style={styles.birdTag}><Text style={styles.birdTagText}>{bird.identification}</Text></View>
+                          <View style={[styles.birdTag, bird.status === 'Endemic' && styles.endemicTag]}>
+                            <Text style={[styles.birdTagText, bird.status === 'Endemic' && styles.endemicTagText]}>{bird.status}</Text>
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
         )}
       </ScrollView>
     </View>
@@ -263,60 +322,95 @@ const SearchPage = ({ setShowPointFilter }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: {flex: 1, backgroundColor: '#fff'},
+  header: {
+    flexDirection: 'row', alignItems: 'center', paddingRight: 20, paddingTop: 8, paddingBottom: 12,
+    backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
   },
+  backBtn: {marginRight: 4},
+  headerTitle: {fontSize: 20, fontWeight: '700', color: '#1a1a1a'},
+  headerSubtitle: {fontSize: 13, color: '#888', marginTop: 2},
+  scrollContent: {padding: 16, paddingBottom: 40},
   card: {
-    margin: 16,
-    padding: 20,
-    borderRadius: 12,
+    backgroundColor: '#fff', borderRadius: 14, padding: 18, elevation: 2,
+    shadowColor: '#000', shadowOffset: {width: 0, height: 1}, shadowOpacity: 0.08, shadowRadius: 4,
+    borderWidth: 1, borderColor: '#f0f0f0',
   },
+  cardHeader: {flexDirection: 'row', alignItems: 'center', marginBottom: 18},
+  iconContainer: {
+    width: 42, height: 42, borderRadius: 12, backgroundColor: GREEN_LIGHT,
+    justifyContent: 'center', alignItems: 'center', marginRight: 12,
+  },
+  cardTitle: {fontSize: 16, fontWeight: '600', color: '#1a1a1a'},
+  fieldLabel: {fontSize: 12, fontWeight: '600', color: '#666', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5},
   dropdown: {
-    height: 50,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    justifyContent: 'center',
+    height: 52, borderWidth: 1.5, borderColor: '#e0e0e0', borderRadius: 12,
+    paddingHorizontal: 14, backgroundColor: '#fafafa',
   },
-  dropdownFocused: {
-    borderColor: '#2b83217d',
-  },
-  placeholderStyle: {
-    fontSize: 16,
-  },
-  selectedTextStyle: {
-    fontSize: 16,
-  },
-  inputSearchStyle: {
-    height: 40,
-    fontSize: 16,
-  },
-  iconStyle: {
-    width: 20,
-    height: 20,
-  },
-  itemContainer: {
-    padding: 12,
-  },
-  dateContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
+  dropdownFocused: {borderColor: GREEN, backgroundColor: GREEN_LIGHT},
+  dropdownPlaceholder: {fontSize: 14, color: '#bbb'},
+  dropdownSelected: {fontSize: 14, color: '#333', fontWeight: '500'},
+  dropdownItem: {paddingVertical: 12, paddingHorizontal: 16},
+  dropdownItemText: {fontSize: 15, color: '#333'},
+  dateRow: {flexDirection: 'row', gap: 12},
   dateInput: {
-    width: '48%',
-    height: 55,
-    padding: 10,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexDirection: 'row',
+    flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: '#fafafa', borderRadius: 12, borderWidth: 1.5, borderColor: '#e0e0e0',
+    paddingHorizontal: 14, paddingVertical: 12,
   },
-  button: {
-    marginTop: 25,
-    borderRadius: 8,
+  dateInputFilled: {borderColor: GREEN, backgroundColor: GREEN_LIGHT},
+  dateLabel: {fontSize: 11, fontWeight: '600', color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2},
+  dateValue: {fontSize: 14, fontWeight: '500', color: '#333'},
+  datePlaceholder: {color: '#bbb'},
+  searchBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: GREEN, borderRadius: 12, paddingVertical: 14, marginTop: 20, gap: 8,
   },
+  searchBtnText: {color: '#fff', fontSize: 16, fontWeight: '600'},
+  resultsSection: {marginTop: 24},
+  resultsTitle: {fontSize: 18, fontWeight: '700', color: '#1a1a1a', marginBottom: 14},
+  emptyCard: {
+    alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 40,
+    elevation: 1, shadowColor: '#000', shadowOffset: {width: 0, height: 1}, shadowOpacity: 0.05, shadowRadius: 3,
+    borderWidth: 1, borderColor: '#f0f0f0',
+  },
+  emptyText: {fontSize: 16, fontWeight: '600', color: '#999', marginTop: 12},
+  emptySubtext: {fontSize: 13, color: '#bbb', marginTop: 4},
+  resultCard: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 14, elevation: 2,
+    shadowColor: '#000', shadowOffset: {width: 0, height: 1}, shadowOpacity: 0.08, shadowRadius: 4,
+    borderWidth: 1, borderColor: '#f0f0f0',
+  },
+  resultHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
+  },
+  resultHeaderLeft: {flexDirection: 'row', alignItems: 'center', gap: 10},
+  pointBadge: {backgroundColor: GREEN, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8},
+  pointBadgeText: {color: '#fff', fontSize: 12, fontWeight: '700'},
+  resultDate: {fontSize: 15, fontWeight: '600', color: '#1a1a1a'},
+  resultTime: {fontSize: 12, color: '#888', marginTop: 1},
+  actionRow: {flexDirection: 'row', gap: 6},
+  editBtn: {width: 36, height: 36, borderRadius: 10, backgroundColor: GREEN_LIGHT, justifyContent: 'center', alignItems: 'center'},
+  deleteBtn: {width: 36, height: 36, borderRadius: 10, backgroundColor: '#FFEBEE', justifyContent: 'center', alignItems: 'center'},
+  detailsGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14},
+  detailItem: {backgroundColor: '#fafafa', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, minWidth: '30%', flexGrow: 1},
+  detailLabel: {fontSize: 10, fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2},
+  detailValue: {fontSize: 13, fontWeight: '500', color: '#333'},
+  observationsSection: {backgroundColor: GREEN_LIGHT, borderRadius: 12, padding: 12},
+  obsSectionHeader: {flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10},
+  obsSectionTitle: {fontSize: 14, fontWeight: '600', color: GREEN},
+  birdRow: {backgroundColor: '#fff', borderRadius: 10, padding: 10, marginBottom: 8},
+  birdHeader: {flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6},
+  birdCountBadge: {width: 28, height: 28, borderRadius: 14, backgroundColor: GREEN, justifyContent: 'center', alignItems: 'center'},
+  birdCountText: {color: '#fff', fontSize: 12, fontWeight: '700'},
+  speciesText: {fontSize: 14, fontWeight: '500', color: '#333', flex: 1},
+  speciesScientific: {fontStyle: 'italic', color: '#666'},
+  birdDetails: {flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginLeft: 36},
+  birdTag: {backgroundColor: '#f5f5f5', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6},
+  birdTagText: {fontSize: 11, color: '#666'},
+  endemicTag: {backgroundColor: '#FFF3E0'},
+  endemicTagText: {color: '#E65100', fontWeight: '600'},
 });
 
 export default SearchPage;

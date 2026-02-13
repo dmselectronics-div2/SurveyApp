@@ -610,6 +610,7 @@ const DropdownComponent = () => {
   const [waterLevelOnResources, setWaterLevelOnResources] = useState('');
   const [weather, setWeather] = useState(selectedItemData?.weather || '');
   const [email, setEmail] = useState('');
+  const [teamMembers, setTeamMembers] = useState<{label: string; value: string}[]>([]);
   const [behaviours, setBehaviours] = useState('');
 
   const [isWeatherModalVisible, setWeatherModalVisible] = useState(false);
@@ -1139,11 +1140,24 @@ const [longitude, setLongitude] = useState(
       tx.executeSql(
         'SELECT email FROM LoginData LIMIT 1',
         [],
-        (tx, results) => {
+        async (_tx: any, results: any) => {
           if (results.rows.length > 0) {
             const email = results.rows.item(0).email;
             setEmail(email);
             console.log('Retrieved email profile : ', email);
+            // Fetch team members for observer dropdown
+            try {
+              const response = await axios.get(`${API_URL}/getTeamMembers`, {
+                params: {email, moduleType: 'bird'},
+              });
+              if (response.data.teamMembers) {
+                setTeamMembers(
+                  response.data.teamMembers.map((name: string) => ({label: name, value: name})),
+                );
+              }
+            } catch (err) {
+              console.log('Could not fetch team members:', err);
+            }
           } else {
             console.log('No email and password stored.');
           }
@@ -1283,38 +1297,33 @@ const [longitude, setLongitude] = useState(
       date: date.toDateString(),
       observers: observers || '',
       startTime: selectedStartTime,
-      endTime: selectedEndTime, 
-      weather: value4 || '', 
-      water: value5 || '', 
-      season: value6 || '', 
+      endTime: selectedEndTime,
+      weather: value4 || '',
+      water: value5 || '',
+      season: value6 || '',
       statusOfVegy: value7 || '',
       descriptor: descriptor || '',
-      species, 
-      count: count || '', 
-      maturity: value8 || '', 
-      sex: value9 || '', 
-      identification: value11 || '', 
-      status: value12 || '', 
-      radiusOfArea: radius || '', 
-      remark: remark || '', 
-      imageUri: imageUri || '', 
-      cloudIntensity: value4 === 'Cloud Cover' ? cloudIntensity : '', 
-      rainIntensity: value4 === 'Rain' ? rainIntensity : '', 
-      windIntensity: value4 === 'Wind' ? windIntensity : '', 
-      sunshineIntensity: value4 === 'Sunshine' ? sunshineIntensity : '', 
-      
+      radiusOfArea: radius || '',
+      remark: remark || '',
+      imageUri: imageUri || '',
+      cloudIntensity: value4 === 'Cloud Cover' ? cloudIntensity : '',
+      rainIntensity: value4 === 'Rain' ? rainIntensity : '',
+      windIntensity: value4 === 'Wind' ? windIntensity : '',
+      sunshineIntensity: value4 === 'Sunshine' ? sunshineIntensity : '',
       waterAvailability: compileWaterAvailability(),
-      waterLevelWaterResources,
-      waterAvailabilityWaterResources,
-      selectedValues,
-      selectedBehaviours,
-      waterLevel,
-      selectedWaterConditions,
-      waterAvailabilityOnLand,
-      waterAvailabilityOnResources,
-      waterLevelOnLand,
-      waterLevelOnResources,
-      Weather: weather,
+      birdObservations: [
+        {
+          species: species || '',
+          count: count || '',
+          maturity: value8 || '',
+          sex: value9 || '',
+          behaviour: selectedBehaviours.join(', ') || '',
+          identification: value11 || '',
+          status: value12 || '',
+          remarks: remark || '',
+          imageUri: imageUri || '',
+        },
+      ],
     };
 
     saveFormDataSQL(formData);
@@ -1338,17 +1347,12 @@ const [longitude, setLongitude] = useState(
 
         console.log('added id ', addedId);
         resetForm();
-        // Alert.alert('Success', 'Form submitted successfully');
+        showAlert();
       })
       .catch(error => {
         console.error('Error submitting form:', error);
-        // saveFormDataSQL(formData);
-        // Optionally, store the failed submission locally for retry later
         storeFailedSubmission(formData);
-        // Alert.alert(
-        //   'Error',
-        //   'There was an error submitting the form in cloud storage. ',
-        // );
+        Alert.alert('Error', 'Failed to submit form. Data saved locally for retry.');
       });
   };
 
@@ -2378,13 +2382,12 @@ const [longitude, setLongitude] = useState(
 
                 <Button
                   mode="contained"
-                  onPress={handleUpdate}
+                  onPress={selectedItemData ? handleUpdate : handleSignUp}
                   style={[styles.button_signup, { borderRadius: 8 }]}
                   buttonColor="green"
                   textColor="white"
                   labelStyle={styles.button_label}>
-                  Submit
-                  
+                  {selectedItemData ? 'Update' : 'Submit'}
                 </Button>
               </View>
             </View>

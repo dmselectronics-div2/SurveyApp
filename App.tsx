@@ -45,7 +45,7 @@ import ModuleSelector from './src/module-selector/ModuleSelector';
 import BluTallyStartPage from './src/blu-tally/BluTallyStartPage';
 
 // Bird Module Components
-import BirdBottomNav from './src/bird-module/bottom-navpage/bottom-nav';
+import BirdBottomNav from './src/bird-module/bottom-navpage/bottom-navbar';
 import BirdMainDashboardPage from './src/bird-module/dashboard-page/dash-board';
 import BirdProfileMenu from './src/bird-module/dashboard-page/menu-page/profile-page';
 import BirdProfileImageChange from './src/bird-module/dashboard-page/menu-page/change-profile-image';
@@ -87,6 +87,7 @@ import CitizenDataTable from './src/citizen-module/Citizen/CitizenDataTable';
 // Mangrove Module Components
 import MangroveNew from './src/mangrove-module/survey-form-page/new';
 import MangroveDataTableComponent from './src/mangrove-module/data-table/MyDataTable';
+import ByvalviBottomNav from './src/mangrove-module/bottom-navpage/bottom-navbar';
 
 // Config
 import {GOOGLE_WEB_CLIENT_ID} from './src/config';
@@ -292,7 +293,8 @@ const App = () => {
           <Stack.Screen name="CreditInterface" component={CreditInterface} />
           <Stack.Screen name="CitizenDataTable" component={CitizenDataTable} />
 
-          {/* ============== MANGROVE MODULE SCREENS ============== */}
+          {/* ============== MANGROVE / BYVALVI MODULE SCREENS ============== */}
+          <Stack.Screen name="ByvalviBottomNav" component={ByvalviBottomNav} />
           <Stack.Screen name="MangroveNew" component={MangroveNew} />
           <Stack.Screen name="MangroveDataTable" component={MangroveDataTableComponent} />
         </Stack.Navigator>

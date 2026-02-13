@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+ipcimport React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
 import axios from 'axios';

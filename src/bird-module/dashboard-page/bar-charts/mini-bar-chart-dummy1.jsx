@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
+
+const CHART_WIDTH = (Dimensions.get('window').width - 64) / 2;
 
 const MiniBarChartDummy1 = ({ title }) => {
   const [chartData, setChartData] = useState(null);
@@ -47,7 +49,7 @@ const MiniBarChartDummy1 = ({ title }) => {
               borderRadius: 8,
             }}
             data={chartData}
-            width={290}
+            width={CHART_WIDTH}
             height={200}
             fromZero
             yAxisLabel=""
@@ -80,25 +82,19 @@ const styles = StyleSheet.create({
   chartBox: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(52, 168, 83, 0.2)',
-    borderRadius: 12,
-    padding: 15,
-    marginHorizontal: 10,
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(52, 168, 83, 0.4)',
+    padding: 4,
   },
   chartTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#2e7d32',
     textAlign: 'center',
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#999',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   chartContainer: {
     flexDirection: 'row',
@@ -108,11 +104,7 @@ const styles = StyleSheet.create({
   loadingContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    height: 220,
-    backgroundColor: 'rgba(52, 168, 83, 0.1)',
-    borderRadius: 10,
-    marginHorizontal: 10,
-    marginVertical: 10,
+    height: 200,
   },
   loadingText: {
     fontSize: 12,
