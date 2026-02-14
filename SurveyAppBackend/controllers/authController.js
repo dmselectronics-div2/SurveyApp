@@ -535,6 +535,44 @@ exports.saveSignupDetails = async (req, res) => {
   }
 };
 
+// Get custom categories (habitat types, points, point tags)
+exports.getCustomCategories = async (req, res) => {
+  try {
+    const { email } = req.query;
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    res.json({
+      customHabitatTypes: user?.customHabitatTypes || [],
+      customPoints: user?.customPoints || [],
+      customPointTags: user?.customPointTags || [],
+      customVegetationStatuses: user?.customVegetationStatuses || [],
+    });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+// Add a custom category value
+exports.addCustomCategory = async (req, res) => {
+  try {
+    const { email, categoryType, value } = req.body;
+
+    const validTypes = ['customHabitatTypes', 'customPoints', 'customPointTags', 'customVegetationStatuses'];
+    if (!validTypes.includes(categoryType)) {
+      return res.status(400).json({ status: 'error', message: 'Invalid category type' });
+    }
+
+    await User.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      { $addToSet: { [categoryType]: value } }
+    );
+
+    res.json({ status: 'ok' });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
 // Get pending users for admin approval
 exports.getPendingUsers = async (req, res) => {
   try {

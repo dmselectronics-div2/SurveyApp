@@ -49,15 +49,16 @@ const habitatTypes = [
   {label: 'Other', value: 'Other'},
 ];
 
-const surveyPoints = [
+const defaultSurveyPoints = [
   {label: 'Point 1', value: 'Point 1'},
   {label: 'Point 2', value: 'Point 2'},
   {label: 'Point 3', value: 'Point 3'},
   {label: 'Point 4', value: 'Point 4'},
   {label: 'Point 5', value: 'Point 5'},
+  {label: 'Other', value: 'Other'},
 ];
 
-const pointTags = [
+const defaultPointTags = [
   {label: 'T1', value: 'T1'},
   {label: 'T2', value: 'T2'},
   {label: 'T3', value: 'T3'},
@@ -66,6 +67,7 @@ const pointTags = [
   {label: 'T6', value: 'T6'},
   {label: 'T7', value: 'T7'},
   {label: 'T8', value: 'T8'},
+  {label: 'Other', value: 'Other'},
 ];
 
 const cloudCoverOptions = [
@@ -105,13 +107,23 @@ const paddySeasons = [
   {label: 'Fallow Season', value: 'Fallow Season'},
 ];
 
+const visibilityOptions = [
+  {label: 'Good', value: 'Good'},
+  {label: 'Moderate', value: 'Moderate'},
+  {label: 'Poor', value: 'Poor'},
+];
+
 const vegetationStatuses = [
   {label: 'Flowering', value: 'Flowering'},
   {label: 'Fruiting', value: 'Fruiting'},
   {label: 'Dry Vegetation', value: 'Dry Vegetation'},
-  {label: 'Harvesting (for paddy fields)', value: 'Harvesting (for paddy fields)'},
-  {label: 'Fallow Season (for paddy fields)', value: 'Fallow Season (for paddy fields)'},
-  {label: 'Farming season (for paddy fields)', value: 'Farming season (for paddy fields)'},
+  {label: 'Other', value: 'Other'},
+];
+
+const dominantVegetationTypes = [
+  {label: 'Seedlings', value: 'Seedlings'},
+  {label: 'Young plants', value: 'Young plants'},
+  {label: 'Matured plants', value: 'Matured plants'},
 ];
 
 const maturityOptions = [
@@ -450,14 +462,16 @@ const WeatherConditionModal = ({visible, onClose, onSelect}: any) => {
   const [rain, setRain] = useState<string | null>(null);
   const [wind, setWind] = useState<string | null>(null);
   const [sunshine, setSunshine] = useState<string | null>(null);
+  const [visibilityVal, setVisibilityVal] = useState<string | null>(null);
   const [summary, setSummary] = useState('');
 
-  const updateSummary = (c: string | null, r: string | null, w: string | null, s: string | null) => {
+  const updateSummary = (c: string | null, r: string | null, w: string | null, s: string | null, v: string | null) => {
     const parts = [];
     if (c) parts.push(`Cloud - ${c}`);
     if (r) parts.push(`Rain - ${r}`);
     if (w) parts.push(`Wind - ${w}`);
     if (s) parts.push(`Sunshine - ${s}`);
+    if (v) parts.push(`Visibility - ${v}`);
     setSummary(parts.join(', '));
   };
 
@@ -474,16 +488,19 @@ const WeatherConditionModal = ({visible, onClose, onSelect}: any) => {
           <Text style={styles.modalTitle}>{summary || 'Select Weather Condition'}</Text>
           <Dropdown style={modalDd} placeholderStyle={{color: 'black'}} selectedTextStyle={{color: 'black'}} itemTextStyle={{color: 'black'}} containerStyle={containerS}
             data={cloudCoverOptions} labelField="label" valueField="value" placeholder="Cloud Cover" value={cloudCover}
-            onChange={item => { setCloudCover(p => p === item.value ? null : item.value); updateSummary(item.value, rain, wind, sunshine); }} />
+            onChange={item => { setCloudCover(p => p === item.value ? null : item.value); updateSummary(item.value, rain, wind, sunshine, visibilityVal); }} />
           <Dropdown style={modalDd} placeholderStyle={{color: 'black'}} selectedTextStyle={{color: 'black'}} itemTextStyle={{color: 'black'}} containerStyle={containerS}
             data={rainOptions} labelField="label" valueField="value" placeholder="Rain" value={rain}
-            onChange={item => { setRain(p => p === item.value ? null : item.value); updateSummary(cloudCover, item.value, wind, sunshine); }} />
+            onChange={item => { setRain(p => p === item.value ? null : item.value); updateSummary(cloudCover, item.value, wind, sunshine, visibilityVal); }} />
           <Dropdown style={modalDd} placeholderStyle={{color: 'black'}} selectedTextStyle={{color: 'black'}} itemTextStyle={{color: 'black'}} containerStyle={containerS}
             data={windOptions} labelField="label" valueField="value" placeholder="Wind" value={wind}
-            onChange={item => { setWind(p => p === item.value ? null : item.value); updateSummary(cloudCover, rain, item.value, sunshine); }} />
+            onChange={item => { setWind(p => p === item.value ? null : item.value); updateSummary(cloudCover, rain, item.value, sunshine, visibilityVal); }} />
           <Dropdown style={modalDd} placeholderStyle={{color: 'black'}} selectedTextStyle={{color: 'black'}} itemTextStyle={{color: 'black'}} containerStyle={containerS}
             data={sunshineOptions} labelField="label" valueField="value" placeholder="Sunshine" value={sunshine}
-            onChange={item => { setSunshine(p => p === item.value ? null : item.value); updateSummary(cloudCover, rain, wind, item.value); }} />
+            onChange={item => { setSunshine(p => p === item.value ? null : item.value); updateSummary(cloudCover, rain, wind, item.value, visibilityVal); }} />
+          <Dropdown style={modalDd} placeholderStyle={{color: 'black'}} selectedTextStyle={{color: 'black'}} itemTextStyle={{color: 'black'}} containerStyle={containerS}
+            data={visibilityOptions} labelField="label" valueField="value" placeholder="Visibility" value={visibilityVal}
+            onChange={item => { setVisibilityVal(p => p === item.value ? null : item.value); updateSummary(cloudCover, rain, wind, sunshine, item.value); }} />
           <Button mode="contained" onPress={() => { onSelect(summary || ''); onClose(); }} style={styles.modalButton} buttonColor={GREEN} textColor="white">Save</Button>
         </View>
       </View>
@@ -496,17 +513,18 @@ const WeatherConditionModal = ({visible, onClose, onSelect}: any) => {
 // ========================================
 const WaterAvailabilityModal = ({visible, onClose, onSelect}: any) => {
   const [onLand, setOnLand] = useState<string | null>(null);
+  const [onLandWaterLevel, setOnLandWaterLevel] = useState('');
   const [waterReservoir, setWaterReservoir] = useState<string | null>(null);
-  const [showWaterLevel, setShowWaterLevel] = useState(false);
   const [waterLevel, setWaterLevel] = useState('');
 
   const modalDd = {height: 50, borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 8, paddingHorizontal: 8, backgroundColor: 'white', marginBottom: 10, width: '100%' as const};
   const containerS = {backgroundColor: 'white', borderColor: '#ccc', borderWidth: 1, borderRadius: 8};
 
-  const buildResult = (level?: string) => {
+  const buildResult = () => {
     const parts = [];
-    if (onLand) parts.push(`On Land - ${onLand}`);
-    if (waterReservoir === 'Yes') parts.push(`Water Reservoir - Yes (Level: ${level || waterLevel} cm)`);
+    if (onLand === 'Yes' && onLandWaterLevel) parts.push(`On Land - Yes (Level: ${onLandWaterLevel} cm)`);
+    else if (onLand) parts.push(`On Land - ${onLand}`);
+    if (waterReservoir === 'Yes' && waterLevel) parts.push(`Water Reservoir - Yes (Level: ${waterLevel} cm)`);
     else if (waterReservoir) parts.push(`Water Reservoir - ${waterReservoir}`);
     return parts.join(', ');
   };
@@ -523,26 +541,30 @@ const WaterAvailabilityModal = ({visible, onClose, onSelect}: any) => {
             <Dropdown style={modalDd} placeholderStyle={{color: 'black'}} selectedTextStyle={{color: 'black'}} itemTextStyle={{color: 'black'}} containerStyle={containerS}
               data={yesNoOptions} labelField="label" valueField="value" placeholder="On Land" value={onLand}
               onChange={item => setOnLand(p => p === item.value ? null : item.value)} />
+            {onLand === 'Yes' && (
+              <View style={{width: '100%', marginBottom: 10}}>
+                <TextInput mode="outlined" placeholder="Water Level"
+                  value={onLandWaterLevel}
+                  onChangeText={text => setOnLandWaterLevel(text.replace(/[^0-9.]/g, ''))}
+                  keyboardType="numeric" style={{width: '100%', backgroundColor: 'white'}} textColor="#333"
+                  right={<TextInput.Affix text="cm" textStyle={{color: '#666'}} />}
+                />
+              </View>
+            )}
             <Dropdown style={modalDd} placeholderStyle={{color: 'black'}} selectedTextStyle={{color: 'black'}} itemTextStyle={{color: 'black'}} containerStyle={containerS}
               data={yesNoOptions} labelField="label" valueField="value" placeholder="Water Reservoir" value={waterReservoir}
               onChange={item => setWaterReservoir(p => p === item.value ? null : item.value)} />
-            <Button mode="contained" onPress={() => {
-              if (waterReservoir === 'Yes') { setShowWaterLevel(true); }
-              else { onSelect(buildResult()); onClose(); }
-            }} style={styles.modalButton} buttonColor={GREEN} textColor="white">Save</Button>
-          </View>
-        </View>
-      </Modal>
-      <Modal visible={showWaterLevel} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => { setShowWaterLevel(false); onClose(); }}>
-              <Icon name="close" size={24} color="#333" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Enter Water Level (cm)</Text>
-            <TextInput mode="outlined" placeholder="Water Level" value={waterLevel} onChangeText={setWaterLevel}
-              keyboardType="numeric" style={{width: '100%', backgroundColor: 'white'}} textColor="#333" />
-            <Button mode="contained" onPress={() => { onSelect(buildResult(waterLevel)); setShowWaterLevel(false); onClose(); }}
+            {waterReservoir === 'Yes' && (
+              <View style={{width: '100%', marginBottom: 10}}>
+                <TextInput mode="outlined" placeholder="Water Level"
+                  value={waterLevel}
+                  onChangeText={text => setWaterLevel(text.replace(/[^0-9.]/g, ''))}
+                  keyboardType="numeric" style={{width: '100%', backgroundColor: 'white'}} textColor="#333"
+                  right={<TextInput.Affix text="cm" textStyle={{color: '#666'}} />}
+                />
+              </View>
+            )}
+            <Button mode="contained" onPress={() => { onSelect(buildResult()); onClose(); }}
               style={styles.modalButton} buttonColor={GREEN} textColor="white">Save</Button>
           </View>
         </View>
@@ -570,6 +592,20 @@ const BirdSurveyForm = () => {
   const [longitude, setLongitude] = useState('');
   const [radius, setRadius] = useState('');
 
+  // Custom categories (user-added "Other" values)
+  const [customHabitatTypes, setCustomHabitatTypes] = useState<string[]>([]);
+  const [customPoints, setCustomPoints] = useState<string[]>([]);
+  const [customPointTags, setCustomPointTags] = useState<string[]>([]);
+  const [customVegetationStatuses, setCustomVegetationStatuses] = useState<string[]>([]);
+  const [showCustomInput, setShowCustomInput] = useState<{[key: string]: boolean}>({});
+  const [customInputValue, setCustomInputValue] = useState('');
+
+  // Team members (inline management in Step 1)
+  const [memberInput, setMemberInput] = useState('');
+  const [editMemberIndex, setEditMemberIndex] = useState<number | null>(null);
+  const [rawTeamMembers, setRawTeamMembers] = useState<string[]>([]);
+  const [userEmail, setUserEmail] = useState('');
+
   // Step 2: Common Data
   const [date, setDate] = useState(new Date());
   const [dateText, setDateText] = useState('');
@@ -585,7 +621,9 @@ const BirdSurveyForm = () => {
   const [selectedWaterString, setSelectedWaterString] = useState('');
   const [isWaterModalVisible, setWaterModalVisible] = useState(false);
   const [paddySeason, setPaddySeason] = useState<string | null>(null);
+  const [visibility, setVisibility] = useState<string | null>(null);
   const [vegetationStatus, setVegetationStatus] = useState<string | null>(null);
+  const [dominantVegetation, setDominantVegetation] = useState<string | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
 
   // Step 3: Bird Observations
@@ -603,34 +641,148 @@ const BirdSurveyForm = () => {
   useEffect(() => {
     initDatabase();
     requestLocationPermission();
-    fetchTeamMembers();
+    initUserData();
     const subscription = NetInfo.addEventListener(state => {
       if (state.isConnected) retryFailedSubmissions();
     });
     return () => subscription();
   }, []);
 
-  const fetchTeamMembers = async () => {
-    try {
-      const db = await getDatabase();
-      db.transaction((tx: any) => {
-        tx.executeSql('SELECT email FROM LoginData LIMIT 1', [], async (_: any, results: any) => {
-          if (results.rows.length > 0) {
-            const userEmail = results.rows.item(0).email;
-            const response = await axios.get(`${API_URL}/getTeamMembers`, {
-              params: {email: userEmail, moduleType: 'bird'},
-            });
-            if (response.data.teamMembers) {
-              setTeamMembers(
-                response.data.teamMembers.map((name: string) => ({label: name, value: name})),
-              );
+  const getUserEmail = async (): Promise<string> => {
+    return new Promise((resolve) => {
+      getDatabase().then(db => {
+        db.transaction((tx: any) => {
+          tx.executeSql('SELECT email FROM LoginData LIMIT 1', [], (_: any, results: any) => {
+            if (results.rows.length > 0) {
+              const email = results.rows.item(0).email;
+              setUserEmail(email);
+              resolve(email);
+            } else {
+              resolve('');
             }
-          }
+          });
         });
+      }).catch(() => resolve(''));
+    });
+  };
+
+  const initUserData = async () => {
+    const email = await getUserEmail();
+    if (email) {
+      fetchTeamMembers(email);
+      fetchCustomCategories(email);
+    }
+  };
+
+  const fetchTeamMembers = async (email?: string) => {
+    const emailToUse = email || userEmail;
+    if (!emailToUse) return;
+    try {
+      const response = await axios.get(`${API_URL}/getTeamMembers`, {
+        params: {email: emailToUse, moduleType: 'bird'},
       });
+      if (response.data.teamMembers) {
+        setRawTeamMembers(response.data.teamMembers);
+        setTeamMembers(
+          response.data.teamMembers.map((name: string) => ({label: name, value: name})),
+        );
+      }
     } catch (error) {
       console.log('Could not fetch team members:', error);
     }
+  };
+
+  const fetchCustomCategories = async (email?: string) => {
+    const emailToUse = email || userEmail;
+    if (!emailToUse) return;
+    try {
+      const response = await axios.get(`${API_URL}/getCustomCategories`, {
+        params: {email: emailToUse},
+      });
+      if (response.data.customHabitatTypes) setCustomHabitatTypes(response.data.customHabitatTypes);
+      if (response.data.customPoints) setCustomPoints(response.data.customPoints);
+      if (response.data.customPointTags) setCustomPointTags(response.data.customPointTags);
+      if (response.data.customVegetationStatuses) setCustomVegetationStatuses(response.data.customVegetationStatuses);
+    } catch (error) {
+      console.log('Could not fetch custom categories:', error);
+    }
+  };
+
+  const addCustomCategory = async (categoryType: string, value: string) => {
+    if (!userEmail || !value.trim()) return;
+    try {
+      await axios.post(`${API_URL}/addCustomCategory`, {
+        email: userEmail, categoryType, value: value.trim(),
+      });
+      if (categoryType === 'customHabitatTypes') {
+        setCustomHabitatTypes(prev => [...prev, value.trim()]);
+        setHabitatType(value.trim());
+      } else if (categoryType === 'customPoints') {
+        setCustomPoints(prev => [...prev, value.trim()]);
+        setPoint(value.trim());
+      } else if (categoryType === 'customPointTags') {
+        setCustomPointTags(prev => [...prev, value.trim()]);
+        setPointTag(value.trim());
+      } else if (categoryType === 'customVegetationStatuses') {
+        setCustomVegetationStatuses(prev => [...prev, value.trim()]);
+        setVegetationStatus(value.trim());
+      }
+      setShowCustomInput({});
+      setCustomInputValue('');
+    } catch (error) {
+      console.log('Could not save custom category:', error);
+    }
+  };
+
+  const saveTeamMembers = async (updatedMembers: string[]) => {
+    if (!userEmail) return;
+    try {
+      await axios.post(`${API_URL}/saveOrUpdateTeamData`, {
+        email: userEmail, teamMembers: updatedMembers, moduleType: 'bird',
+      });
+    } catch (error) {
+      console.log('Team save error:', error);
+    }
+  };
+
+  const addTeamMember = () => {
+    const name = memberInput.trim();
+    if (!name) { Alert.alert('Error', 'Please enter a valid name.'); return; }
+    if (rawTeamMembers.includes(name)) { Alert.alert('Duplicate', 'This team member already exists.'); return; }
+    const updated = [...rawTeamMembers, name];
+    setRawTeamMembers(updated);
+    setTeamMembers(updated.map(n => ({label: n, value: n})));
+    setMemberInput('');
+    saveTeamMembers(updated);
+  };
+
+  const saveEditMember = () => {
+    if (editMemberIndex === null) return;
+    const name = memberInput.trim();
+    if (!name) { Alert.alert('Error', 'Please enter a valid name.'); return; }
+    const updated = [...rawTeamMembers];
+    updated[editMemberIndex] = name;
+    setRawTeamMembers(updated);
+    setTeamMembers(updated.map(n => ({label: n, value: n})));
+    setMemberInput('');
+    setEditMemberIndex(null);
+    saveTeamMembers(updated);
+  };
+
+  const deleteTeamMember = (index: number) => {
+    Alert.alert('Delete Member', `Remove "${rawTeamMembers[index]}" from the team?`, [
+      {text: 'Cancel', style: 'cancel'},
+      {
+        text: 'Delete', style: 'destructive',
+        onPress: () => {
+          if (editMemberIndex === index) { setEditMemberIndex(null); setMemberInput(''); }
+          const updated = rawTeamMembers.filter((_, i) => i !== index);
+          setRawTeamMembers(updated);
+          setTeamMembers(updated.map(n => ({label: n, value: n})));
+          saveTeamMembers(updated);
+        },
+      },
+    ]);
   };
 
   // Load draft data if navigated from Drafts page
@@ -649,9 +801,11 @@ const BirdSurveyForm = () => {
       if (draftData.startTime) setSelectedStartTime(new Date(draftData.startTime));
       if (draftData.endTime) setSelectedEndTime(new Date(draftData.endTime));
       if (draftData.weather) setSelectedWeatherString(draftData.weather);
+      if (draftData.visibility) setVisibility(draftData.visibility);
       if (draftData.water) setSelectedWaterString(draftData.water);
       if (draftData.paddySeason) setPaddySeason(draftData.paddySeason);
       if (draftData.vegetationStatus) setVegetationStatus(draftData.vegetationStatus);
+      if (draftData.dominantVegetation) setDominantVegetation(draftData.dominantVegetation);
       if (draftData.imageUri) setImageUri(draftData.imageUri);
       if (draftData.birdDataArray && draftData.birdDataArray.length > 0) {
         setBirdDataArray(draftData.birdDataArray);
@@ -671,8 +825,9 @@ const BirdSurveyForm = () => {
     startTime: selectedStartTime.toISOString(),
     endTime: selectedEndTime.toISOString(),
     weather: selectedWeatherString,
+    visibility,
     water: selectedWaterString,
-    paddySeason, vegetationStatus, imageUri,
+    paddySeason, vegetationStatus, dominantVegetation, imageUri,
     birdDataArray, currentStep,
   });
 
@@ -978,8 +1133,9 @@ const BirdSurveyForm = () => {
       latitude, longitude, date: dateStr,
       observers, startTime: startTimeStr, endTime: endTimeStr,
       weather: selectedWeatherString || '',
+      visibility: visibility || '',
       water: selectedWaterString || '',
-      season: paddySeason || '', statusOfVegy: vegetationStatus || '',
+      season: paddySeason || '', statusOfVegy: vegetationStatus || '', dominantVegetation: dominantVegetation || '',
       descriptor, radiusOfArea: radius,
       remark: '', imageUri: imageUri || '',
       birdObservations: birdDataArray.map((bird: any) => ({
@@ -1086,6 +1242,54 @@ const BirdSurveyForm = () => {
   // ========================================
   // RENDER STEP 1: Survey Point Details
   // ========================================
+  // Build dynamic dropdown data with custom categories merged in
+  const habitatTypeData = [
+    ...habitatTypes.filter(h => h.value !== 'Other'),
+    ...customHabitatTypes.map(v => ({label: v, value: v})),
+    {label: 'Other', value: 'Other'},
+  ];
+  const surveyPointData = [
+    ...defaultSurveyPoints.filter(p => p.value !== 'Other'),
+    ...customPoints.map(v => ({label: v, value: v})),
+    {label: 'Other', value: 'Other'},
+  ];
+  const pointTagData = [
+    ...defaultPointTags.filter(t => t.value !== 'Other'),
+    ...customPointTags.map(v => ({label: v, value: v})),
+    {label: 'Other', value: 'Other'},
+  ];
+  const vegetationStatusData = [
+    ...vegetationStatuses.filter(v => v.value !== 'Other'),
+    ...customVegetationStatuses.map(v => ({label: v, value: v})),
+    {label: 'Other', value: 'Other'},
+  ];
+
+  const renderCustomInput = (categoryType: string, fieldKey: string, placeholder: string) => (
+    showCustomInput[fieldKey] ? (
+      <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 4}}>
+        <TextInput
+          mode="outlined"
+          placeholder={`Enter new ${placeholder}`}
+          value={customInputValue}
+          onChangeText={setCustomInputValue}
+          outlineStyle={styles.inputOutline}
+          style={[styles.formInput, {flex: 1, marginRight: 8, marginBottom: 0}]}
+          textColor="#333"
+        />
+        <TouchableOpacity
+          onPress={() => addCustomCategory(categoryType, customInputValue)}
+          style={{backgroundColor: GREEN, padding: 10, borderRadius: 8, marginRight: 4}}>
+          <Icon name="plus" size={16} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => { setShowCustomInput({}); setCustomInputValue(''); }}
+          style={{padding: 10}}>
+          <Icon name="times" size={16} color="#999" />
+        </TouchableOpacity>
+      </View>
+    ) : null
+  );
+
   const renderStepOne = () => (
     <View>
       <View style={styles.card}>
@@ -1095,31 +1299,61 @@ const BirdSurveyForm = () => {
           style={[styles.formDropdown, focusStates.habitat && styles.dropdownFocused]}
           placeholderStyle={styles.placeholderStyle} selectedTextStyle={styles.selectedTextStyle}
           inputSearchStyle={styles.inputSearchStyle} iconStyle={styles.iconStyle}
-          itemTextStyle={{color: '#333'}} data={habitatTypes} search maxHeight={300}
+          itemTextStyle={{color: '#333'}} data={habitatTypeData} search maxHeight={300}
           labelField="label" valueField="value" placeholder="Habitat type"
           searchPlaceholder="Search..." value={habitatType}
           onFocus={() => setFocus('habitat', true)} onBlur={() => setFocus('habitat', false)}
-          onChange={item => { setHabitatType(item.value); setFocus('habitat', false); }}
+          onChange={item => {
+            if (item.value === 'Other') {
+              setShowCustomInput({habitat: true});
+              setCustomInputValue('');
+            } else {
+              setHabitatType(item.value);
+              setShowCustomInput({});
+            }
+            setFocus('habitat', false);
+          }}
         />
+        {renderCustomInput('customHabitatTypes', 'habitat', 'habitat type')}
         {errors.habitatType && <Text style={styles.errorText}>{errors.habitatType}</Text>}
 
         <Dropdown
           style={[styles.formDropdown, focusStates.point && styles.dropdownFocused]}
           placeholderStyle={styles.placeholderStyle} selectedTextStyle={styles.selectedTextStyle}
-          iconStyle={styles.iconStyle} itemTextStyle={{color: '#333'}} data={surveyPoints}
+          iconStyle={styles.iconStyle} itemTextStyle={{color: '#333'}} data={surveyPointData}
           maxHeight={300} labelField="label" valueField="value" placeholder="Point" value={point}
           onFocus={() => setFocus('point', true)} onBlur={() => setFocus('point', false)}
-          onChange={item => { setPoint(item.value); setFocus('point', false); }}
+          onChange={item => {
+            if (item.value === 'Other') {
+              setShowCustomInput({point: true});
+              setCustomInputValue('');
+            } else {
+              setPoint(item.value);
+              setShowCustomInput({});
+            }
+            setFocus('point', false);
+          }}
         />
+        {renderCustomInput('customPoints', 'point', 'point')}
 
         <Dropdown
           style={[styles.formDropdown, focusStates.tag && styles.dropdownFocused]}
           placeholderStyle={styles.placeholderStyle} selectedTextStyle={styles.selectedTextStyle}
-          iconStyle={styles.iconStyle} itemTextStyle={{color: '#333'}} data={pointTags}
+          iconStyle={styles.iconStyle} itemTextStyle={{color: '#333'}} data={pointTagData}
           maxHeight={300} labelField="label" valueField="value" placeholder="Point Tag" value={pointTag}
           onFocus={() => setFocus('tag', true)} onBlur={() => setFocus('tag', false)}
-          onChange={item => { setPointTag(item.value); setFocus('tag', false); }}
+          onChange={item => {
+            if (item.value === 'Other') {
+              setShowCustomInput({tag: true});
+              setCustomInputValue('');
+            } else {
+              setPointTag(item.value);
+              setShowCustomInput({});
+            }
+            setFocus('tag', false);
+          }}
         />
+        {renderCustomInput('customPointTags', 'tag', 'point tag')}
 
         <TextInput mode="outlined" placeholder="Descriptor" value={descriptor} onChangeText={setDescriptor}
           outlineStyle={styles.inputOutline} style={styles.formInput} textColor="#333" />
@@ -1133,6 +1367,67 @@ const BirdSurveyForm = () => {
         <TextInput mode="outlined" placeholder="Radius of Area(m)" value={radius}
           onChangeText={text => { const num = text.replace(/[^0-9.]/g, ''); setRadius(num ? `${num}m` : ''); }}
           keyboardType="numeric" outlineStyle={styles.inputOutline} style={styles.formInput} textColor="#333" />
+      </View>
+
+      {/* Team Members Section */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Team Members</Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 10}}>
+          <TextInput
+            mode="outlined"
+            placeholder="Enter member name"
+            value={memberInput}
+            onChangeText={setMemberInput}
+            outlineStyle={styles.inputOutline}
+            style={[styles.formInput, {flex: 1, marginRight: 8, marginBottom: 0}]}
+            textColor="#333"
+          />
+          {memberInput.length > 0 && (
+            <TouchableOpacity onPress={() => { setMemberInput(''); setEditMemberIndex(null); }} style={{padding: 6, marginRight: 4}}>
+              <Icon name="times-circle" size={18} color="#999" />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            onPress={editMemberIndex !== null ? saveEditMember : addTeamMember}
+            style={{backgroundColor: GREEN, padding: 10, borderRadius: 8}}>
+            <Icon name={editMemberIndex !== null ? 'check' : 'plus'} size={16} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        {editMemberIndex !== null && (
+          <Text style={{fontSize: 12, color: GREEN, fontStyle: 'italic', marginBottom: 6}}>
+            Editing: {rawTeamMembers[editMemberIndex]}
+          </Text>
+        )}
+        {rawTeamMembers.length > 0 ? (
+          rawTeamMembers.map((member, index) => (
+            <View key={index} style={{
+              flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+              paddingVertical: 10, paddingHorizontal: 8,
+              borderBottomWidth: 1, borderBottomColor: '#E0E0E0',
+              ...(editMemberIndex === index ? {backgroundColor: '#e8f5e9', borderLeftWidth: 3, borderLeftColor: GREEN, borderRadius: 6} : {}),
+            }}>
+              <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
+                <View style={{width: 28, height: 28, borderRadius: 14, backgroundColor: '#e8f5e9', justifyContent: 'center', alignItems: 'center', marginRight: 8}}>
+                  <Icon name="user" size={14} color={GREEN} />
+                </View>
+                <Text style={{fontSize: 14, color: '#333', flex: 1}}>{member}</Text>
+              </View>
+              <View style={{flexDirection: 'row'}}>
+                <TouchableOpacity onPress={() => { setMemberInput(rawTeamMembers[index]); setEditMemberIndex(index); }} style={{marginLeft: 10, padding: 4}}>
+                  <Icon name="edit" size={16} color={GREEN} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => deleteTeamMember(index)} style={{marginLeft: 10, padding: 4}}>
+                  <Icon name="trash" size={16} color="#D32F2F" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))
+        ) : (
+          <View style={{alignItems: 'center', paddingVertical: 16}}>
+            <Icon name="users" size={30} color="#ccc" />
+            <Text style={{fontSize: 13, color: '#999', marginTop: 6}}>No team members yet</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.card}>
@@ -1205,25 +1500,43 @@ const BirdSurveyForm = () => {
         </TouchableOpacity>
         <WaterAvailabilityModal visible={isWaterModalVisible} onClose={() => setWaterModalVisible(false)} onSelect={setSelectedWaterString} />
 
-        {habitatType === 'Paddy Field' && (
-          <Dropdown
-            style={[styles.formDropdown, focusStates.season && styles.dropdownFocused]}
-            placeholderStyle={styles.placeholderStyle} selectedTextStyle={styles.selectedTextStyle}
-            iconStyle={styles.iconStyle} itemTextStyle={{color: '#333'}} data={paddySeasons}
-            maxHeight={300} labelField="label" valueField="value" placeholder="Season of Paddy Field"
-            value={paddySeason} onChange={item => setPaddySeason(item.value)}
-          />
-        )}
-
         <Dropdown
           style={[styles.formDropdown, focusStates.vegetation && styles.dropdownFocused]}
           placeholderStyle={styles.placeholderStyle} selectedTextStyle={styles.selectedTextStyle}
           inputSearchStyle={styles.inputSearchStyle} iconStyle={styles.iconStyle}
-          itemTextStyle={{color: '#333'}} data={vegetationStatuses} search maxHeight={300}
+          itemTextStyle={{color: '#333'}} data={vegetationStatusData} search maxHeight={300}
           labelField="label" valueField="value" placeholder="Status Of Vegetation"
           searchPlaceholder="Search..." value={vegetationStatus}
           onFocus={() => setFocus('vegetation', true)} onBlur={() => setFocus('vegetation', false)}
-          onChange={item => { setVegetationStatus(item.value); setFocus('vegetation', false); }}
+          onChange={item => {
+            if (item.value === 'Other') {
+              setShowCustomInput({vegetation: true});
+              setCustomInputValue('');
+            } else {
+              setVegetationStatus(item.value);
+              setShowCustomInput({});
+            }
+            setFocus('vegetation', false);
+          }}
+        />
+        {renderCustomInput('customVegetationStatuses', 'vegetation', 'vegetation status')}
+
+        <Dropdown
+          style={[styles.formDropdown, focusStates.season && styles.dropdownFocused]}
+          placeholderStyle={styles.placeholderStyle} selectedTextStyle={styles.selectedTextStyle}
+          iconStyle={styles.iconStyle} itemTextStyle={{color: '#333'}} data={paddySeasons}
+          maxHeight={300} labelField="label" valueField="value" placeholder="Season of Paddy Field"
+          value={paddySeason} onChange={item => setPaddySeason(item.value)}
+        />
+
+        <Dropdown
+          style={[styles.formDropdown, focusStates.dominantVeg && styles.dropdownFocused]}
+          placeholderStyle={styles.placeholderStyle} selectedTextStyle={styles.selectedTextStyle}
+          iconStyle={styles.iconStyle} itemTextStyle={{color: '#333'}} data={dominantVegetationTypes}
+          maxHeight={300} labelField="label" valueField="value" placeholder="Type of Dominant Vegetation"
+          value={dominantVegetation}
+          onFocus={() => setFocus('dominantVeg', true)} onBlur={() => setFocus('dominantVeg', false)}
+          onChange={item => { setDominantVegetation(item.value); setFocus('dominantVeg', false); }}
         />
 
         <Button mode="contained" onPress={handleNext} style={styles.nextButton} buttonColor={GREEN} textColor="white" labelStyle={styles.buttonLabel}>

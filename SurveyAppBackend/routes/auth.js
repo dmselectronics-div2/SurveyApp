@@ -44,6 +44,12 @@ router.get('/getTeamMembers', authController.getTeamMembers);
 // Save or update team data
 router.post('/saveOrUpdateTeamData', authController.saveOrUpdateTeamData);
 
+// Get custom categories
+router.get('/getCustomCategories', authController.getCustomCategories);
+
+// Add custom category
+router.post('/addCustomCategory', authController.addCustomCategory);
+
 // Get user validation (admin approval check)
 router.get('/get-user-validation', authController.getUserValidation);
 

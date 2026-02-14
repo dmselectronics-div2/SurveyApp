@@ -19,14 +19,12 @@ import MyDataTable from '../data-table/display-table';
 import SearchOption from '../Search-page/search-option';
 import SelectEditMode from '../Edit-Survey/Edit-permition';
 import NetworkStatusBanner from '../../components/NetworkStatusBanner';
-import TeamMembersPage from '../team-members/team-members-page';
 
 // Bottom Nav Bar
 const DashboardRoute = () => <MainDashboardPage />;
 const AlbumsRoute = () => <BirdSurveyForm />;
 const RecentsRoute = () => <CollectionPage />;
 const NotificationsRoute = () => <SearchOption />;
-const TeamRoute = () => <TeamMembersPage />;
 const ProfilePageRoute = () => <ProfileMenu />;
 
 const BottomNavbar = ({ setTitle }: { setTitle?: (title: string) => void }) => {
@@ -69,13 +67,6 @@ const BottomNavbar = ({ setTitle }: { setTitle?: (title: string) => void }) => {
       focusedIcon: 'database',
       unfocusedIcon: 'database-outline',
     },
-    {
-      key: 'team',
-      title: 'Team',
-      topTitle: 'Byvalvi Team Member Adding',
-      focusedIcon: 'account-group',
-      unfocusedIcon: 'account-group-outline',
-    },
   ]);
 
   const renderScene = BottomNavigation.SceneMap({
@@ -114,7 +105,6 @@ const BottomNavbar = ({ setTitle }: { setTitle?: (title: string) => void }) => {
     albums: AlbumsRoute,
     recents: RecentsRoute,
     notifications: NotificationsRoute,
-    team: TeamRoute,
   };
 
   const CurrentScene = scenes[routes[index].key as keyof typeof scenes];

@@ -6,10 +6,13 @@ const connectDB = async () => {
 
   try {
     const conn = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 10000,
-      socketTimeoutMS: 45000,
-      connectTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 60000,
+      connectTimeoutMS: 30000,
       maxPoolSize: 10,
+      heartbeatFrequencyMS: 10000,
+      retryReads: true,
+      retryWrites: true,
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);

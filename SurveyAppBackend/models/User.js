@@ -100,6 +100,18 @@ const userSchema = new mongoose.Schema({
   teamMembers: [{
     type: String
   }],
+  customHabitatTypes: [{
+    type: String
+  }],
+  customPoints: [{
+    type: String
+  }],
+  customPointTags: [{
+    type: String
+  }],
+  customVegetationStatuses: [{
+    type: String
+  }],
   createdAt: {
     type: Date,
     default: Date.now

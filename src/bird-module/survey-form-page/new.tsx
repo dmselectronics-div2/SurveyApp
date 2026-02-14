@@ -91,7 +91,7 @@ const radio_props1 = [
   { label: 'None', value: 'None' },
   { label: 'Drizzle', value: 'Drizzle' },
   { label: 'Showers', value: 'Showers' },
-  { label: 'Thunder Showers', value: 'Thunder Showers' },
+  // { label: 'Thunder Showers', value: 'Thunder Showers' },
 ];
 
 const radio_props = [
@@ -104,7 +104,7 @@ const radio_props2 = [
   { label: 'Calm', value: 'Calm' },
   { label: 'Light', value: 'Light' },
   { label: 'Breezy', value: 'Breezy' },
-  { label: 'Gale', value: 'Gale' },
+  // { label: 'Gale', value: 'Gale' },
 ];
 
 const radio_props3 = [
@@ -137,7 +137,7 @@ const data6 = [
 const data7 = [
   {label: 'Flowering', value: 'Flowering'},
   {label: 'Fruiting', value: 'Fruiting'},
-  {label: 'Dry Vegetation', value: 'Dry Vegetation'},
+  // {label: 'Dry Vegetation', value: 'Dry Vegetation'},
   {label: 'Harvesting (for paddy fields)', value: 'Harvesting (for paddy fields)'},
   {label: 'Fallow Season (for paddy fields)', value: 'Fallow Season (for paddy fields)'},
   {label: 'Farming season (for paddy fields)', value: 'Farming season (for paddy fields)'},
@@ -466,7 +466,7 @@ const WaterAvailabilityModal = ({ visible, onClose, onSelect }) => {
   data={radio_props5}
   labelField="label"
   valueField="value"
-  placeholder="Water Reservoir"
+  placeholder="Water Source"
   value={waterReservoir}
   onChange={(item) => setWaterReservoir(item.value)}
   
@@ -2015,7 +2015,7 @@ const [longitude, setLongitude] = useState(
                     labelField="label"
                     valueField="value"
                     placeholder={
-                      !isFocus7 && !value7 ? `Status Of Vegetation` : ''
+                      !isFocus7 && !value7 ? `Status of Vegetation` : ''
                     }
                     searchPlaceholder="Search..."
                     value={value7}
@@ -2026,7 +2026,7 @@ const [longitude, setLongitude] = useState(
                       setIsFocus7(false);
                     }}>
                     <Text>
-                      {renderLabel('Status Of Vegetation', value7, isFocus7)}
+                      {renderLabel('Status of Vegetation', value7, isFocus7)}
                     </Text>
                   </Dropdown>
 
