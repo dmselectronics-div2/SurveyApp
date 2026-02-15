@@ -10,12 +10,23 @@ const mangroveRoutes = require('./Bivalvi');
 const uploadRoutes = require('./upload');
 const citizenFormRoutes = require('./citizenForm');
 
-// Register routes
-router.use('/', authRoutes);
-router.use('/', birdRoutes);
-router.use('/api', citizenRoutes);
-router.use('/', mangroveRoutes);
-router.use('/', uploadRoutes);
-router.use('/', citizenFormRoutes);
+// API v1 routes with consistent namespacing
+const apiV1 = express.Router();
+
+// Register routes with proper API versioning and namespacing
+apiV1.use('/auth', authRoutes);
+apiV1.use('/bird', birdRoutes);
+apiV1.use('/citizen', citizenRoutes);
+apiV1.use('/mangrove', mangroveRoutes);
+apiV1.use('/citizen-form', citizenFormRoutes);
+apiV1.use('/upload', uploadRoutes);
+
+// Mount API routes
+router.use('/api/v1', apiV1);
+
+// Health check endpoint
+router.get('/health', (req, res) => {
+  res.json({ status: 'ok', message: 'SurveyApp Backend is running' });
+});
 
 module.exports = router;

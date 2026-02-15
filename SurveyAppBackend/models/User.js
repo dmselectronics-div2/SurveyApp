@@ -112,6 +112,9 @@ const userSchema = new mongoose.Schema({
   customVegetationStatuses: [{
     type: String
   }],
+  customBirdStatuses: [{
+    type: String
+  }],
   createdAt: {
     type: Date,
     default: Date.now

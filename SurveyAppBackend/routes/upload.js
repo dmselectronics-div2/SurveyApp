@@ -46,7 +46,7 @@ const upload = multer({
 });
 
 // Upload profile image
-router.post('/api/upload-profile-image', upload.single('profileImage'), async (req, res) => {
+router.post('/upload-profile-image', upload.single('profileImage'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ status: 'error', message: 'No file uploaded' });

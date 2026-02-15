@@ -80,14 +80,14 @@ const rainOptions = [
   {label: 'None', value: 'None'},
   {label: 'Drizzle', value: 'Drizzle'},
   {label: 'Showers', value: 'Showers'},
-  {label: 'Thunder Showers', value: 'Thunder Showers'},
+  // {label: 'Thunder Showers', value: 'Thunder Showers'},
 ];
 
 const windOptions = [
   {label: 'Calm', value: 'Calm'},
   {label: 'Light', value: 'Light'},
   {label: 'Breezy', value: 'Breezy'},
-  {label: 'Gale', value: 'Gale'},
+  // {label: 'Gale', value: 'Gale'},
 ];
 
 const sunshineOptions = [
@@ -197,17 +197,26 @@ const createEmptyBirdObservation = () => ({
   behaviours: [] as string[],
   identification: null as string | null,
   status: null as string | null,
+  customStatus: '',
+  showCustomStatus: false,
   remark: '',
   imageUri: null as string | null,
+  imageUris: [] as string[],
   expanded: true,
 });
 
 // ========================================
 // BIRD OBSERVATION CARD
 // ========================================
-const BirdObservationCard = ({observation, index, onUpdate, onDelete, onToggle}: any) => {
+const BirdObservationCard = ({observation, index, onUpdate, onDelete, onToggle, customBirdStatuses, onAddCustomStatus}: any) => {
   const [speciesFocus, setSpeciesFocus] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
+
+  const statusData = [
+    ...birdStatusOptions.filter(s => s.value !== 'Other'),
+    ...(customBirdStatuses || []).map((v: string) => ({label: v, value: v})),
+    {label: 'Other', value: 'Other'},
+  ];
 
   const handleBehaviourChange = (item: any) => {
     const current = observation.behaviours || [];
@@ -221,18 +230,25 @@ const BirdObservationCard = ({observation, index, onUpdate, onDelete, onToggle}:
     setShowPhotoModal(false);
     launchCamera({mediaType: 'photo', quality: 1}, response => {
       if (response.assets && response.assets.length > 0) {
-        onUpdate({...observation, imageUri: response.assets[0].uri});
+        const newUris = [...(observation.imageUris || []), ...response.assets.map(a => a.uri)];
+        onUpdate({...observation, imageUri: newUris[0], imageUris: newUris});
       }
     });
   };
 
   const handleGallery = () => {
     setShowPhotoModal(false);
-    launchImageLibrary({mediaType: 'photo', quality: 1}, response => {
+    launchImageLibrary({mediaType: 'photo', quality: 1, selectionLimit: 0}, response => {
       if (response.assets && response.assets.length > 0) {
-        onUpdate({...observation, imageUri: response.assets[0].uri});
+        const newUris = [...(observation.imageUris || []), ...response.assets.map(a => a.uri)];
+        onUpdate({...observation, imageUri: newUris[0], imageUris: newUris});
       }
     });
+  };
+
+  const removePhoto = (photoIndex: number) => {
+    const updated = (observation.imageUris || []).filter((_: any, i: number) => i !== photoIndex);
+    onUpdate({...observation, imageUri: updated[0] || null, imageUris: updated});
   };
 
   return (
@@ -384,18 +400,53 @@ const BirdObservationCard = ({observation, index, onUpdate, onDelete, onToggle}:
             selectedTextStyle={cardStyles.selectedTextStyle}
             iconStyle={cardStyles.iconStyle}
             itemTextStyle={{color: '#333'}}
-            data={birdStatusOptions}
+            data={statusData}
             maxHeight={300}
             labelField="label"
             valueField="value"
             placeholder={observation.status || 'Status'}
             value={observation.status}
-            onChange={item => onUpdate({...observation, status: item.value})}
+            onChange={item => {
+              if (item.value === 'Other') {
+                onUpdate({...observation, showCustomStatus: true});
+              } else {
+                onUpdate({...observation, status: item.value, showCustomStatus: false});
+              }
+            }}
           />
+          {observation.showCustomStatus && (
+            <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 6, marginBottom: 4}}>
+              <TextInput
+                mode="outlined"
+                placeholder="Enter new status"
+                value={observation.customStatus || ''}
+                onChangeText={val => onUpdate({...observation, customStatus: val})}
+                outlineStyle={cardStyles.txtInputOutline}
+                style={[cardStyles.textInput, {flex: 1, marginRight: 8, marginBottom: 0}]}
+                textColor="#333"
+              />
+              <TouchableOpacity
+                onPress={() => {
+                  const val = (observation.customStatus || '').trim();
+                  if (val && onAddCustomStatus) {
+                    onAddCustomStatus(val);
+                    onUpdate({...observation, status: val, showCustomStatus: false, customStatus: ''});
+                  }
+                }}
+                style={{backgroundColor: '#4A7856', padding: 10, borderRadius: 8, marginRight: 4}}>
+                <Icon name="plus" size={16} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => onUpdate({...observation, showCustomStatus: false, customStatus: ''})}
+                style={{padding: 10}}>
+                <Icon name="times" size={16} color="#999" />
+              </TouchableOpacity>
+            </View>
+          )}
 
           <TextInput
             mode="outlined"
-            placeholder="Write your note..."
+            placeholder="Note"
             value={observation.remark}
             onChangeText={val => onUpdate({...observation, remark: val})}
             outlineStyle={cardStyles.txtInputOutline}
@@ -404,27 +455,32 @@ const BirdObservationCard = ({observation, index, onUpdate, onDelete, onToggle}:
             multiline
           />
 
-          <Text style={cardStyles.photoLabel}>Photo</Text>
+          <Text style={cardStyles.photoLabel}>Photos</Text>
+          {(observation.imageUris || []).length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 10}}>
+              {(observation.imageUris || []).map((uri: string, photoIdx: number) => (
+                <View key={photoIdx} style={{marginRight: 8, position: 'relative'}}>
+                  <Image source={{uri}} style={{width: 80, height: 80, borderRadius: 8}} />
+                  <TouchableOpacity
+                    style={cardStyles.removePhotoButton}
+                    onPress={() => removePhoto(photoIdx)}
+                    activeOpacity={0.8}>
+                    <MaterialIcon name="close" size={16} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          )}
           <TouchableOpacity
             style={cardStyles.photoUploadArea}
             onPress={() => setShowPhotoModal(true)}
             activeOpacity={0.7}>
-            {observation.imageUri ? (
-              <View style={cardStyles.photoContainer}>
-                <Image source={{uri: observation.imageUri}} style={cardStyles.uploadedPhoto} />
-                <TouchableOpacity
-                  style={cardStyles.removePhotoButton}
-                  onPress={() => onUpdate({...observation, imageUri: null})}
-                  activeOpacity={0.8}>
-                  <MaterialIcon name="close" size={20} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={cardStyles.photoPlaceholder}>
-                <MaterialIcon name="photo-camera" size={50} color="#CCC" />
-                <Text style={cardStyles.photoPlaceholderText}>Tap to upload or capture a photo</Text>
-              </View>
-            )}
+            <View style={cardStyles.photoPlaceholder}>
+              <MaterialIcon name="add-a-photo" size={40} color="#CCC" />
+              <Text style={cardStyles.photoPlaceholderText}>
+                {(observation.imageUris || []).length > 0 ? 'Add more photos' : 'Tap to upload or capture photos'}
+              </Text>
+            </View>
           </TouchableOpacity>
 
           {/* Photo Picker Modal */}
@@ -597,6 +653,7 @@ const BirdSurveyForm = () => {
   const [customPoints, setCustomPoints] = useState<string[]>([]);
   const [customPointTags, setCustomPointTags] = useState<string[]>([]);
   const [customVegetationStatuses, setCustomVegetationStatuses] = useState<string[]>([]);
+  const [customBirdStatuses, setCustomBirdStatuses] = useState<string[]>([]);
   const [showCustomInput, setShowCustomInput] = useState<{[key: string]: boolean}>({});
   const [customInputValue, setCustomInputValue] = useState('');
 
@@ -703,6 +760,7 @@ const BirdSurveyForm = () => {
       if (response.data.customPoints) setCustomPoints(response.data.customPoints);
       if (response.data.customPointTags) setCustomPointTags(response.data.customPointTags);
       if (response.data.customVegetationStatuses) setCustomVegetationStatuses(response.data.customVegetationStatuses);
+      if (response.data.customBirdStatuses) setCustomBirdStatuses(response.data.customBirdStatuses);
     } catch (error) {
       console.log('Could not fetch custom categories:', error);
     }
@@ -726,6 +784,8 @@ const BirdSurveyForm = () => {
       } else if (categoryType === 'customVegetationStatuses') {
         setCustomVegetationStatuses(prev => [...prev, value.trim()]);
         setVegetationStatus(value.trim());
+      } else if (categoryType === 'customBirdStatuses') {
+        setCustomBirdStatuses(prev => [...prev, value.trim()]);
       }
       setShowCustomInput({});
       setCustomInputValue('');
@@ -1569,6 +1629,8 @@ const BirdSurveyForm = () => {
             onUpdate={updateBirdObservation}
             onDelete={() => deleteBirdObservation(obs.id)}
             onToggle={() => toggleBirdObservation(obs.id)}
+            customBirdStatuses={customBirdStatuses}
+            onAddCustomStatus={(val: string) => addCustomCategory('customBirdStatuses', val)}
           />
         ))}
       </View>

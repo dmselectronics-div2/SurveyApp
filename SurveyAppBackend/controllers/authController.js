@@ -546,6 +546,7 @@ exports.getCustomCategories = async (req, res) => {
       customPoints: user?.customPoints || [],
       customPointTags: user?.customPointTags || [],
       customVegetationStatuses: user?.customVegetationStatuses || [],
+      customBirdStatuses: user?.customBirdStatuses || [],
     });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
@@ -557,7 +558,7 @@ exports.addCustomCategory = async (req, res) => {
   try {
     const { email, categoryType, value } = req.body;
 
-    const validTypes = ['customHabitatTypes', 'customPoints', 'customPointTags', 'customVegetationStatuses'];
+    const validTypes = ['customHabitatTypes', 'customPoints', 'customPointTags', 'customVegetationStatuses', 'customBirdStatuses'];
     if (!validTypes.includes(categoryType)) {
       return res.status(400).json({ status: 'error', message: 'Invalid category type' });
     }
