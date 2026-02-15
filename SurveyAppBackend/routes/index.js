@@ -24,6 +24,14 @@ apiV1.use('/upload', uploadRoutes);
 // Mount API routes
 router.use('/api/v1', apiV1);
 
+// Backward-compatible routes (frontend calls these directly)
+router.use('/', birdRoutes);
+router.use('/', authRoutes);
+router.use('/', citizenRoutes);
+router.use('/', citizenFormRoutes);
+router.use('/', uploadRoutes);
+router.use('/api', uploadRoutes);
+
 // Health check endpoint
 router.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'SurveyApp Backend is running' });

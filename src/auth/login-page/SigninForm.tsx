@@ -74,7 +74,7 @@ const SigninForm = ({navigation}: any) => {
 
     // DEV ONLY: Dummy account for development access - remove in production
     if (email === DEV_DUMMY_EMAIL && password === DEV_DUMMY_PASSWORD) {
-      setLoginEmail(DEV_DUMMY_EMAIL);
+      await setLoginEmail(DEV_DUMMY_EMAIL);
       Alert.alert('Success', 'Dev login successful');
       navigation.replace('Welcome', {email: DEV_DUMMY_EMAIL});
       return;
@@ -86,7 +86,7 @@ const SigninForm = ({navigation}: any) => {
 
       if (response.data.status === 'ok' || response.data.status === 'notConfirmed') {
         // Bypass email verification for now - allow login even if email not confirmed
-        setLoginEmail(email);
+        await setLoginEmail(email);
         Alert.alert('Success', 'Logged in successfully');
         navigation.replace('Welcome', {email});
       } else if (response.data.status === 'google') {
@@ -139,12 +139,12 @@ const SigninForm = ({navigation}: any) => {
   const handleGoogleSignUp = (gEmail: string, name: string, photo: string) => {
     axios
       .post(`${API_URL}/google-register`, {email: gEmail, name, photo})
-      .then(res => {
+      .then(async res => {
         if (res.data.status === 'ok') {
           Alert.alert('Success', 'Account registered successfully');
           navigation.navigate('PrivacyPolicy', {email: gEmail, name});
         } else if (res.data.status === 'google') {
-          setLoginEmail(gEmail);
+          await setLoginEmail(gEmail);
           Alert.alert('Success', 'Logged in successfully');
           navigation.replace('Welcome', {email: gEmail});
         } else if (res.data.status === 'notgoogle') {
@@ -175,7 +175,7 @@ const SigninForm = ({navigation}: any) => {
         if (success) {
           const credentials = await Keychain.getGenericPassword();
           if (credentials) {
-            setLoginEmail(credentials.username);
+            await setLoginEmail(credentials.username);
             navigation.replace('Welcome', {email: credentials.username});
           }
         } else {

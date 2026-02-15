@@ -4,6 +4,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import PureSearchPage from './search-by-date';
 import SearchPage from './search-page';
 import SearchCount from './search-count';
+import SearchAllSpeciesCount from './search-all-species-count';
 import CitySearchPage from './search-citizen';
 
 const GREEN = '#2e7d32';
@@ -28,13 +29,19 @@ const filterOptions = [
     subtitle: 'Search by bird observation count',
     icon: 'counter',
   },
-
+  {
+    key: 'allSpecies',
+    title: 'All Species Count',
+    subtitle: 'View all species with total counts',
+    icon: 'bird',
+  },
 ];
 
 const SearchOption = () => {
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [showPointFilter, setShowPointFilter] = useState(false);
   const [showBirdCount, setShowBirdCount] = useState(false);
+  const [showAllSpeciesCount, setShowAllSpeciesCount] = useState(false);
   const [showCitizen, setShowCitizen] = useState(false);
 
   const handlePress = (key: string) => {
@@ -47,6 +54,9 @@ const SearchOption = () => {
         break;
       case 'count':
         setShowBirdCount(true);
+        break;
+      case 'allSpecies':
+        setShowAllSpeciesCount(true);
         break;
       case 'citizen':
         setShowCitizen(true);
@@ -62,6 +72,9 @@ const SearchOption = () => {
   }
   if (showBirdCount) {
     return <SearchCount setShowBirdCount={setShowBirdCount} />;
+  }
+  if (showAllSpeciesCount) {
+    return <SearchAllSpeciesCount setShowAllSpeciesCount={setShowAllSpeciesCount} />;
   }
   if (showCitizen) {
     return <CitySearchPage setShowCitizen={setShowCitizen} />;

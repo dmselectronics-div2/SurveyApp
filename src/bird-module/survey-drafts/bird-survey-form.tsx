@@ -26,6 +26,7 @@ import {getDatabase} from '../database/db';
 import NetInfo from '@react-native-community/netinfo';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {birdSpecies} from './bird-list';
+import CustomAlert from '../custom-alert/alert-design';
 
 const {width} = Dimensions.get('window');
 
@@ -255,7 +256,7 @@ const BirdObservationCard = ({observation, index, onUpdate, onDelete, onToggle, 
     <View style={cardStyles.card}>
       <TouchableOpacity onPress={onToggle} style={cardStyles.cardHeader}>
         <Text style={cardStyles.cardTitle}>
-          Bird #{index + 1}
+          Bird Record Form {index + 1}
           {observation.species ? (() => {
             const parsed = parseSpeciesName(observation.species);
             return <Text>{` - ${parsed.common}`}{parsed.scientific ? <Text style={{fontStyle: 'italic'}}>{` (${parsed.scientific})`}</Text> : null}</Text>;
@@ -580,8 +581,8 @@ const WaterAvailabilityModal = ({visible, onClose, onSelect}: any) => {
     const parts = [];
     if (onLand === 'Yes' && onLandWaterLevel) parts.push(`On Land - Yes (Level: ${onLandWaterLevel} cm)`);
     else if (onLand) parts.push(`On Land - ${onLand}`);
-    if (waterReservoir === 'Yes' && waterLevel) parts.push(`Water Reservoir - Yes (Level: ${waterLevel} cm)`);
-    else if (waterReservoir) parts.push(`Water Reservoir - ${waterReservoir}`);
+    if (waterReservoir === 'Yes' && waterLevel) parts.push(`Water Status - Yes (Level: ${waterLevel} cm)`);
+    else if (waterReservoir) parts.push(`Water Status - ${waterReservoir}`);
     return parts.join(', ');
   };
 
@@ -608,7 +609,7 @@ const WaterAvailabilityModal = ({visible, onClose, onSelect}: any) => {
               </View>
             )}
             <Dropdown style={modalDd} placeholderStyle={{color: 'black'}} selectedTextStyle={{color: 'black'}} itemTextStyle={{color: 'black'}} containerStyle={containerS}
-              data={yesNoOptions} labelField="label" valueField="value" placeholder="Water Reservoir" value={waterReservoir}
+              data={yesNoOptions} labelField="label" valueField="value" placeholder="Water Status" value={waterReservoir}
               onChange={item => setWaterReservoir(p => p === item.value ? null : item.value)} />
             {waterReservoir === 'Yes' && (
               <View style={{width: '100%', marginBottom: 10}}>
@@ -689,6 +690,7 @@ const BirdSurveyForm = () => {
   // Submit state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
 
   // Focus states
   const [focusStates, setFocusStates] = useState<{[key: string]: boolean}>({});
@@ -1156,6 +1158,25 @@ const BirdSurveyForm = () => {
   };
 
   // ===== SUBMIT =====
+  const handleSubmitFullSurvey = async () => {
+    const step1Valid = !!habitatType;
+    const step2Valid = dateText && observers && selectedWeatherString;
+
+    if (!step1Valid || !step2Valid) {
+      Alert.alert(
+        'Incomplete Form',
+        'Please fill in all required fields (Habitat Type, Date, Observer, Weather) before submitting.',
+        [
+          {text: 'Cancel', style: 'cancel'},
+          {text: 'Save as Draft', onPress: saveDraft},
+        ],
+      );
+      return;
+    }
+
+    setShowSubmitConfirm(true);
+  };
+
   const handleSubmit = async () => {
     const step1Valid = !!habitatType;
     const step2Valid = dateText && observers && selectedWeatherString;
@@ -1188,7 +1209,7 @@ const BirdSurveyForm = () => {
     const endTimeStr = selectedEndTime.toISOString();
 
     const formData = {
-      uniqueId, habitatType,
+      uniqueId, email: userEmail, habitatType,
       point: point || '', pointTag: pointTag || '',
       latitude, longitude, date: dateStr,
       observers, startTime: startTimeStr, endTime: endTimeStr,
@@ -1220,16 +1241,14 @@ const BirdSurveyForm = () => {
       const addedId = response.data._id || response.data.formEntry?._id;
       if (addedId) uploadImageToServer(imageUri, addedId);
       if (existingDraftId) await deleteDraft(existingDraftId);
-      Alert.alert('Success', 'Survey submitted successfully!', [{text: 'OK'}]);
-      navigation.navigate('BirdBottomNav');
+      setShowSuccessAlert(true);
     } catch (error: any) {
       setIsSubmitting(false);
       console.log('Submit error:', error?.message);
       console.log('Server response:', error?.response?.status, error?.response?.data);
       storeFailedSubmission(formData);
       if (existingDraftId) await deleteDraft(existingDraftId);
-      Alert.alert('Saved Offline', 'Survey saved locally. Will sync when online.');
-      navigation.navigate('BirdBottomNav');
+      setShowSuccessAlert(true);
     }
   };
 
@@ -1490,13 +1509,14 @@ const BirdSurveyForm = () => {
         )}
       </View>
 
-      <View style={styles.card}>
-        <Button mode="contained" onPress={handleNext} style={styles.nextButton} buttonColor={GREEN} textColor="white" labelStyle={styles.buttonLabel}>
-          Go To Next Step
-        </Button>
-        <TouchableOpacity onPress={saveDraft} style={styles.saveDraftLink}>
-          <Icon name="floppy-o" size={16} color={GREEN} />
-          <Text style={styles.saveDraftText}>Save as Draft</Text>
+      <View style={styles.step1ActionCard}>
+        <TouchableOpacity onPress={handleNext} style={styles.nextStepBtn} activeOpacity={0.8}>
+          <Text style={styles.nextStepBtnText}>Continue to Common Details</Text>
+          <Icon name="arrow-right" size={16} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={saveDraft} style={styles.saveDraftBtn} activeOpacity={0.7}>
+          <Icon name="floppy-o" size={15} color={GREEN} />
+          <Text style={styles.saveDraftBtnText}>Save as Draft</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -1599,12 +1619,50 @@ const BirdSurveyForm = () => {
           onChange={item => { setDominantVegetation(item.value); setFocus('dominantVeg', false); }}
         />
 
-        <Button mode="contained" onPress={handleNext} style={styles.nextButton} buttonColor={GREEN} textColor="white" labelStyle={styles.buttonLabel}>
-          Go To Next Step
-        </Button>
-        <TouchableOpacity onPress={saveDraft} style={styles.saveDraftLink}>
-          <Icon name="floppy-o" size={16} color={GREEN} />
-          <Text style={styles.saveDraftText}>Save as Draft</Text>
+      </View>
+
+      {/* Action Buttons */}
+      <View style={styles.step2ActionCard}>
+        <TouchableOpacity
+          onPress={() => {
+            if (validateStep2()) {
+              setCurrentStep(2);
+              setErrors({});
+              if (birdDataArray.length === 0) {
+                setBirdDataArray([createEmptyBirdObservation()]);
+              }
+            }
+          }}
+          style={styles.birdDetailBtn}
+          activeOpacity={0.8}>
+          <View style={styles.actionBtnIconCircle}>
+            <Icon name="plus" size={16} color="#fff" />
+          </View>
+          <View style={styles.actionBtnTextWrap}>
+            <Text style={styles.actionBtnTitle}>Bird Detail Record</Text>
+            <Text style={styles.actionBtnSub}>Add bird observations to this survey</Text>
+          </View>
+          <Icon name="chevron-right" size={16} color={GREEN} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={handleSubmitFullSurvey}
+          disabled={isSubmitting}
+          style={[styles.submitFullBtn, isSubmitting && {opacity: 0.6}]}
+          activeOpacity={0.8}>
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <>
+              <Icon name="cloud-upload" size={18} color="#FFFFFF" />
+              <Text style={styles.submitFullBtnText}>Submit Full Survey</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={saveDraft} style={styles.saveDraftBtn} activeOpacity={0.7}>
+          <Icon name="floppy-o" size={15} color={GREEN} />
+          <Text style={styles.saveDraftBtnText}>Save as Draft</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -1635,75 +1693,38 @@ const BirdSurveyForm = () => {
         ))}
       </View>
 
-      {/* Submit Buttons */}
-      <View style={styles.submitRow}>
-        <TouchableOpacity
-          onPress={() => { setCurrentStep(1); setErrors({}); }}
-          style={styles.backStepButton}>
-          <Icon name="arrow-left" size={16} color={GREEN} />
-          <Text style={styles.backStepText}>Back</Text>
-        </TouchableOpacity>
+      {/* Action Buttons */}
+      <View style={styles.step3ActionCard}>
+        <View style={styles.submitRow}>
+          <TouchableOpacity
+            onPress={() => { setCurrentStep(1); setErrors({}); }}
+            style={styles.backStepButton}>
+            <Icon name="arrow-left" size={16} color={GREEN} />
+            <Text style={styles.backStepText}>Back</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={handleSubmit}
-          disabled={isSubmitting}
-          style={[styles.submitBtn, isSubmitting && {opacity: 0.6}]}>
-          {isSubmitting ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <>
-              <Icon name="cloud-upload" size={18} color="#FFFFFF" />
-              <Text style={styles.submitBtnText}>Submit Survey</Text>
-            </>
-          )}
+          <TouchableOpacity
+            onPress={handleSubmit}
+            disabled={isSubmitting}
+            style={[styles.submitBirdBtn, isSubmitting && {opacity: 0.6}]}
+            activeOpacity={0.8}>
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Icon name="cloud-upload" size={18} color="#FFFFFF" />
+                <Text style={styles.submitBirdBtnText}>Submit Bird Record</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity onPress={saveDraft} style={styles.saveDraftBtn} activeOpacity={0.7}>
+          <Icon name="floppy-o" size={15} color={GREEN} />
+          <Text style={styles.saveDraftBtnText}>Save as Draft</Text>
         </TouchableOpacity>
       </View>
-      <TouchableOpacity onPress={saveDraft} style={styles.saveDraftLink}>
-        <Icon name="floppy-o" size={16} color={GREEN} />
-        <Text style={styles.saveDraftText}>Save as Draft</Text>
-      </TouchableOpacity>
 
-      {/* Submit Confirmation Modal */}
-      <Modal visible={showSubmitConfirm} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.confirmModal}>
-            <View style={styles.confirmIconCircle}>
-              <Icon name="paper-plane" size={30} color={GREEN} />
-            </View>
-            <Text style={styles.confirmTitle}>Submit Survey?</Text>
-            <Text style={styles.confirmText}>
-              You are about to submit a survey with{' '}
-              <Text style={{fontWeight: 'bold'}}>{birdDataArray.length} bird observation(s)</Text>
-              {' '}at <Text style={{fontWeight: 'bold'}}>{habitatType}</Text>.
-              {'\n\n'}This will save to the database and sync with the server.
-            </Text>
-            <View style={styles.confirmButtons}>
-              <TouchableOpacity
-                onPress={() => setShowSubmitConfirm(false)}
-                style={styles.confirmCancelBtn}>
-                <Text style={styles.confirmCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={submitSurvey} style={styles.confirmSubmitBtn}>
-                <Icon name="check" size={16} color="#FFFFFF" />
-                <Text style={styles.confirmSubmitText}>Confirm</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Loading Overlay */}
-      {isSubmitting && (
-        <Modal visible={isSubmitting} transparent animationType="fade">
-          <View style={styles.loadingOverlay}>
-            <View style={styles.loadingBox}>
-              <ActivityIndicator size="large" color={GREEN} />
-              <Text style={styles.loadingText}>Submitting survey...</Text>
-              <Text style={styles.loadingSubtext}>Please wait while we save your data</Text>
-            </View>
-          </View>
-        </Modal>
-      )}
     </View>
   );
 
@@ -1736,6 +1757,62 @@ const BirdSurveyForm = () => {
         {currentStep === 1 && renderStepTwo()}
         {currentStep === 2 && renderStepThree()}
       </ScrollView>
+
+      {/* Submit Confirmation Modal */}
+      <Modal visible={showSubmitConfirm} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmModal}>
+            <View style={styles.confirmIconCircle}>
+              <Icon name="paper-plane" size={30} color={GREEN} />
+            </View>
+            <Text style={styles.confirmTitle}>Submit Survey?</Text>
+            <Text style={styles.confirmText}>
+              You are about to submit a survey
+              {birdDataArray.length > 0 && birdDataArray[0].species ? (
+                <Text> with <Text style={{fontWeight: 'bold'}}>{birdDataArray.length} bird observation(s)</Text></Text>
+              ) : (
+                <Text> <Text style={{fontWeight: 'bold'}}>without bird observations</Text></Text>
+              )}
+              {' '}at <Text style={{fontWeight: 'bold'}}>{habitatType}</Text>.
+              {'\n\n'}This will save to the database and sync with the server.
+            </Text>
+            <View style={styles.confirmButtons}>
+              <TouchableOpacity
+                onPress={() => setShowSubmitConfirm(false)}
+                style={styles.confirmCancelBtn}>
+                <Text style={styles.confirmCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={submitSurvey} style={styles.confirmSubmitBtn}>
+                <Icon name="check" size={16} color="#FFFFFF" />
+                <Text style={styles.confirmSubmitText}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Loading Overlay */}
+      {isSubmitting && (
+        <Modal visible={isSubmitting} transparent animationType="fade">
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingBox}>
+              <ActivityIndicator size="large" color={GREEN} />
+              <Text style={styles.loadingText}>Submitting survey...</Text>
+              <Text style={styles.loadingSubtext}>Please wait while we save your data</Text>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Success Alert */}
+      <CustomAlert
+        visible={showSuccessAlert}
+        onClose={() => {
+          setShowSuccessAlert(false);
+          navigation.navigate('BirdBottomNav');
+        }}
+        message="Survey Submitted Successfully!"
+      />
     </View>
   );
 };
@@ -2317,5 +2394,134 @@ const styles = StyleSheet.create({
     color: '#2e7d32',
     fontSize: 14,
     fontWeight: '600' as const,
+  },
+  // Step 1 Action Card
+  step1ActionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: {shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.1, shadowRadius: 4},
+      android: {elevation: 4},
+    }),
+  },
+  nextStepBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    backgroundColor: GREEN,
+    paddingVertical: 15,
+    borderRadius: 12,
+    gap: 10,
+  },
+  nextStepBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700' as const,
+  },
+  // Step 2 Action Card
+  step2ActionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: {shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.1, shadowRadius: 4},
+      android: {elevation: 4},
+    }),
+  },
+  birdDetailBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: GREEN,
+    marginBottom: 12,
+  },
+  actionBtnIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: GREEN,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginRight: 12,
+  },
+  actionBtnTextWrap: {
+    flex: 1,
+  },
+  actionBtnTitle: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: GREEN_DARK,
+  },
+  actionBtnSub: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  submitFullBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    backgroundColor: GREEN_DARK,
+    paddingVertical: 15,
+    borderRadius: 12,
+    gap: 10,
+    elevation: 3,
+    marginBottom: 4,
+  },
+  submitFullBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700' as const,
+  },
+  saveDraftBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#E0E0E0',
+    backgroundColor: '#FAFAFA',
+    marginTop: 8,
+    gap: 8,
+  },
+  saveDraftBtnText: {
+    color: GREEN,
+    fontSize: 14,
+    fontWeight: '600' as const,
+  },
+  // Step 3 Action Card
+  step3ActionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: {shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.1, shadowRadius: 4},
+      android: {elevation: 4},
+    }),
+  },
+  submitBirdBtn: {
+    flex: 1,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: GREEN_DARK,
+    elevation: 3,
+    gap: 8,
+  },
+  submitBirdBtnText: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
   },
 });

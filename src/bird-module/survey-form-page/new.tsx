@@ -466,7 +466,7 @@ const WaterAvailabilityModal = ({ visible, onClose, onSelect }) => {
   data={radio_props5}
   labelField="label"
   valueField="value"
-  placeholder="Water Source"
+  placeholder="Water Status"
   value={waterReservoir}
   onChange={(item) => setWaterReservoir(item.value)}
   
@@ -1073,7 +1073,8 @@ const [longitude, setLongitude] = useState(
   };
 
   const isFormValid = () => {
-    let formErrors = {};
+    let formErrors: Record<string, string> = {};
+    if (!email) formErrors.email = 'User email not found. Please log in again.';
     if (!value1) formErrors.value1 = 'Please select a habitat type';
 
 

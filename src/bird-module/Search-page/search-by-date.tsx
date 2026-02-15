@@ -8,11 +8,13 @@ import {
   Alert,
   Platform,
   ActivityIndicator,
+  PermissionsAndroid,
 } from 'react-native';
 import {IconButton} from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import axios from 'axios';
+import RNFS from 'react-native-fs';
 import {API_URL} from '../../config';
 
 const GREEN = '#2e7d32';
@@ -47,6 +49,7 @@ const PureSearchPage = ({setShowDateFilter}: {setShowDateFilter: (v: boolean) =>
         const matchEnd = !end || item.date <= end;
         return matchStart && matchEnd;
       });
+
       setResults(filtered);
     } catch {
       setResults([]);
@@ -87,6 +90,57 @@ const PureSearchPage = ({setShowDateFilter}: {setShowDateFilter: (v: boolean) =>
     setShowEnd(Platform.OS === 'ios');
     setEndDate(currentDate);
     setEndText(currentDate.toDateString());
+  };
+
+  const requestStoragePermission = async () => {
+    if (Platform.OS === 'android') {
+      if (Platform.Version >= 30) {
+        return true;
+      } else {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      }
+    }
+    return true;
+  };
+
+  const downloadCSV = async () => {
+    const hasPermission = await requestStoragePermission();
+    if (!hasPermission) {
+      Alert.alert('Permission Denied', 'Storage permission is required to download the CSV file.');
+      return;
+    }
+    if (results.length === 0) {
+      Alert.alert('No Data', 'No data available for download.');
+      return;
+    }
+
+    const headers = 'Date,Point,Point Tag,Start Time,End Time,Habitat,Observer,Weather,Latitude,Longitude,Descriptor,Radius,Water,Season,Vegetation,Species,Count,Maturity,Sex,Behaviour,Identification,Status\n';
+    const csvRows = results.map((item: any) => {
+      return (item.birdObservations || []).map((bird: any) =>
+        [
+          item.date, item.point, item.pointTag, item.startTime, item.endTime,
+          item.habitatType, item.observers, item.weather, item.latitude, item.longitude,
+          item.descriptor, item.radiusOfArea, item.water, item.season, item.statusOfVegy,
+          `"${bird.species}"`, bird.count, bird.maturity, bird.sex, bird.behaviour,
+          bird.identification, bird.status,
+        ].join(','),
+      ).join('\n');
+    }).join('\n');
+
+    const csvContent = headers + csvRows;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const path = `${RNFS.ExternalStorageDirectoryPath}/Download/DateFilter_${timestamp}.csv`;
+
+    try {
+      await RNFS.writeFile(path, csvContent, 'utf8');
+      Alert.alert('Success', `CSV file saved at: ${path}`);
+    } catch (error) {
+      console.error('Error saving CSV:', error);
+      Alert.alert('Error', 'Failed to save CSV file.');
+    }
   };
 
   const renderSpeciesName = (name: string) => {
@@ -187,9 +241,17 @@ const PureSearchPage = ({setShowDateFilter}: {setShowDateFilter: (v: boolean) =>
         )}
         {showResults && !loading && (
           <View style={styles.resultsSection}>
-            <Text style={styles.resultsTitle}>
-              Search Results ({results.length})
-            </Text>
+            <View style={styles.resultsHeader}>
+              <Text style={styles.resultsTitle}>
+                Search Results ({results.length})
+              </Text>
+              {results.length > 0 && (
+                <TouchableOpacity style={styles.downloadBtn} onPress={downloadCSV}>
+                  <Icon name="download" size={18} color="#fff" />
+                  <Text style={styles.downloadBtnText}>CSV</Text>
+                </TouchableOpacity>
+              )}
+            </View>
 
             {results.length === 0 ? (
               <View style={styles.emptyCard}>
@@ -442,11 +504,30 @@ const styles = StyleSheet.create({
   resultsSection: {
     marginTop: 24,
   },
+  resultsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
   resultsTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#1a1a1a',
-    marginBottom: 14,
+  },
+  downloadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: GREEN,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  downloadBtnText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
   },
   emptyCard: {
     alignItems: 'center',
