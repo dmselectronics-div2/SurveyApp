@@ -334,10 +334,165 @@ const updateBivalviInfo = async (req, res) => {
     }
 };
 
-module.exports = { 
-    saveBivalviInfo, 
-    getAllBivalviInfo, 
+// Get species distribution (aggregate all species counts across surveys)
+const getBivalviSpecies = async (req, res) => {
+    try {
+        const gastropodFields = [
+            'ellobium_gangeticum_eg', 'melampus_ceylonicus_mc', 'melampus_fasciatus_mf',
+            'pythia_plicata_pp', 'littoraria_scabra_lc', 'nerita_polita_np',
+            'cerithidea_quoyii_cq', 'pirenella_cingulata_pc1', 'pirinella_conica_pc2',
+            'telescopium_telescopium_tr', 'terebralia_palustris_tp', 'haminoea_crocata_hc',
+            'faunus_ater_fa', 'family_onchidiidae'
+        ];
+        const bivalveFields = [
+            'corbicula_solida_cs', 'meretrix_casta_mc', 'gelonia_coaxans_gc',
+            'magallana_belcheri_mb1', 'magallana_bilineata_mb2',
+            'saccostrea_scyphophilla_ss', 'saccostrea_cucullata_sc',
+            'martesia_striata_ms', 'ballanus_sp_b', 'mytella_strigata_ms2'
+        ];
+        const allFields = [...gastropodFields, ...bivalveFields];
+
+        const speciesNames = {
+            'ellobium_gangeticum_eg': 'E. gangeticum',
+            'melampus_ceylonicus_mc': 'M. ceylonicus',
+            'melampus_fasciatus_mf': 'M. fasciatus',
+            'pythia_plicata_pp': 'P. plicata',
+            'littoraria_scabra_lc': 'L. scabra',
+            'nerita_polita_np': 'N. polita',
+            'cerithidea_quoyii_cq': 'C. quoyii',
+            'pirenella_cingulata_pc1': 'P. cingulata',
+            'pirinella_conica_pc2': 'P. conica',
+            'telescopium_telescopium_tr': 'T. telescopium',
+            'terebralia_palustris_tp': 'T. palustris',
+            'haminoea_crocata_hc': 'H. crocata',
+            'faunus_ater_fa': 'F. ater',
+            'family_onchidiidae': 'Onchidiidae',
+            'corbicula_solida_cs': 'C. solida',
+            'meretrix_casta_mc': 'M. casta',
+            'gelonia_coaxans_gc': 'G. coaxans',
+            'magallana_belcheri_mb1': 'M. belcheri',
+            'magallana_bilineata_mb2': 'M. bilineata',
+            'saccostrea_scyphophilla_ss': 'S. scyphophilla',
+            'saccostrea_cucullata_sc': 'S. cucullata',
+            'martesia_striata_ms': 'M. striata',
+            'ballanus_sp_b': 'Ballanus sp.',
+            'mytella_strigata_ms2': 'M. strigata'
+        };
+
+        // Build aggregation to sum each species field
+        const groupStage = { _id: null };
+        allFields.forEach(field => {
+            groupStage[field] = { $sum: `$${field}` };
+        });
+
+        const result = await BivalviInfo.aggregate([{ $group: groupStage }]);
+
+        if (!result || result.length === 0) {
+            return res.status(200).json([]);
+        }
+
+        const speciesData = allFields
+            .map(field => ({
+                name: speciesNames[field] || field,
+                field: field,
+                count: result[0][field] || 0
+            }))
+            .filter(s => s.count > 0)
+            .sort((a, b) => b.count - a.count);
+
+        res.status(200).json(speciesData);
+    } catch (error) {
+        console.error('Error fetching bivalvi species data:', error);
+        res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+};
+
+// Get sampling method distribution
+const getBivalviSamplingMethods = async (req, res) => {
+    try {
+        const result = await BivalviInfo.aggregate([
+            {
+                $group: {
+                    _id: { $ifNull: ['$samplingMethod', 'Unknown'] },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { count: -1 } }
+        ]);
+
+        const data = result.map(item => ({
+            name: item._id || 'Unknown',
+            count: item.count
+        }));
+
+        res.status(200).json(data);
+    } catch (error) {
+        console.error('Error fetching sampling method data:', error);
+        res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+};
+
+// Get overall stats
+const getBivalviStats = async (req, res) => {
+    try {
+        const totalSurveys = await BivalviInfo.countDocuments();
+
+        const gastropodFields = [
+            'ellobium_gangeticum_eg', 'melampus_ceylonicus_mc', 'melampus_fasciatus_mf',
+            'pythia_plicata_pp', 'littoraria_scabra_lc', 'nerita_polita_np',
+            'cerithidea_quoyii_cq', 'pirenella_cingulata_pc1', 'pirinella_conica_pc2',
+            'telescopium_telescopium_tr', 'terebralia_palustris_tp', 'haminoea_crocata_hc',
+            'faunus_ater_fa', 'family_onchidiidae'
+        ];
+        const bivalveFields = [
+            'corbicula_solida_cs', 'meretrix_casta_mc', 'gelonia_coaxans_gc',
+            'magallana_belcheri_mb1', 'magallana_bilineata_mb2',
+            'saccostrea_scyphophilla_ss', 'saccostrea_cucullata_sc',
+            'martesia_striata_ms', 'ballanus_sp_b', 'mytella_strigata_ms2'
+        ];
+        const allFields = [...gastropodFields, ...bivalveFields];
+
+        // Sum all species counts
+        const groupStage = { _id: null };
+        allFields.forEach(field => {
+            groupStage[field] = { $sum: `$${field}` };
+        });
+
+        const result = await BivalviInfo.aggregate([{ $group: groupStage }]);
+
+        let totalSpecimenCount = 0;
+        let speciesWithData = 0;
+        if (result && result.length > 0) {
+            allFields.forEach(field => {
+                const val = result[0][field] || 0;
+                totalSpecimenCount += val;
+                if (val > 0) speciesWithData++;
+            });
+        }
+
+        // Count unique locations
+        const locations = await BivalviInfo.distinct('Location');
+        const uniqueLocations = locations.filter(l => l && l.trim()).length;
+
+        res.status(200).json({
+            total: totalSurveys,
+            totalSpecimenCount,
+            speciesWithData,
+            uniqueLocations
+        });
+    } catch (error) {
+        console.error('Error fetching bivalvi stats:', error);
+        res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+};
+
+module.exports = {
+    saveBivalviInfo,
+    getAllBivalviInfo,
     getBivalviInfoById,
-    deleteBivalviInfo, 
-    updateBivalviInfo 
+    deleteBivalviInfo,
+    updateBivalviInfo,
+    getBivalviSpecies,
+    getBivalviSamplingMethods,
+    getBivalviStats
 };

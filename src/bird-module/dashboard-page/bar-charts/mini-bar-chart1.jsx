@@ -1,190 +1,185 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
 import axios from 'axios';
 import { API_URL } from '../../../config';
 
+const CHART_WIDTH = (Dimensions.get('window').width - 80) / 2;
+
 const MiniBarChartModel1 = ({ title }) => {
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // useEffect(() => {
-  //   const fetchBirdDataBySex = async () => {
-  //     console.log('Fetching bird data grouped by sex from API...');
-  //     try {
-  //       const response = await axios.get(`${API_URL}/bird-sex`);
-  //       console.log('Raw API response:', response.data);
-
-  //       // Process data to handle null or empty sex values
-  //       const processedData = response.data.reduce(
-  //         (acc, item) => {
-  //           const sexCategory = item.sex && item.sex.trim() ? item.sex : 'Unknown';
-  //           if (!acc[sexCategory]) acc[sexCategory] = 0;
-  //           acc[sexCategory] += item.count;
-  //           return acc;
-  //         },
-  //         {}
-  //       );
-
-  //       console.log('Processed data grouped by sex:', processedData);
-
-  //       // Prepare labels and data for the chart
-  //       const labels = Object.keys(processedData);
-  //       const values = Object.values(processedData);
-
-  //       const formattedData = {
-  //         labels,
-  //         datasets: [{ data: values }],
-  //       };
-
-  //       setChartData(formattedData);
-  //       setLoading(false);
-  //     } catch (error) {
-  //       console.error('Error fetching bird data by sex:', error);
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   fetchBirdDataBySex();
-  // }, []);
+  const [sexCounts, setSexCounts] = useState({});
 
   useEffect(() => {
     const fetchBirdDataBySex = async () => {
-      console.log('Fetching bird data grouped by sex from API...');
       try {
         const response = await axios.get(`${API_URL}/bird-sex`);
-        console.log('Raw API response:', response.data);
-  
-        // If no data is returned, show 'Unknown' with a count of 0
-        if (response.data.length === 0) {
-          const formattedData = {
-            labels: ['Unknown'],
-            datasets: [{ data: [0] }],
-          };
-          setChartData(formattedData);
+
+        if (!response.data || response.data.length === 0) {
+          setChartData(null);
           setLoading(false);
           return;
         }
-  
-        // Process data to handle null or empty sex values
-        const processedData = response.data.reduce(
-          (acc, item) => {
-            const sexCategory = item.sex && item.sex.trim() ? item.sex : 'Unknown';
-            if (!acc[sexCategory]) acc[sexCategory] = 0;
-            acc[sexCategory] += item.count;
-            return acc;
-          },
-          {}
-        );
-  
-        console.log('Processed data grouped by sex:', processedData);
-  
-        // Prepare labels and data for the chart
+
+        const processedData = response.data.reduce((acc, item) => {
+          const sexCategory = item.name && item.name.trim() ? item.name : 'Unknown';
+          if (!acc[sexCategory]) acc[sexCategory] = 0;
+          acc[sexCategory] += item.count;
+          return acc;
+        }, {});
+
+        setSexCounts(processedData);
+
         const labels = Object.keys(processedData);
         const values = Object.values(processedData);
-  
-        const formattedData = {
+
+        setChartData({
           labels,
           datasets: [{ data: values }],
-        };
-  
-        setChartData(formattedData);
-        setLoading(false);
+        });
       } catch (error) {
         console.error('Error fetching bird data by sex:', error);
-  
-        // Handle offline or server error: set 0 data for the chart
-        setChartData({
-          labels: ['Unknown'],
-          datasets: [{ data: [0] }],
-        });
+        setChartData(null);
+      } finally {
         setLoading(false);
       }
     };
-  
+
     fetchBirdDataBySex();
   }, []);
-  
-  
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Loading...</Text>
+        <ActivityIndicator size="small" color="#2e7d32" />
       </View>
     );
   }
 
-  // Check if all data values are 0 - BarChart crashes with all-zero data (SVG Infinity bug)
   const hasRealData = chartData && chartData.datasets && chartData.datasets[0] &&
     chartData.datasets[0].data.some((v) => v > 0);
 
+  const total = Object.values(sexCounts).reduce((a, b) => a + b, 0);
+
   return (
-    <View style={styles.BlueBox}>
-      <Text style={styles.sub_text}>{title}</Text>
-      <View style={styles.chartWithLegendContainer}>
-        {hasRealData ? (
+    <View style={styles.chartBox}>
+      <View style={styles.titleRow}>
+        <View style={styles.titleDot} />
+        <Text style={styles.chartTitle}>{title}</Text>
+      </View>
+      {hasRealData ? (
+        <>
           <BarChart
-            style={{
-              marginVertical: 1,
-              borderRadius: 1,
-            }}
+            style={styles.chart}
             data={chartData}
-            width={300}
-            height={220}
+            width={CHART_WIDTH}
+            height={150}
             fromZero
             yAxisLabel=""
+            yAxisSuffix=""
             chartConfig={{
               backgroundColor: '#ffffff',
               backgroundGradientFrom: '#ffffff',
-              backgroundGradientTo: '#ffffff',
+              backgroundGradientTo: '#f8fdf8',
               decimalPlaces: 0,
-              color: (opacity = 1) => `rgba(255,0,0, ${opacity})`,
-              labelColor: (opacity = 1) => `rgba(0,0,0, ${opacity})`,
-              strokeWidth: 1,
-              barPercentage: 0.7,
+              color: (opacity = 1) => `rgba(27, 94, 32, ${opacity})`,
+              labelColor: (opacity = 1) => `rgba(75, 75, 75, ${opacity})`,
+              barPercentage: 0.5,
+              fillShadowGradient: '#81c784',
+              fillShadowGradientOpacity: 0.9,
               propsForBackgroundLines: {
-                stroke: '#e3e3e3',
+                stroke: '#e8f5e9',
+                strokeWidth: 1,
+              },
+              propsForLabels: {
+                fontSize: 10,
               },
             }}
-            showBarTops={true}
+            showBarTops={false}
             showValuesOnTopOfBars={true}
+            withInnerLines={true}
           />
-        ) : (
-          <Text style={{fontSize: 14, color: '#888', marginTop: 20}}>No data available</Text>
-        )}
-      </View>
+          <View style={styles.legendRow}>
+            {Object.entries(sexCounts).map(([sex, count]) => (
+              <View key={sex} style={styles.legendItem}>
+                <Text style={styles.legendLabel}>{sex}</Text>
+                <Text style={styles.legendValue}>
+                  {total > 0 ? Math.round((count / total) * 100) : 0}%
+                </Text>
+              </View>
+            ))}
+          </View>
+        </>
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.noDataText}>No data yet</Text>
+        </View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  BlueBox: {
-    justifyContent: 'center',
+  chartBox: {
     alignItems: 'center',
-    height: 260,
-    width: 320,
-    borderRadius: 10,
-    backgroundColor: 'rgba(52,168,83, 0.57)',
-    marginLeft: 5,
-    marginRight: 5,
-    marginTop: 5,
   },
-  sub_text: {
-    fontSize: 16,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
-    textAlign: 'center',
-    marginBottom: 5,
-  },
-  chartWithLegendContainer: {
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 8,
+  },
+  titleDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#388e3c',
+    marginRight: 6,
+  },
+  chartTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1b5e20',
+  },
+  chart: {
+    borderRadius: 8,
+  },
+  legendRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  legendItem: {
+    backgroundColor: '#e8f5e9',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    alignItems: 'center',
+  },
+  legendLabel: {
+    fontSize: 9,
+    color: '#666',
+    fontWeight: '600',
+  },
+  legendValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#2e7d32',
   },
   loadingContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    height: 180,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  noDataText: {
+    fontSize: 12,
+    color: '#999',
   },
 });
 

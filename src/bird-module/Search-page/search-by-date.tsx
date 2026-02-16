@@ -20,7 +20,7 @@ import {API_URL} from '../../config';
 const GREEN = '#2e7d32';
 const GREEN_LIGHT = '#e8f5e9';
 
-const PureSearchPage = ({setShowDateFilter}: {setShowDateFilter: (v: boolean) => void}) => {
+const PureSearchPage = ({setShowDateFilter, onEditItem}: {setShowDateFilter: (v: boolean) => void; onEditItem?: (item: any) => void}) => {
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [startText, setStartText] = useState('');
@@ -30,23 +30,34 @@ const PureSearchPage = ({setShowDateFilter}: {setShowDateFilter: (v: boolean) =>
   const [showResults, setShowResults] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [expandedBirds, setExpandedBirds] = useState<Record<string, boolean>>({});
+
+  const toggleBirdExpand = (surveyId: string, birdIdx: number) => {
+    const key = `${surveyId}-${birdIdx}`;
+    setExpandedBirds(prev => ({...prev, [key]: !prev[key]}));
+  };
 
   const handleSearch = async () => {
-    const formatDate = (dateStr: string) => {
-      if (!dateStr) return '';
+    const toLocalDate = (dateStr: string) => {
+      if (!dateStr) return null;
       const d = new Date(dateStr);
-      return d.toISOString().split('T')[0];
+      if (isNaN(d.getTime())) return null;
+      d.setHours(0, 0, 0, 0);
+      return d;
     };
-    const start = formatDate(startText);
-    const end = formatDate(endText);
+    const startD = toLocalDate(startText);
+    const endD = toLocalDate(endText);
+    if (endD) endD.setHours(23, 59, 59, 999);
 
     setLoading(true);
     try {
       const response = await axios.get(`${API_URL}/form-entries?page=1&limit=500`);
       const data = response.data || [];
       const filtered = data.filter((item: any) => {
-        const matchStart = !start || item.date >= start;
-        const matchEnd = !end || item.date <= end;
+        const itemD = toLocalDate(item.date);
+        if (!itemD) return false;
+        const matchStart = !startD || itemD >= startD;
+        const matchEnd = !endD || itemD <= endD;
         return matchStart && matchEnd;
       });
 
@@ -59,10 +70,9 @@ const PureSearchPage = ({setShowDateFilter}: {setShowDateFilter: (v: boolean) =>
   };
 
   const handleEdit = (item: any) => {
-    Alert.alert('Edit Survey', `Edit survey at ${item.point} on ${item.date}?`, [
-      {text: 'Cancel', style: 'cancel'},
-      {text: 'Edit', onPress: () => console.log('Edit:', item._id)},
-    ]);
+    if (onEditItem) {
+      onEditItem(item);
+    }
   };
 
   const handleDelete = (item: any, index: number) => {
@@ -71,8 +81,15 @@ const PureSearchPage = ({setShowDateFilter}: {setShowDateFilter: (v: boolean) =>
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => {
-          setResults(prev => prev.filter((_, i) => i !== index));
+        onPress: async () => {
+          try {
+            await axios.delete(`${API_URL}/form-entry/${item._id}`);
+            setResults(prev => prev.filter((_, i) => i !== index));
+            Alert.alert('Success', 'Survey deleted successfully');
+          } catch (error) {
+            console.error('Delete error:', error);
+            Alert.alert('Error', 'Failed to delete survey');
+          }
         },
       },
     ]);
@@ -275,18 +292,6 @@ const PureSearchPage = ({setShowDateFilter}: {setShowDateFilter: (v: boolean) =>
                         </Text>
                       </View>
                     </View>
-                    <View style={styles.actionRow}>
-                      <TouchableOpacity
-                        style={styles.editBtn}
-                        onPress={() => handleEdit(item)}>
-                        <Icon name="pencil-outline" size={18} color={GREEN} />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.deleteBtn}
-                        onPress={() => handleDelete(item, index)}>
-                        <Icon name="trash-can-outline" size={18} color="#D32F2F" />
-                      </TouchableOpacity>
-                    </View>
                   </View>
 
                   {/* Survey Details Grid */}
@@ -346,35 +351,55 @@ const PureSearchPage = ({setShowDateFilter}: {setShowDateFilter: (v: boolean) =>
                       </Text>
                     </View>
 
-                    {item.birdObservations.map((bird: any, bIdx: number) => (
-                      <View key={bIdx} style={styles.birdRow}>
-                        <View style={styles.birdHeader}>
-                          <View style={styles.birdCountBadge}>
-                            <Text style={styles.birdCountText}>{bird.count}</Text>
+                    {item.birdObservations.map((bird: any, bIdx: number) => {
+                      const key = `${item._id}-${bIdx}`;
+                      const isExpanded = expandedBirds[key];
+                      return (
+                        <View key={bIdx} style={styles.birdRow}>
+                          <View style={styles.birdHeader}>
+                            <View style={styles.birdCountBadge}>
+                              <Text style={styles.birdCountText}>{bird.count}</Text>
+                            </View>
+                            {renderSpeciesName(bird.species)}
                           </View>
-                          {renderSpeciesName(bird.species)}
+                          {isExpanded && (
+                            <View style={styles.birdDetails}>
+                              {bird.maturity ? <View style={styles.birdTag}><Text style={styles.birdTagLabel}>Maturity:</Text><Text style={styles.birdTagText}>{bird.maturity}</Text></View> : null}
+                              {bird.sex ? <View style={styles.birdTag}><Text style={styles.birdTagLabel}>Sex:</Text><Text style={styles.birdTagText}>{bird.sex}</Text></View> : null}
+                              {bird.behaviour ? <View style={styles.birdTag}><Text style={styles.birdTagLabel}>Behaviour:</Text><Text style={styles.birdTagText}>{bird.behaviour}</Text></View> : null}
+                              {bird.identification ? <View style={styles.birdTag}><Text style={styles.birdTagLabel}>Identification:</Text><Text style={styles.birdTagText}>{bird.identification}</Text></View> : null}
+                              {bird.status ? <View style={[styles.birdTag, bird.status === 'Endemic' && styles.endemicTag]}>
+                                <Text style={[styles.birdTagLabel, bird.status === 'Endemic' && styles.endemicTagText]}>Status:</Text>
+                                <Text style={[styles.birdTagText, bird.status === 'Endemic' && styles.endemicTagText]}>{bird.status}</Text>
+                              </View> : null}
+                              {bird.remarks ? <View style={styles.birdTag}><Text style={styles.birdTagLabel}>Remarks:</Text><Text style={styles.birdTagText}>{bird.remarks}</Text></View> : null}
+                            </View>
+                          )}
+                          <TouchableOpacity onPress={() => toggleBirdExpand(item._id, bIdx)} style={styles.seeMoreBtn}>
+                            <Text style={styles.seeMoreText}>{isExpanded ? 'See Less' : 'See More'}</Text>
+                            <Icon name={isExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={GREEN} />
+                          </TouchableOpacity>
                         </View>
-                        <View style={styles.birdDetails}>
-                          <View style={styles.birdTag}>
-                            <Text style={styles.birdTagText}>{bird.maturity}</Text>
-                          </View>
-                          <View style={styles.birdTag}>
-                            <Text style={styles.birdTagText}>{bird.sex}</Text>
-                          </View>
-                          <View style={styles.birdTag}>
-                            <Text style={styles.birdTagText}>{bird.behaviour}</Text>
-                          </View>
-                          <View style={styles.birdTag}>
-                            <Text style={styles.birdTagText}>{bird.identification}</Text>
-                          </View>
-                          <View style={[styles.birdTag, bird.status === 'Endemic' && styles.endemicTag]}>
-                            <Text style={[styles.birdTagText, bird.status === 'Endemic' && styles.endemicTagText]}>
-                              {bird.status}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    ))}
+                      );
+                    })}
+                  </View>
+
+                  {/* Edit & Delete Buttons */}
+                  <View style={styles.actionButtonsRow}>
+                    <TouchableOpacity
+                      style={styles.editButton}
+                      activeOpacity={0.7}
+                      onPress={() => handleEdit(item)}>
+                      <Icon name="pencil-outline" size={18} color="#fff" />
+                      <Text style={styles.editButtonText}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      activeOpacity={0.7}
+                      onPress={() => handleDelete(item, index)}>
+                      <Icon name="trash-can-outline" size={18} color="#fff" />
+                      <Text style={styles.deleteButtonText}>Delete</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               ))
@@ -394,52 +419,46 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingRight: 20,
-    paddingTop: 8,
-    paddingBottom: 12,
-    backgroundColor: '#fff',
+    paddingBottom: 16,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#e0e0e0',
   },
   backBtn: {
-    marginRight: 4,
+    marginRight: 8,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: '#333',
   },
   headerSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#888',
     marginTop: 2,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 18,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+    backgroundColor: GREEN_LIGHT,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: GREEN,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 18,
+    marginBottom: 16,
   },
   iconContainer: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: GREEN_LIGHT,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -447,38 +466,35 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: '#333',
   },
   dateRow: {
     flexDirection: 'row',
     gap: 12,
+    marginBottom: 16,
   },
   dateInput: {
     flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fafafa',
-    borderRadius: 12,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#e0e0e0',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
   },
   dateInputFilled: {
     borderColor: GREEN,
-    backgroundColor: GREEN_LIGHT,
   },
   dateLabel: {
     fontSize: 11,
-    fontWeight: '600',
     color: '#888',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
+    marginBottom: 4,
+    fontWeight: '500',
   },
   dateValue: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
     color: '#333',
   },
@@ -486,34 +502,32 @@ const styles = StyleSheet.create({
     color: '#bbb',
   },
   searchBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: GREEN,
-    borderRadius: 12,
-    paddingVertical: 14,
-    marginTop: 20,
+    borderRadius: 8,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     gap: 8,
   },
   searchBtnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
-  // Results
   resultsSection: {
-    marginTop: 24,
+    marginTop: 8,
   },
   resultsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   resultsTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1a1a1a',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
   },
   downloadBtn: {
     flexDirection: 'row',
@@ -531,40 +545,33 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 40,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+    paddingVertical: 32,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#999',
     marginTop: 12,
   },
   emptySubtext: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#bbb',
     marginTop: 4,
   },
   resultCard: {
     backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 14,
-    elevation: 2,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: GREEN,
+    elevation: 1,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
   },
   resultHeader: {
     flexDirection: 'row',
@@ -601,25 +608,43 @@ const styles = StyleSheet.create({
     color: '#888',
     marginTop: 1,
   },
-  actionRow: {
+  actionButtonsRow: {
     flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  editButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: GREEN,
+    borderRadius: 10,
+    paddingVertical: 10,
     gap: 6,
   },
-  editBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: GREEN_LIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
+  editButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
-  deleteBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#FFEBEE',
-    justifyContent: 'center',
+  deleteButton: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#D32F2F',
+    borderRadius: 10,
+    paddingVertical: 10,
+    gap: 6,
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   detailsGrid: {
     flexDirection: 'row',
@@ -710,6 +735,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  birdTagLabel: {
+    fontSize: 11,
+    color: '#999',
+    fontWeight: '600',
   },
   birdTagText: {
     fontSize: 11,
@@ -720,6 +753,19 @@ const styles = StyleSheet.create({
   },
   endemicTagText: {
     color: '#E65100',
+    fontWeight: '600',
+  },
+  seeMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginTop: 6,
+    paddingVertical: 4,
+  },
+  seeMoreText: {
+    fontSize: 11,
+    color: GREEN,
     fontWeight: '600',
   },
 });

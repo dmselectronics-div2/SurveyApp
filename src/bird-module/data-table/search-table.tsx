@@ -121,21 +121,16 @@ const MypureTable = ({ startDate, endDate, rowData }) => {
         try {
           const response = await fetch(`${API_URL}/form-entries`);
           const result = await response.json();
-    
-          // Filter data by logged-in user's email
-          const filteredData = result.filter(item => item.email === email);
-    
-          setData(filteredData);
-          console.log("Fetched Data with Emails:", filteredData);
+
+          setData(Array.isArray(result) ? result : []);
+          console.log("Fetched Data:", result.length || 0, "entries");
         } catch (error) {
           console.error('Error fetching data', error);
         }
       };
-      
-      if (email) {
-        fetchData(); // Only fetch data after email is retrieved
-      }
-    }, [email]); // Add 'email' as a dependency
+
+      fetchData();
+    }, []);
     
 
 

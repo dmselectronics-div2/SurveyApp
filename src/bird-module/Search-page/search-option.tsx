@@ -3,9 +3,9 @@ import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import PureSearchPage from './search-by-date';
 import SearchPage from './search-page';
-import SearchCount from './search-count';
 import SearchAllSpeciesCount from './search-all-species-count';
 import CitySearchPage from './search-citizen';
+import BirdSurveyForm from '../survey-drafts/bird-survey-form';
 
 const GREEN = '#2e7d32';
 const GREEN_LIGHT = '#e8f5e9';
@@ -24,12 +24,6 @@ const filterOptions = [
     icon: 'map-marker-radius',
   },
   {
-    key: 'count',
-    title: 'Count Filter',
-    subtitle: 'Search by bird observation count',
-    icon: 'counter',
-  },
-  {
     key: 'allSpecies',
     title: 'All Species Count',
     subtitle: 'View all species with total counts',
@@ -40,9 +34,10 @@ const filterOptions = [
 const SearchOption = () => {
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [showPointFilter, setShowPointFilter] = useState(false);
-  const [showBirdCount, setShowBirdCount] = useState(false);
   const [showAllSpeciesCount, setShowAllSpeciesCount] = useState(false);
   const [showCitizen, setShowCitizen] = useState(false);
+  const [editSurveyData, setEditSurveyData] = useState<any>(null);
+  const [editSource, setEditSource] = useState<string | null>(null);
 
   const handlePress = (key: string) => {
     switch (key) {
@@ -51,9 +46,6 @@ const SearchOption = () => {
         break;
       case 'point':
         setShowPointFilter(true);
-        break;
-      case 'count':
-        setShowBirdCount(true);
         break;
       case 'allSpecies':
         setShowAllSpeciesCount(true);
@@ -64,14 +56,39 @@ const SearchOption = () => {
     }
   };
 
+  const handleEditItem = (item: any, source: string) => {
+    setEditSurveyData(item);
+    setEditSource(source);
+  };
+
+  const handleEditComplete = () => {
+    setEditSurveyData(null);
+    if (editSource === 'date') {
+      setShowDateFilter(true);
+    } else if (editSource === 'point') {
+      setShowPointFilter(true);
+    }
+    setEditSource(null);
+  };
+
+  if (editSurveyData) {
+    return <BirdSurveyForm editData={editSurveyData} onEditComplete={handleEditComplete} />;
+  }
   if (showDateFilter) {
-    return <PureSearchPage setShowDateFilter={setShowDateFilter} />;
+    return (
+      <PureSearchPage
+        setShowDateFilter={setShowDateFilter}
+        onEditItem={(item: any) => handleEditItem(item, 'date')}
+      />
+    );
   }
   if (showPointFilter) {
-    return <SearchPage setShowPointFilter={setShowPointFilter} />;
-  }
-  if (showBirdCount) {
-    return <SearchCount setShowBirdCount={setShowBirdCount} />;
+    return (
+      <SearchPage
+        setShowPointFilter={setShowPointFilter}
+        onEditItem={(item: any) => handleEditItem(item, 'point')}
+      />
+    );
   }
   if (showAllSpeciesCount) {
     return <SearchAllSpeciesCount setShowAllSpeciesCount={setShowAllSpeciesCount} />;

@@ -362,6 +362,11 @@ const GastropodBivalveForm = () => {
   const [text, setText] = useState('');
   const [content, setContent] = useState([]);
 
+  // Team members state
+  const [teamMembersList, setTeamMembersList] = useState<string[]>([]);
+  const [memberInput, setMemberInput] = useState('');
+  const [editMemberIndex, setEditMemberIndex] = useState<number | null>(null);
+
   // Error state
   const [errors, setErrors] = useState({});
 
@@ -900,6 +905,7 @@ const GastropodBivalveForm = () => {
       let formData = {
         // Basic information - with exact field names from backend schema
         survey_no: surveyNo,
+        teamMembers: teamMembersList.join(', '),
         select_date: date.toISOString(),
         time_of_data_collection: convertEmptyToNA(timeOfDataCollection),
         nearest_high_tide_time: formatTime(nearestHighTideTime),
@@ -1384,6 +1390,88 @@ const GastropodBivalveForm = () => {
                   onCancel={handleSamplingTimeCancel}
                 />
               </View>
+            </View>
+
+            {/* Team Members Section */}
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Team Members</Text>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Add Member</Text>
+                <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                  <TextInput
+                    style={[styles.textInput, {flex: 1, marginRight: 8}]}
+                    value={memberInput}
+                    onChangeText={setMemberInput}
+                    placeholder="Enter member name"
+                  />
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: editMemberIndex !== null ? '#43a047' : '#2e7d32',
+                      borderRadius: 8,
+                      paddingHorizontal: 16,
+                      paddingVertical: 10,
+                    }}
+                    onPress={() => {
+                      const name = memberInput.trim();
+                      if (!name) return;
+                      if (editMemberIndex !== null) {
+                        const updated = [...teamMembersList];
+                        updated[editMemberIndex] = name;
+                        setTeamMembersList(updated);
+                        setEditMemberIndex(null);
+                      } else {
+                        if (teamMembersList.includes(name)) {
+                          Alert.alert('Duplicate', 'This member is already added.');
+                          return;
+                        }
+                        setTeamMembersList([...teamMembersList, name]);
+                      }
+                      setMemberInput('');
+                    }}>
+                    <Text style={{color: '#fff', fontWeight: '700', fontSize: 13}}>
+                      {editMemberIndex !== null ? 'Update' : 'Add'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              {teamMembersList.length > 0 && (
+                <View style={{marginTop: 8}}>
+                  {teamMembersList.map((member, index) => (
+                    <View
+                      key={index}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: editMemberIndex === index ? '#e8f5e9' : '#f5f5f5',
+                        borderRadius: 8,
+                        padding: 10,
+                        marginBottom: 6,
+                        borderLeftWidth: 3,
+                        borderLeftColor: '#2e7d32',
+                      }}>
+                      <Text style={{flex: 1, fontSize: 14, color: '#333'}}>{member}</Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setMemberInput(member);
+                          setEditMemberIndex(index);
+                        }}
+                        style={{marginRight: 12}}>
+                        <Icon name="edit" size={16} color="#2e7d32" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setTeamMembersList(teamMembersList.filter((_, i) => i !== index));
+                          if (editMemberIndex === index) {
+                            setEditMemberIndex(null);
+                            setMemberInput('');
+                          }
+                        }}>
+                        <Icon name="trash" size={16} color="#c62828" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
 
             {/* Location Information */}

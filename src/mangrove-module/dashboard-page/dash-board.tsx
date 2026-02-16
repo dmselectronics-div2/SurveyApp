@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -6,97 +6,164 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
+import {Avatar} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {BarChart, PieChart} from 'react-native-chart-kit';
+import axios from 'axios';
+import {API_URL} from '../../config';
+import {getDatabase} from '../../bird-module/database/db';
+import BarChartByvalvi from './bar-charts/habitat-type-chart';
+import LocationPieChart from './bar-charts/location-chart';
+import MiniSamplingChart from './bar-charts/sampling-method-chart';
 
 const screenWidth = Dimensions.get('window').width;
-const GREEN = '#2e7d32d7';
+const GREEN = '#2e7d32';
+
+const PIE_COLORS = [
+  '#1b5e20', '#2e7d32', '#388e3c', '#43a047', '#4caf50',
+  '#66bb6a', '#81c784', '#a5d6a7', '#c8e6c9', '#00695c',
+  '#00897b', '#009688', '#26a69a', '#4db6ac',
+];
 
 const ByvalviDashboard = () => {
   const navigation = useNavigation<any>();
+  const [avatarUri, setAvatarUri] = useState('');
+  const [userName, setUserName] = useState('');
+  const [stats, setStats] = useState({
+    totalSurveys: 0,
+    totalSpecimenCount: 0,
+    speciesWithData: 0,
+    uniqueLocations: 0,
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [speciesData, setSpeciesData] = useState<any>(null);
+  const [speciesLoading, setSpeciesLoading] = useState(true);
+  const [pieData, setPieData] = useState<any[]>([]);
 
-  // -----------------------------
-  // 6 Selected Species (Dummy Data)
-  // -----------------------------
-  const barData = {
-    labels: ['EG', 'MC', 'LC', 'NP', 'CS', 'MB1'],
-    datasets: [
-      {
-        data: [34, 52, 28, 41, 19, 47],
-      },
-    ],
-  };
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const db = await getDatabase();
+        db.transaction((tx: any) => {
+          tx.executeSql(
+            'SELECT email FROM LoginData',
+            [],
+            (tx: any, loginResults: any) => {
+              if (loginResults.rows.length > 0) {
+                const emailLocal = loginResults.rows.item(0).email;
+                tx.executeSql(
+                  'SELECT userImageUrl, name FROM Users WHERE email = ?',
+                  [emailLocal],
+                  (_tx: any, userResults: any) => {
+                    if (userResults.rows.length > 0) {
+                      const row = userResults.rows.item(0);
+                      if (row.userImageUrl) setAvatarUri(row.userImageUrl);
+                      if (row.name) setUserName(row.name);
+                    }
+                  },
+                );
+              }
+            },
+          );
+        });
+      } catch (error: any) {
+        console.log('Error loading user data: ' + error.message);
+      }
+    };
+    loadUserData();
+  }, []);
 
-  const pieData = [
-    {
-      name: 'Ellobium gangeticum (EG)',
-      population: 34,
-      color: '#1b5e20',
-      legendFontColor: '#333',
-      legendFontSize: 12,
-    },
-    {
-      name: 'Melampus ceylonicus (MC)',
-      population: 52,
-      color: '#2e7d32',
-      legendFontColor: '#333',
-      legendFontSize: 12,
-    },
-    {
-      name: 'Littoraria scabra (LC)',
-      population: 28,
-      color: '#388e3c',
-      legendFontColor: '#333',
-      legendFontSize: 12,
-    },
-    {
-      name: 'Nerita polita (NP)',
-      population: 41,
-      color: '#43a047',
-      legendFontColor: '#333',
-      legendFontSize: 12,
-    },
-    {
-      name: 'Corbicula solida (CS)',
-      population: 19,
-      color: '#66bb6a',
-      legendFontColor: '#333',
-      legendFontSize: 12,
-    },
-    {
-      name: 'Magallana belcheri (MB1)',
-      population: 47,
-      color: '#81c784',
-      legendFontColor: '#333',
-      legendFontSize: 12,
-    },
-  ];
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/bivalvi-stats`);
+        setStats({
+          totalSurveys: response.data?.total || 0,
+          totalSpecimenCount: response.data?.totalSpecimenCount || 0,
+          speciesWithData: response.data?.speciesWithData || 0,
+          uniqueLocations: response.data?.uniqueLocations || 0,
+        });
+      } catch (error) {
+        console.log('Error fetching bivalvi stats:', error);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
 
-  const chartConfig = {
-    backgroundGradientFrom: '#ffffff',
-    backgroundGradientTo: '#ffffff',
-    decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(46, 125, 50, ${opacity})`,
-    labelColor: () => '#333',
-    propsForBackgroundLines: {
-      stroke: '#e0e0e0',
-    },
-  };
+  useEffect(() => {
+    const fetchSpecies = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/bivalvi-species`);
+        const data = response.data;
+
+        if (!data || data.length === 0) {
+          setSpeciesData(null);
+          setPieData([]);
+          setSpeciesLoading(false);
+          return;
+        }
+
+        // Top 8 species for bar chart
+        const top8 = data.slice(0, 8);
+        setSpeciesData({
+          labels: top8.map((s: any) => s.name.split(' ')[0].substring(0, 6)),
+          datasets: [{data: top8.map((s: any) => s.count)}],
+        });
+
+        // All species for pie chart
+        const pie = data.map((s: any, index: number) => ({
+          name: s.name,
+          population: s.count,
+          color: PIE_COLORS[index % PIE_COLORS.length],
+          legendFontColor: '#333',
+          legendFontSize: 11,
+        }));
+        setPieData(pie);
+      } catch (error) {
+        console.error('Error fetching bivalvi species:', error);
+        setSpeciesData(null);
+        setPieData([]);
+      } finally {
+        setSpeciesLoading(false);
+      }
+    };
+    fetchSpecies();
+  }, []);
+
+  const hasBarData =
+    speciesData &&
+    speciesData.datasets &&
+    speciesData.datasets[0] &&
+    speciesData.datasets[0].data.some((v: number) => v > 0);
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.container}>
-      
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('ModuleSelector')}
-          style={styles.backButton}>
-          <Icon name="arrow-back" size={24} color="#333" />
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('ModuleSelector')}
+            style={styles.backButton}>
+            <Icon name="arrow-back" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Byvalvi Dashboard</Text>
+        </View>
+        <TouchableOpacity onPress={() => navigation.navigate('ProfileMenu')}>
+          <Avatar.Image
+            size={40}
+            source={
+              avatarUri
+                ? {uri: avatarUri}
+                : require('../../assets/image/prof.jpg')
+            }
+          />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Byvalvi Dashboard</Text>
       </View>
 
       {/* Welcome Card */}
@@ -105,7 +172,9 @@ const ByvalviDashboard = () => {
           <MCIcon name="snail" size={48} color={GREEN} />
         </View>
         <Text style={styles.title}>
-          Welcome to the Byvalvi Survey Module
+          {userName
+            ? `Welcome, ${userName}`
+            : 'Welcome to the Byvalvi Survey Module'}
         </Text>
         <Text style={styles.subtitle}>
           Start collecting bivalve and gastropod observation data
@@ -115,34 +184,145 @@ const ByvalviDashboard = () => {
       {/* Analytics Section */}
       <Text style={styles.sectionTitle}>Byvalvi Survey Analytics</Text>
 
-      {/* Bar Chart Card */}
+      {/* Species Bar Chart */}
       <View style={styles.chartCard}>
-        <Text style={styles.chartTitle}>Species Count</Text>
-        <BarChart
-          data={barData}
-          width={screenWidth - 50}
-          height={220}
-          chartConfig={chartConfig}
-          verticalLabelRotation={20}
-          fromZero
-          showValuesOnTopOfBars
-          style={styles.chartStyle}
-        />
+        <View style={styles.chartTitleRow}>
+          <View style={styles.titleDot} />
+          <Text style={styles.chartTitle}>Species Count</Text>
+        </View>
+        <Text style={styles.chartSubtitle}>Top observed species across surveys</Text>
+        {speciesLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={GREEN} />
+            <Text style={styles.loadingText}>Loading chart...</Text>
+          </View>
+        ) : hasBarData ? (
+          <BarChart
+            style={styles.chartStyle}
+            data={speciesData}
+            width={screenWidth - 64}
+            height={220}
+            fromZero
+            yAxisLabel=""
+            yAxisSuffix=""
+            chartConfig={{
+              backgroundColor: '#ffffff',
+              backgroundGradientFrom: '#ffffff',
+              backgroundGradientTo: '#f8fdf8',
+              decimalPlaces: 0,
+              color: (opacity = 1) => `rgba(46, 125, 50, ${opacity})`,
+              labelColor: (opacity = 1) => `rgba(75, 75, 75, ${opacity})`,
+              barPercentage: 0.6,
+              fillShadowGradient: '#43a047',
+              fillShadowGradientOpacity: 0.9,
+              propsForBackgroundLines: {
+                stroke: '#e8f5e9',
+                strokeWidth: 1,
+              },
+              propsForLabels: {
+                fontSize: 10,
+              },
+            }}
+            verticalLabelRotation={35}
+            showValuesOnTopOfBars={true}
+            withInnerLines={true}
+          />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>📊</Text>
+            <Text style={styles.noDataText}>No species data yet</Text>
+            <Text style={styles.noDataHint}>Submit a survey to see analytics</Text>
+          </View>
+        )}
       </View>
 
-      {/* Pie Chart Card */}
+      {/* Species Pie Chart */}
       <View style={styles.chartCard}>
-        <Text style={styles.chartTitle}>Observation Distribution</Text>
-        <PieChart
-          data={pieData}
-          width={screenWidth - 50}
-          height={220}
-          chartConfig={chartConfig}
-          accessor="population"
-          backgroundColor="transparent"
-          paddingLeft="10"
-          absolute
-        />
+        <View style={styles.chartTitleRow}>
+          <View style={styles.titleDot} />
+          <Text style={styles.chartTitle}>Species Distribution</Text>
+        </View>
+        <Text style={styles.chartSubtitle}>Proportion of each species observed</Text>
+        {speciesLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={GREEN} />
+          </View>
+        ) : pieData.length > 0 ? (
+          <PieChart
+            data={pieData}
+            width={screenWidth - 50}
+            height={220}
+            chartConfig={{
+              color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            }}
+            accessor="population"
+            backgroundColor="transparent"
+            paddingLeft="10"
+            absolute
+          />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.noDataText}>No distribution data yet</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Habitat Type Chart (already fetches real data) */}
+      <View style={styles.chartCard}>
+        <BarChartByvalvi />
+      </View>
+
+      {/* Location Pie Chart (already fetches real data) */}
+      <View style={styles.chartCard}>
+        <LocationPieChart title="Surveys by Location" />
+      </View>
+
+      {/* Sampling Method Chart */}
+      <View style={styles.chartCard}>
+        <MiniSamplingChart title="Sampling Methods" />
+      </View>
+
+      {/* Summary Statistics */}
+      <Text style={styles.sectionTitle}>Summary</Text>
+      <View style={styles.summaryRow}>
+        <View style={styles.statCard}>
+          <MCIcon name="clipboard-text-outline" size={24} color={GREEN} />
+          {statsLoading ? (
+            <ActivityIndicator size="small" color={GREEN} style={{marginTop: 8}} />
+          ) : (
+            <Text style={styles.statValue}>{stats.totalSurveys}</Text>
+          )}
+          <Text style={styles.statLabel}>Surveys</Text>
+        </View>
+        <View style={styles.statCard}>
+          <MCIcon name="bug-outline" size={24} color={GREEN} />
+          {statsLoading ? (
+            <ActivityIndicator size="small" color={GREEN} style={{marginTop: 8}} />
+          ) : (
+            <Text style={styles.statValue}>{stats.speciesWithData}</Text>
+          )}
+          <Text style={styles.statLabel}>Species</Text>
+        </View>
+      </View>
+      <View style={[styles.summaryRow, {marginTop: 8}]}>
+        <View style={styles.statCard}>
+          <MCIcon name="eye-outline" size={24} color={GREEN} />
+          {statsLoading ? (
+            <ActivityIndicator size="small" color={GREEN} style={{marginTop: 8}} />
+          ) : (
+            <Text style={styles.statValue}>{stats.totalSpecimenCount}</Text>
+          )}
+          <Text style={styles.statLabel}>Specimens</Text>
+        </View>
+        <View style={styles.statCard}>
+          <MCIcon name="map-marker-outline" size={24} color={GREEN} />
+          {statsLoading ? (
+            <ActivityIndicator size="small" color={GREEN} style={{marginTop: 8}} />
+          ) : (
+            <Text style={styles.statValue}>{stats.uniqueLocations}</Text>
+          )}
+          <Text style={styles.statLabel}>Locations</Text>
+        </View>
       </View>
     </ScrollView>
   );
@@ -159,6 +339,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 18,
   },
@@ -171,12 +352,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: GREEN,
-    marginBottom: 12,
-  },
   welcomeCard: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
@@ -188,23 +363,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     alignItems: 'center',
-  },
-  chartCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 22,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 3},
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-  },
-  chartTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: GREEN,
-    marginBottom: 10,
   },
   iconContainer: {
     width: 85,
@@ -227,8 +385,106 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
   },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: GREEN,
+    marginBottom: 12,
+  },
+  chartCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    alignItems: 'center',
+  },
+  chartTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  titleDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#2e7d32',
+    marginRight: 8,
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1b5e20',
+  },
+  chartSubtitle: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 12,
+  },
   chartStyle: {
+    marginVertical: 8,
     borderRadius: 12,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    height: 200,
+  },
+  loadingText: {
+    fontSize: 13,
+    color: '#888',
+    marginTop: 10,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  emptyIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  noDataText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '600',
+  },
+  noDataHint: {
+    fontSize: 12,
+    color: '#aaa',
+    marginTop: 4,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 4,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1b5e20',
+    marginTop: 8,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
   },
 });
 

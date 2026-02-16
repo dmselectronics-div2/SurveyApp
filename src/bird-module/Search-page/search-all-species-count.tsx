@@ -49,14 +49,17 @@ const SearchAllSpeciesCount = ({ setShowAllSpeciesCount }: { setShowAllSpeciesCo
       return;
     }
 
-    const formatDate = (dateStr: string) => {
-      if (!dateStr) return '';
+    const toLocalDate = (dateStr: string) => {
+      if (!dateStr) return null;
       const d = new Date(dateStr);
-      return d.toISOString().split('T')[0];
+      if (isNaN(d.getTime())) return null;
+      d.setHours(0, 0, 0, 0);
+      return d;
     };
 
-    const start = formatDate(startText);
-    const end = formatDate(endText);
+    const startD = toLocalDate(startText);
+    const endD = toLocalDate(endText);
+    if (endD) endD.setHours(23, 59, 59, 999);
 
     setLoading(true);
     try {
@@ -65,8 +68,10 @@ const SearchAllSpeciesCount = ({ setShowAllSpeciesCount }: { setShowAllSpeciesCo
 
       // Filter by date range
       const filtered = data.filter((item: any) => {
-        const matchStart = item.date >= start;
-        const matchEnd = item.date <= end;
+        const itemD = toLocalDate(item.date);
+        if (!itemD) return false;
+        const matchStart = !startD || itemD >= startD;
+        const matchEnd = !endD || itemD <= endD;
         return matchStart && matchEnd;
       });
 
@@ -214,6 +219,7 @@ const SearchAllSpeciesCount = ({ setShowAllSpeciesCount }: { setShowAllSpeciesCo
             placeholderStyle={styles.dropdownPlaceholder}
             selectedTextStyle={styles.dropdownSelected}
             inputSearchStyle={styles.inputSearch}
+            itemTextStyle={styles.dropdownItemText}
             data={birdSpecies}
             search
             searchPlaceholder="Search species..."
@@ -423,13 +429,17 @@ const styles = StyleSheet.create({
   },
   dropdownSelected: {
     fontSize: 13,
-    color: '#333',
+    color: '#000',
     fontWeight: '500',
   },
   inputSearch: {
     height: 40,
     fontSize: 13,
     borderRadius: 8,
+  },
+  dropdownItemText: {
+    fontSize: 13,
+    color: '#000',
   },
   clearBtn: {
     flexDirection: 'row',

@@ -26,7 +26,7 @@ const waterAvailabilitySchema = new mongoose.Schema({
 const birdSurveySchema = new mongoose.Schema({
   email: {
     type: String,
-    required: true
+    default: ''
   },
   uniqueId: {
     type: String,

@@ -633,11 +633,17 @@ const WaterAvailabilityModal = ({visible, onClose, onSelect}: any) => {
 // ========================================
 // MAIN FORM COMPONENT
 // ========================================
-const BirdSurveyForm = () => {
+interface BirdSurveyFormProps {
+  editData?: any;
+  onEditComplete?: () => void;
+}
+
+const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const draftData = route?.params?.draftData || null;
   const existingDraftId = route?.params?.draftId || null;
+  const [editId, setEditId] = useState<string | null>(editData?._id || null);
   const [currentStep, setCurrentStep] = useState(0);
   const [errors, setErrors] = useState<any>({});
   // Step 1: Survey Point Details
@@ -877,6 +883,54 @@ const BirdSurveyForm = () => {
       }
     }
   }, []);
+
+  // Load edit data if editing an existing survey
+  useEffect(() => {
+    if (editData) {
+      setEditId(editData._id);
+      if (editData.habitatType) setHabitatType(editData.habitatType);
+      if (editData.point) setPoint(editData.point);
+      if (editData.pointTag) setPointTag(editData.pointTag);
+      if (editData.descriptor) setDescriptor(editData.descriptor);
+      if (editData.latitude) setLatitude(editData.latitude);
+      if (editData.longitude) setLongitude(editData.longitude);
+      if (editData.radiusOfArea) setRadius(editData.radiusOfArea);
+      if (editData.date) {
+        const d = new Date(editData.date);
+        setDate(d);
+        setDateText(d.toDateString());
+      }
+      if (editData.observers) setObservers(editData.observers);
+      if (editData.startTime) {
+        const st = new Date(editData.startTime);
+        if (!isNaN(st.getTime())) setSelectedStartTime(st);
+      }
+      if (editData.endTime) {
+        const et = new Date(editData.endTime);
+        if (!isNaN(et.getTime())) setSelectedEndTime(et);
+      }
+      if (editData.weather) setSelectedWeatherString(editData.weather);
+      if (editData.visibility) setVisibility(editData.visibility);
+      if (editData.water) setSelectedWaterString(editData.water);
+      if (editData.season) setPaddySeason(editData.season);
+      if (editData.statusOfVegy) setVegetationStatus(editData.statusOfVegy);
+      if (editData.dominantVegetation) setDominantVegetation(editData.dominantVegetation);
+      if (editData.imageUri) setImageUri(editData.imageUri);
+      if (editData.birdObservations && editData.birdObservations.length > 0) {
+        setBirdDataArray(editData.birdObservations.map((bird: any) => ({
+          species: bird.species || '',
+          count: bird.count || '',
+          maturity: bird.maturity || '',
+          sex: bird.sex || '',
+          behaviours: bird.behaviour ? bird.behaviour.split(', ').filter(Boolean) : [],
+          identification: bird.identification || '',
+          status: bird.status || '',
+          remark: bird.remarks || '',
+          imageUri: bird.imageUri || '',
+        })));
+      }
+    }
+  }, [editData]);
 
   // ===== DRAFT HELPERS =====
   const collectFormState = () => ({
@@ -1154,6 +1208,7 @@ const BirdSurveyForm = () => {
 
   const handleBack = () => {
     if (currentStep > 0) { setCurrentStep(currentStep - 1); setErrors({}); }
+    else if (editId && onEditComplete) { onEditComplete(); }
     else navigation.navigate('BirdBottomNav');
   };
 
@@ -1202,7 +1257,7 @@ const BirdSurveyForm = () => {
     setIsSubmitting(true);
 
     const now = new Date();
-    const uniqueId = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}${now.getSeconds().toString().padStart(2,'0')}`;
+    const uniqueId = editId ? (editData?.uniqueId || '') : `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}${now.getSeconds().toString().padStart(2,'0')}`;
 
     const dateStr = date.toISOString().split('T')[0];
     const startTimeStr = selectedStartTime.toISOString();
@@ -1230,11 +1285,28 @@ const BirdSurveyForm = () => {
       })),
     };
 
-    // Save locally first
+    // Edit mode: PUT request
+    if (editId) {
+      try {
+        const response = await axios.put(`${API_URL}/form-entry/${editId}`, formData);
+        setIsSubmitting(false);
+        if (response.status === 200) {
+          Alert.alert('Success', 'Survey updated successfully', [
+            {text: 'OK', onPress: () => onEditComplete?.()},
+          ]);
+        }
+      } catch (error: any) {
+        setIsSubmitting(false);
+        console.log('Update error:', error?.message);
+        Alert.alert('Error', 'Failed to update survey');
+      }
+      return;
+    }
+
+    // Create mode: save locally first, then POST
     await saveFormDataSQL(formData);
     console.log('Local save completed for uniqueId:', formData.uniqueId);
 
-    // Then try cloud
     try {
       const response = await axios.post(`${API_URL}/form-entry`, formData);
       setIsSubmitting(false);
@@ -1765,9 +1837,9 @@ const BirdSurveyForm = () => {
             <View style={styles.confirmIconCircle}>
               <Icon name="paper-plane" size={30} color={GREEN} />
             </View>
-            <Text style={styles.confirmTitle}>Submit Survey?</Text>
+            <Text style={styles.confirmTitle}>{editId ? 'Update Survey?' : 'Submit Survey?'}</Text>
             <Text style={styles.confirmText}>
-              You are about to submit a survey
+              You are about to {editId ? 'update' : 'submit'} a survey
               {birdDataArray.length > 0 && birdDataArray[0].species ? (
                 <Text> with <Text style={{fontWeight: 'bold'}}>{birdDataArray.length} bird observation(s)</Text></Text>
               ) : (

@@ -29,7 +29,7 @@ const POINT_OPTIONS = [
   {label: 'Point 5', value: 'Point 5'},
 ];
 
-const SearchPage = ({setShowPointFilter}: {setShowPointFilter: (v: boolean) => void}) => {
+const SearchPage = ({setShowPointFilter, onEditItem}: {setShowPointFilter: (v: boolean) => void; onEditItem?: (item: any) => void}) => {
   const [selectedPoint, setSelectedPoint] = useState<string | null>(null);
   const [isFocus, setIsFocus] = useState(false);
   const [startDate, setStartDate] = useState(new Date());
@@ -41,24 +41,35 @@ const SearchPage = ({setShowPointFilter}: {setShowPointFilter: (v: boolean) => v
   const [showResults, setShowResults] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [expandedBirds, setExpandedBirds] = useState<Record<string, boolean>>({});
+
+  const toggleBirdExpand = (surveyId: string, birdIdx: number) => {
+    const key = `${surveyId}-${birdIdx}`;
+    setExpandedBirds(prev => ({...prev, [key]: !prev[key]}));
+  };
 
   const handleSearch = async () => {
-    const formatDate = (dateStr: string) => {
-      if (!dateStr) return '';
+    const toLocalDate = (dateStr: string) => {
+      if (!dateStr) return null;
       const d = new Date(dateStr);
-      return d.toISOString().split('T')[0];
+      if (isNaN(d.getTime())) return null;
+      d.setHours(0, 0, 0, 0);
+      return d;
     };
-    const start = formatDate(startText);
-    const end = formatDate(endText);
+    const startD = toLocalDate(startText);
+    const endD = toLocalDate(endText);
+    if (endD) endD.setHours(23, 59, 59, 999);
 
     setLoading(true);
     try {
       const response = await axios.get(`${API_URL}/form-entries?page=1&limit=500`);
       const data = response.data || [];
       const filtered = data.filter((item: any) => {
+        const itemD = toLocalDate(item.date);
+        if (!itemD) return false;
         const matchPoint = !selectedPoint || item.point === selectedPoint;
-        const matchStart = !start || item.date >= start;
-        const matchEnd = !end || item.date <= end;
+        const matchStart = !startD || itemD >= startD;
+        const matchEnd = !endD || itemD <= endD;
         return matchPoint && matchStart && matchEnd;
       });
       setResults(filtered);
@@ -70,10 +81,9 @@ const SearchPage = ({setShowPointFilter}: {setShowPointFilter: (v: boolean) => v
   };
 
   const handleEdit = (item: any) => {
-    Alert.alert('Edit Survey', `Edit survey at ${item.point} on ${item.date}?`, [
-      {text: 'Cancel', style: 'cancel'},
-      {text: 'Edit', onPress: () => console.log('Edit:', item._id)},
-    ]);
+    if (onEditItem) {
+      onEditItem(item);
+    }
   };
 
   const handleDelete = (item: any, index: number) => {
@@ -82,8 +92,15 @@ const SearchPage = ({setShowPointFilter}: {setShowPointFilter: (v: boolean) => v
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => {
-          setResults(prev => prev.filter((_, i) => i !== index));
+        onPress: async () => {
+          try {
+            await axios.delete(`${API_URL}/form-entry/${item._id}`);
+            setResults(prev => prev.filter((_, i) => i !== index));
+            Alert.alert('Success', 'Survey deleted successfully');
+          } catch (error) {
+            console.error('Delete error:', error);
+            Alert.alert('Error', 'Failed to delete survey');
+          }
         },
       },
     ]);
@@ -294,14 +311,6 @@ const SearchPage = ({setShowPointFilter}: {setShowPointFilter: (v: boolean) => v
                         <Text style={styles.resultTime}>{item.startTime} - {item.endTime}</Text>
                       </View>
                     </View>
-                    <View style={styles.actionRow}>
-                      <TouchableOpacity style={styles.editBtn} onPress={() => handleEdit(item)}>
-                        <Icon name="pencil-outline" size={18} color={GREEN} />
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item, index)}>
-                        <Icon name="trash-can-outline" size={18} color="#D32F2F" />
-                      </TouchableOpacity>
-                    </View>
                   </View>
 
                   <View style={styles.detailsGrid}>
@@ -352,25 +361,55 @@ const SearchPage = ({setShowPointFilter}: {setShowPointFilter: (v: boolean) => v
                       <Icon name="bird" size={16} color={GREEN} />
                       <Text style={styles.obsSectionTitle}>Bird Observations ({item.birdObservations.length})</Text>
                     </View>
-                    {item.birdObservations.map((bird: any, bIdx: number) => (
-                      <View key={bIdx} style={styles.birdRow}>
-                        <View style={styles.birdHeader}>
-                          <View style={styles.birdCountBadge}>
-                            <Text style={styles.birdCountText}>{bird.count}</Text>
+                    {item.birdObservations.map((bird: any, bIdx: number) => {
+                      const key = `${item._id}-${bIdx}`;
+                      const isExpanded = expandedBirds[key];
+                      return (
+                        <View key={bIdx} style={styles.birdRow}>
+                          <View style={styles.birdHeader}>
+                            <View style={styles.birdCountBadge}>
+                              <Text style={styles.birdCountText}>{bird.count}</Text>
+                            </View>
+                            {renderSpeciesName(bird.species)}
                           </View>
-                          {renderSpeciesName(bird.species)}
+                          {isExpanded && (
+                            <View style={styles.birdDetails}>
+                              {bird.maturity ? <View style={styles.birdTag}><Text style={styles.birdTagLabel}>Maturity:</Text><Text style={styles.birdTagText}>{bird.maturity}</Text></View> : null}
+                              {bird.sex ? <View style={styles.birdTag}><Text style={styles.birdTagLabel}>Sex:</Text><Text style={styles.birdTagText}>{bird.sex}</Text></View> : null}
+                              {bird.behaviour ? <View style={styles.birdTag}><Text style={styles.birdTagLabel}>Behaviour:</Text><Text style={styles.birdTagText}>{bird.behaviour}</Text></View> : null}
+                              {bird.identification ? <View style={styles.birdTag}><Text style={styles.birdTagLabel}>Identification:</Text><Text style={styles.birdTagText}>{bird.identification}</Text></View> : null}
+                              {bird.status ? <View style={[styles.birdTag, bird.status === 'Endemic' && styles.endemicTag]}>
+                                <Text style={[styles.birdTagLabel, bird.status === 'Endemic' && styles.endemicTagText]}>Status:</Text>
+                                <Text style={[styles.birdTagText, bird.status === 'Endemic' && styles.endemicTagText]}>{bird.status}</Text>
+                              </View> : null}
+                              {bird.remarks ? <View style={styles.birdTag}><Text style={styles.birdTagLabel}>Remarks:</Text><Text style={styles.birdTagText}>{bird.remarks}</Text></View> : null}
+                            </View>
+                          )}
+                          <TouchableOpacity onPress={() => toggleBirdExpand(item._id, bIdx)} style={styles.seeMoreBtn}>
+                            <Text style={styles.seeMoreText}>{isExpanded ? 'See Less' : 'See More'}</Text>
+                            <Icon name={isExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={GREEN} />
+                          </TouchableOpacity>
                         </View>
-                        <View style={styles.birdDetails}>
-                          <View style={styles.birdTag}><Text style={styles.birdTagText}>{bird.maturity}</Text></View>
-                          <View style={styles.birdTag}><Text style={styles.birdTagText}>{bird.sex}</Text></View>
-                          <View style={styles.birdTag}><Text style={styles.birdTagText}>{bird.behaviour}</Text></View>
-                          <View style={styles.birdTag}><Text style={styles.birdTagText}>{bird.identification}</Text></View>
-                          <View style={[styles.birdTag, bird.status === 'Endemic' && styles.endemicTag]}>
-                            <Text style={[styles.birdTagText, bird.status === 'Endemic' && styles.endemicTagText]}>{bird.status}</Text>
-                          </View>
-                        </View>
-                      </View>
-                    ))}
+                      );
+                    })}
+                  </View>
+
+                  {/* Edit & Delete Buttons */}
+                  <View style={styles.actionButtonsRow}>
+                    <TouchableOpacity
+                      style={styles.editButton}
+                      activeOpacity={0.7}
+                      onPress={() => handleEdit(item)}>
+                      <Icon name="pencil-outline" size={18} color="#fff" />
+                      <Text style={styles.editButtonText}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      activeOpacity={0.7}
+                      onPress={() => handleDelete(item, index)}>
+                      <Icon name="trash-can-outline" size={18} color="#fff" />
+                      <Text style={styles.deleteButtonText}>Delete</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               ))
@@ -500,22 +539,43 @@ const styles = StyleSheet.create({
   pointBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   resultDate: { fontSize: 14, fontWeight: '600', color: '#333' },
   resultTime: { fontSize: 11, color: '#888', marginTop: 1 },
-  actionRow: { flexDirection: 'row', gap: 6 },
-  editBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: GREEN_LIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
+  actionButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
   },
-  deleteBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: '#FFEBEE',
-    justifyContent: 'center',
+  editButton: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: GREEN,
+    borderRadius: 10,
+    paddingVertical: 10,
+    gap: 6,
+  },
+  editButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  deleteButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#D32F2F',
+    borderRadius: 10,
+    paddingVertical: 10,
+    gap: 6,
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   detailsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   detailItem: {
@@ -545,10 +605,13 @@ const styles = StyleSheet.create({
   speciesText: { fontSize: 13, fontWeight: '500', color: '#333', flex: 1 },
   speciesScientific: { fontStyle: 'italic', color: '#999', fontSize: 11 },
   birdDetails: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginLeft: 36 },
-  birdTag: { backgroundColor: '#f5f5f5', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, marginTop: 4 },
+  birdTag: { backgroundColor: '#f5f5f5', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, marginTop: 4, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  birdTagLabel: { fontSize: 10, color: '#999', fontWeight: '600' },
   birdTagText: { fontSize: 10, color: '#666', fontWeight: '500' },
   endemicTag: { backgroundColor: '#FFF3E0' },
   endemicTagText: { color: '#E65100', fontWeight: '600' },
+  seeMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 6, paddingVertical: 4 },
+  seeMoreText: { fontSize: 11, color: GREEN, fontWeight: '600' },
 });
 
 export default SearchPage;

@@ -5,21 +5,30 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import {Avatar} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
+import axios from 'axios';
+import {API_URL} from '../../config';
 import {getDatabase} from '../database/db';
-import BarChartDummy from './bar-charts/bar-chart-dummy';
-import MiniBarChartDummy from './bar-charts/mini-bar-chart-dummy';
-import MiniBarChartDummy1 from './bar-charts/mini-bar-chart-dummy1';
+import BarChartModel from './bar-charts/bar-chart';
+import MiniBarChartModel from './bar-charts/mini-bar-chart';
+import MiniBarChartModel1 from './bar-charts/mini-bar-chart1';
 
 const GREEN = '#2e7d32';
 
 const MainDashboardPage = () => {
   const [avatarUri, setAvatarUri] = useState('');
   const [userName, setUserName] = useState('');
+  const [stats, setStats] = useState({
+    totalSurveys: 0,
+    totalSpecies: 0,
+    totalBirdCount: 0,
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
   const navigation = useNavigation<any>();
 
   useEffect(() => {
@@ -53,6 +62,32 @@ const MainDashboardPage = () => {
       }
     };
     loadUserData();
+  }, []);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [speciesRes, statsRes] = await Promise.all([
+          axios.get(`${API_URL}/bird-species`),
+          axios.get(`${API_URL}/bird-stats`),
+        ]);
+
+        const speciesCount = Array.isArray(speciesRes.data) ? speciesRes.data.length : 0;
+        const totalSurveys = statsRes.data?.total || 0;
+        const totalBirdCount = statsRes.data?.totalBirdCount || 0;
+
+        setStats({
+          totalSurveys,
+          totalSpecies: speciesCount,
+          totalBirdCount,
+        });
+      } catch (error) {
+        console.log('Error fetching stats:', error);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    fetchStats();
   }, []);
 
   return (
@@ -97,18 +132,18 @@ const MainDashboardPage = () => {
       {/* Analytics Section */}
       <Text style={styles.sectionTitle}>Bird Survey Analytics</Text>
 
-      {/* Main Bar Chart */}
+      {/* Main Bar Chart - Species Count */}
       <View style={styles.chartCard}>
-        <BarChartDummy />
+        <BarChartModel />
       </View>
 
       {/* Mini Charts */}
       <View style={styles.miniChartsRow}>
         <View style={[styles.chartCard, styles.miniChartCard]}>
-          <MiniBarChartDummy title="Statistical Summary" />
+          <MiniBarChartModel title="Statistical Summary" />
         </View>
         <View style={[styles.chartCard, styles.miniChartCard]}>
-          <MiniBarChartDummy1 title="Sex Distribution" />
+          <MiniBarChartModel1 title="Sex Distribution" />
         </View>
       </View>
 
@@ -116,19 +151,31 @@ const MainDashboardPage = () => {
       <Text style={styles.sectionTitle}>Summary</Text>
       <View style={styles.summaryRow}>
         <View style={styles.statCard}>
-          <MCIcon name="eye-outline" size={24} color={GREEN} />
-          <Text style={styles.statValue}>245</Text>
-          <Text style={styles.statLabel}>Observations</Text>
+          <MCIcon name="clipboard-text-outline" size={24} color={GREEN} />
+          {statsLoading ? (
+            <ActivityIndicator size="small" color={GREEN} style={{marginTop: 8}} />
+          ) : (
+            <Text style={styles.statValue}>{stats.totalSurveys}</Text>
+          )}
+          <Text style={styles.statLabel}>Surveys</Text>
         </View>
         <View style={styles.statCard}>
           <MCIcon name="feather" size={24} color={GREEN} />
-          <Text style={styles.statValue}>6</Text>
+          {statsLoading ? (
+            <ActivityIndicator size="small" color={GREEN} style={{marginTop: 8}} />
+          ) : (
+            <Text style={styles.statValue}>{stats.totalSpecies}</Text>
+          )}
           <Text style={styles.statLabel}>Species</Text>
         </View>
         <View style={styles.statCard}>
-          <MCIcon name="chart-bar" size={24} color={GREEN} />
-          <Text style={styles.statValue}>37.5</Text>
-          <Text style={styles.statLabel}>Avg. Count</Text>
+          <MCIcon name="eye-outline" size={24} color={GREEN} />
+          {statsLoading ? (
+            <ActivityIndicator size="small" color={GREEN} style={{marginTop: 8}} />
+          ) : (
+            <Text style={styles.statValue}>{stats.totalBirdCount}</Text>
+          )}
+          <Text style={styles.statLabel}>Observations</Text>
         </View>
       </View>
     </ScrollView>

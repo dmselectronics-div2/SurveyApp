@@ -29,6 +29,7 @@ router.use('/', birdRoutes);
 router.use('/', authRoutes);
 router.use('/', citizenRoutes);
 router.use('/', citizenFormRoutes);
+router.use('/', mangroveRoutes);
 router.use('/', uploadRoutes);
 router.use('/api', uploadRoutes);
 

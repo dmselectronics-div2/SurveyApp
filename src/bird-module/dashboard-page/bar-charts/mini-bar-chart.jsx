@@ -1,192 +1,187 @@
-ipcimport React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
 import axios from 'axios';
 import { API_URL } from '../../../config';
 
+const CHART_WIDTH = (Dimensions.get('window').width - 80) / 2;
+
 const MiniBarChartModel = ({ title }) => {
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [meanVal, setMeanVal] = useState(0);
+  const [medianVal, setMedianVal] = useState(0);
 
   const calculateMeanMedian = (data) => {
-    // Calculate mean
+    if (data.length === 0) return { mean: 0, median: 0 };
     const sum = data.reduce((acc, val) => acc + val, 0);
     const meanValue = sum / data.length;
-
-    // Calculate median
     const sorted = [...data].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
     const medianValue =
       sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-
     return {
-      mean: parseFloat(meanValue.toFixed(2)), // Round to 2 decimal places
-      median: parseFloat(medianValue.toFixed(2)), // Round to 2 decimal places
+      mean: parseFloat(meanValue.toFixed(1)),
+      median: parseFloat(medianValue.toFixed(1)),
     };
   };
 
-  // useEffect(() => {
-  //   const fetchBirdData = async () => {
-  //     console.log('Fetching bird data from API...');
-  //     try {
-  //       const response = await axios.get(`${API_URL}/bird-species`); // Replace with your API URL
-  //       console.log('Raw API response:', response.data);
-
-  //       const data = response.data.map((item) => item.count); // Assuming each item has a count
-
-  //       // Calculate mean and median
-  //       const { mean, median } = calculateMeanMedian(data);
-
-  //       // Only include mean and median in the dataset
-  //       const labels = ['Mean', 'Median'];
-  //       const values = [mean, median];
-
-  //       const formattedData = {
-  //         labels,
-  //         datasets: [{ data: values }],
-  //       };
-
-  //       setChartData(formattedData);
-  //       setLoading(false);
-  //     } catch (error) {
-  //       console.error('Error fetching bird data:', error);
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   fetchBirdData();
-  // }, []);
-
   useEffect(() => {
     const fetchBirdData = async () => {
-      console.log('Fetching bird data from API...');
       try {
-        const response = await axios.get(`${API_URL}/bird-species`); // Replace with your API URL
-        console.log('Raw API response:', response.data);
-  
-        const data = response.data.map((item) => item.count); // Assuming each item has a count
-  
-        // Check if data is empty
+        const response = await axios.get(`${API_URL}/bird-species`);
+        const data = response.data.map((item) => item.count);
+
         if (data.length === 0) {
-          const formattedData = {
-            labels: ['Mean', 'Median'],
-            datasets: [{ data: [0, 0] }],
-          };
-          setChartData(formattedData);
+          setChartData(null);
         } else {
-          // Calculate mean and median
           const { mean, median } = calculateMeanMedian(data);
-  
-          // Only include mean and median in the dataset
-          const labels = ['Mean', 'Median'];
-          const values = [mean, median];
-  
-          const formattedData = {
-            labels,
-            datasets: [{ data: values }],
-          };
-  
-          setChartData(formattedData);
+          setMeanVal(mean);
+          setMedianVal(median);
+          setChartData({
+            labels: ['Mean', 'Median'],
+            datasets: [{ data: [mean, median] }],
+          });
         }
-  
-        setLoading(false);
       } catch (error) {
         console.error('Error fetching bird data:', error);
-  
-        // In case of error (offline or server issue), show 0 for Mean and Median
-        const formattedData = {
-          labels: ['Mean', 'Median'],
-          datasets: [{ data: [0, 0] }],
-        };
-        setChartData(formattedData);
+        setChartData(null);
+      } finally {
         setLoading(false);
       }
     };
-  
+
     fetchBirdData();
   }, []);
-  
-  
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Loading...</Text>
+        <ActivityIndicator size="small" color="#2e7d32" />
       </View>
     );
   }
 
-  // Check if all data values are 0 - BarChart crashes with all-zero data (SVG Infinity bug)
   const hasRealData = chartData && chartData.datasets && chartData.datasets[0] &&
     chartData.datasets[0].data.some((v) => v > 0);
 
   return (
-    <View style={styles.BlueBox}>
-      <Text style={styles.sub_text}>{title}</Text>
-      <View style={styles.chartWithLegendContainer}>
-        {hasRealData ? (
+    <View style={styles.chartBox}>
+      <View style={styles.titleRow}>
+        <View style={styles.titleDot} />
+        <Text style={styles.chartTitle}>{title}</Text>
+      </View>
+      {hasRealData ? (
+        <>
           <BarChart
-            style={{
-              marginVertical: 1,
-              borderRadius: 1,
-            }}
+            style={styles.chart}
             data={chartData}
-            width={300}
-            height={220}
+            width={CHART_WIDTH}
+            height={150}
             fromZero
             yAxisLabel=""
+            yAxisSuffix=""
             chartConfig={{
               backgroundColor: '#ffffff',
               backgroundGradientFrom: '#ffffff',
-              backgroundGradientTo: '#ffffff',
-              decimalPlaces: 2,
-              color: (opacity = 1) => `rgba(255,0,0, ${opacity})`,
-              labelColor: (opacity = 1) => `rgba(0,0,0, ${opacity})`,
-              strokeWidth: 1,
-              barPercentage: 1.5,
+              backgroundGradientTo: '#f8fdf8',
+              decimalPlaces: 1,
+              color: (opacity = 1) => `rgba(56, 142, 60, ${opacity})`,
+              labelColor: (opacity = 1) => `rgba(75, 75, 75, ${opacity})`,
+              barPercentage: 0.5,
+              fillShadowGradient: '#66bb6a',
+              fillShadowGradientOpacity: 0.85,
               propsForBackgroundLines: {
-                stroke: '#e3e3e3',
+                stroke: '#e8f5e9',
+                strokeWidth: 1,
+              },
+              propsForLabels: {
+                fontSize: 10,
               },
             }}
-            showBarTops={true}
+            showBarTops={false}
             showValuesOnTopOfBars={true}
-            withInnerLines={false}
+            withInnerLines={true}
           />
-        ) : (
-          <Text style={{fontSize: 14, color: '#888', marginTop: 20}}>No data available</Text>
-        )}
-      </View>
+          <View style={styles.statsRow}>
+            <View style={styles.statBadge}>
+              <Text style={styles.statLabel}>Mean</Text>
+              <Text style={styles.statValue}>{meanVal}</Text>
+            </View>
+            <View style={styles.statBadge}>
+              <Text style={styles.statLabel}>Median</Text>
+              <Text style={styles.statValue}>{medianVal}</Text>
+            </View>
+          </View>
+        </>
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.noDataText}>No data yet</Text>
+        </View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  BlueBox: {
-    justifyContent: 'center',
+  chartBox: {
     alignItems: 'center',
-    height: 260,
-    width: 320,
-    borderRadius: 10,
-    backgroundColor: 'rgba(52,168,83, 0.57)',
-    marginLeft: 5,
-    marginRight: 5,
-    marginTop: 5,
   },
-  sub_text: {
-    fontSize: 16,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
-    textAlign: 'center',
-    marginBottom: 5,
-  },
-  chartWithLegendContainer: {
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 8,
+  },
+  titleDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#388e3c',
+    marginRight: 6,
+  },
+  chartTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1b5e20',
+  },
+  chart: {
+    borderRadius: 8,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 8,
+  },
+  statBadge: {
+    backgroundColor: '#e8f5e9',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 9,
+    color: '#666',
+    fontWeight: '600',
+  },
+  statValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#2e7d32',
   },
   loadingContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    height: 180,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  noDataText: {
+    fontSize: 12,
+    color: '#999',
   },
 });
 

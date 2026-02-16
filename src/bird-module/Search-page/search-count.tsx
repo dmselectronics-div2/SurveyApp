@@ -39,13 +39,16 @@ const SearchCount = ({setShowBirdCount}: {setShowBirdCount: (v: boolean) => void
   const [loading, setLoading] = useState(false);
 
   const handleSearch = async () => {
-    const formatDate = (dateStr: string) => {
-      if (!dateStr) return '';
+    const toLocalDate = (dateStr: string) => {
+      if (!dateStr) return null;
       const d = new Date(dateStr);
-      return d.toISOString().split('T')[0];
+      if (isNaN(d.getTime())) return null;
+      d.setHours(0, 0, 0, 0);
+      return d;
     };
-    const start = formatDate(startText);
-    const end = formatDate(endText);
+    const startD = toLocalDate(startText);
+    const endD = toLocalDate(endText);
+    if (endD) endD.setHours(23, 59, 59, 999);
     const normalizedSpecies = species.trim().toLowerCase();
 
     setLoading(true);
@@ -54,8 +57,10 @@ const SearchCount = ({setShowBirdCount}: {setShowBirdCount: (v: boolean) => void
       const data = response.data || [];
 
       const filtered = data.filter((item: any) => {
-        const matchStart = !start || item.date >= start;
-        const matchEnd = !end || item.date <= end;
+        const itemD = toLocalDate(item.date);
+        if (!itemD) return false;
+        const matchStart = !startD || itemD >= startD;
+        const matchEnd = !endD || itemD <= endD;
         return matchStart && matchEnd;
       });
 
