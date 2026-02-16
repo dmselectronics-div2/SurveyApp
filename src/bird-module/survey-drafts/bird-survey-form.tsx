@@ -447,7 +447,7 @@ const BirdObservationCard = ({observation, index, onUpdate, onDelete, onToggle, 
 
           <TextInput
             mode="outlined"
-            placeholder="Note"
+            placeholder="Remarks"
             value={observation.remark}
             onChangeText={val => onUpdate({...observation, remark: val})}
             outlineStyle={cardStyles.txtInputOutline}
@@ -697,6 +697,13 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{type: 'success' | 'error'; title?: string; message?: string; onClose?: () => void}>({type: 'success'});
+  const [showCustomAlert, setShowCustomAlert] = useState(false);
+
+  const showAlert = (type: 'success' | 'error', message: string, title?: string, onCloseCallback?: () => void) => {
+    setAlertConfig({type, title, message, onClose: onCloseCallback});
+    setShowCustomAlert(true);
+  };
 
   // Focus states
   const [focusStates, setFocusStates] = useState<{[key: string]: boolean}>({});
@@ -815,8 +822,8 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
 
   const addTeamMember = () => {
     const name = memberInput.trim();
-    if (!name) { Alert.alert('Error', 'Please enter a valid name.'); return; }
-    if (rawTeamMembers.includes(name)) { Alert.alert('Duplicate', 'This team member already exists.'); return; }
+    if (!name) { showAlert('error', 'Please enter a valid name.'); return; }
+    if (rawTeamMembers.includes(name)) { showAlert('error', 'This team member already exists.', 'Duplicate'); return; }
     const updated = [...rawTeamMembers, name];
     setRawTeamMembers(updated);
     setTeamMembers(updated.map(n => ({label: n, value: n})));
@@ -827,7 +834,7 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
   const saveEditMember = () => {
     if (editMemberIndex === null) return;
     const name = memberInput.trim();
-    if (!name) { Alert.alert('Error', 'Please enter a valid name.'); return; }
+    if (!name) { showAlert('error', 'Please enter a valid name.'); return; }
     const updated = [...rawTeamMembers];
     updated[editMemberIndex] = name;
     setRawTeamMembers(updated);
@@ -984,13 +991,11 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
             JSON.stringify(formState),
           ],
           () => {
-            Alert.alert('Draft Saved', 'Your incomplete survey has been saved as a draft.', [
-              {text: 'OK', onPress: () => navigation.navigate('BirdBottomNav')}
-            ]);
+            showAlert('success', 'Your incomplete survey has been saved as a draft.', 'Draft Saved', () => navigation.navigate('BirdBottomNav'));
           },
           (_: any, error: any) => {
             console.log('Error saving draft:', error);
-            Alert.alert('Error', 'Failed to save draft.');
+            showAlert('error', 'Failed to save draft.');
           },
         );
       });
