@@ -9,14 +9,12 @@ import MangroveNew from '../survey-form-page/new';
 import ByvalviCollection from '../collection-page/collection';
 import MangroveDataTableComponent from '../data-table/MyDataTable';
 import NetworkStatusBanner from '../../components/NetworkStatusBanner';
-import TeamMembersPage from '../../bird-module/team-members/team-members-page';
 
 // Bottom Nav Bar Routes
 const DashboardRoute = () => <ByvalviDashboard />;
 const SurveyRoute = () => <MangroveNew />;
 const DraftsRoute = () => <ByvalviCollection />;
 const DataRoute = () => <MangroveDataTableComponent />;
-const TeamRoute = () => <TeamMembersPage moduleType="byvalvi" />;
 
 const ByvalviBottomNavbar = () => {
   const [index, setIndex] = useState(0);
@@ -46,12 +44,6 @@ const ByvalviBottomNavbar = () => {
       focusedIcon: 'database',
       unfocusedIcon: 'database-outline',
     },
-    {
-      key: 'team',
-      title: 'Team',
-      focusedIcon: 'account-group',
-      unfocusedIcon: 'account-group-outline',
-    },
   ]);
 
   const scenes: Record<string, React.FC> = {
@@ -59,7 +51,6 @@ const ByvalviBottomNavbar = () => {
     survey: SurveyRoute,
     drafts: DraftsRoute,
     data: DataRoute,
-    team: TeamRoute,
   };
 
   const CurrentScene = scenes[routes[index].key];

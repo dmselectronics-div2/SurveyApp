@@ -1,13 +1,11 @@
 //import libraries
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ImageBackground, Platform, BackHandler, TouchableOpacity, Animated } from 'react-native';
-import { ToggleButton } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 // component
 const WelcomeTamil = () => {
-    const [value, setValue] = useState('middle');
     const navigation = useNavigation();
     const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -91,33 +89,11 @@ const WelcomeTamil = () => {
 
                 {/* Bottom navigation dots */}
                 <View style={styles.buttonGroup}>
-                    <ToggleButton.Row
-                        onValueChange={value => setValue(value)}
-                        value={value}
-                        style={styles.toggleButtonRow}
-                    >
-                        <ToggleButton
-                            icon="circle"
-                            value="left"
-                            iconColor='#DADADA'
-                            size={20}
-                            style={styles.toggleButton}
-                        />
-                        <ToggleButton
-                            icon="circle"
-                            value="middle"
-                            iconColor='#DADADA'
-                            size={20}
-                            style={styles.toggleButton}
-                        />
-                        <ToggleButton
-                            icon="circle"
-                            value="right"
-                            iconColor='white'
-                            size={20}
-                            style={styles.toggleButton}
-                        />
-                    </ToggleButton.Row>
+                    <View style={styles.dotsRow}>
+                        <View style={styles.dot} />
+                        <View style={[styles.dot, styles.dotActive]} />
+                        <View style={styles.dot} />
+                    </View>
                 </View>
             </TouchableOpacity>
         </ImageBackground>
@@ -259,12 +235,22 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    toggleButton: {
-        borderWidth: 0,
+    dotsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
     },
-    toggleButtonRow: {
-        borderWidth: 0,
-        backgroundColor: 'transparent',
+    dot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: 'rgba(255, 255, 255, 0.35)',
+    },
+    dotActive: {
+        backgroundColor: '#fff',
+        width: 28,
+        borderRadius: 5,
+        height: 10,
     },
 });
 

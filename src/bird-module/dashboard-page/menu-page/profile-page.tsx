@@ -134,13 +134,13 @@ const ProfileMenu = () => {
   };
 
   const colors = {
-    bg: isDarkMode ? '#121212' : '#F5F5F5',
-    cardBg: isDarkMode ? '#1E1E1E' : '#FFFFFF',
-    headerBg: isDarkMode ? 'rgb(2, 93, 32)' : 'rgba(84, 200, 86, 0.85)',
-    text: isDarkMode ? '#FFFFFF' : '#333333',
-    subtext: isDarkMode ? '#AAAAAA' : '#777777',
-    border: isDarkMode ? '#333333' : '#E8E8E8',
-    iconBg: isDarkMode ? '#2A2A2A' : '#F0F0F0',
+    bg: '#FFFFFF',
+    cardBg: '#FFFFFF',
+    headerBg: '#4A7856',
+    text: '#333333',
+    subtext: '#777777',
+    border: '#E8E8E8',
+    iconBg: '#F0F0F0',
   };
 
   return (
@@ -391,10 +391,10 @@ const styles = StyleSheet.create({
     margin: 0,
   },
   logoutButton: {
-    backgroundColor: '#E53935',
+    backgroundColor: '#2E7D32',
   },
   deleteButton: {
-    backgroundColor: '#5C6BC0',
+    backgroundColor: '#E53935',
   },
   actionButtonText: {
     color: '#FFFFFF',

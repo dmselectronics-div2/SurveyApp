@@ -6,17 +6,21 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  PermissionsAndroid,
+  Platform,
+  Image,
 } from 'react-native';
 import {Avatar} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import axios from 'axios';
-import {API_URL} from '../../config';
+import MapView, {Marker} from 'react-native-maps';
+import GetLocation from 'react-native-get-location';
+import {API_URL, API_KEY} from '../../config';
 import {getDatabase} from '../database/db';
 import BarChartModel from './bar-charts/bar-chart';
 import MiniBarChartModel from './bar-charts/mini-bar-chart';
-import MiniBarChartModel1 from './bar-charts/mini-bar-chart1';
 
 const GREEN = '#2e7d32';
 
@@ -29,7 +33,48 @@ const MainDashboardPage = () => {
     totalBirdCount: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
+  const [location, setLocation] = useState<{lat: number; lon: number} | null>(null);
+  const [weather, setWeather] = useState<any>(null);
+  const [weatherLoading, setWeatherLoading] = useState(true);
   const navigation = useNavigation<any>();
+
+  useEffect(() => {
+    const requestLocationAndFetch = async () => {
+      try {
+        if (Platform.OS === 'android') {
+          await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          );
+        }
+        const loc = await GetLocation.getCurrentPosition({
+          enableHighAccuracy: true,
+          timeout: 15000,
+        });
+        setLocation({lat: loc.latitude, lon: loc.longitude});
+      } catch (error) {
+        console.log('Location error:', error);
+        setWeatherLoading(false);
+      }
+    };
+    requestLocationAndFetch();
+  }, []);
+
+  useEffect(() => {
+    if (!location) return;
+    const fetchWeather = async () => {
+      try {
+        const res = await axios.get(
+          `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${location.lat},${location.lon}`,
+        );
+        setWeather(res.data);
+      } catch (error) {
+        console.log('Weather error:', error);
+      } finally {
+        setWeatherLoading(false);
+      }
+    };
+    fetchWeather();
+  }, [location]);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -142,9 +187,64 @@ const MainDashboardPage = () => {
         <View style={[styles.chartCard, styles.miniChartCard]}>
           <MiniBarChartModel title="Statistical Summary" />
         </View>
-        <View style={[styles.chartCard, styles.miniChartCard]}>
-          <MiniBarChartModel1 title="Sex Distribution" />
-        </View>
+        <TouchableOpacity
+          style={[styles.chartCard, styles.miniChartCard]}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate('BirdMapPage')}>
+          <View style={styles.weatherBox}>
+            <View style={styles.weatherTitleRow}>
+              <View style={styles.weatherTitleDot} />
+              <Text style={styles.weatherTitle}>Current Weather</Text>
+            </View>
+            {weatherLoading ? (
+              <ActivityIndicator size="small" color={GREEN} style={{marginTop: 40}} />
+            ) : weather ? (
+              <>
+                <View style={styles.mapContainer}>
+                  <MapView
+                    style={styles.miniMap}
+                    region={{
+                      latitude: location?.lat || 7.7,
+                      longitude: location?.lon || 79.8,
+                      latitudeDelta: 0.02,
+                      longitudeDelta: 0.02,
+                    }}
+                    scrollEnabled={false}
+                    zoomEnabled={false}
+                    rotateEnabled={false}
+                    pitchEnabled={false}>
+                    {location && (
+                      <Marker
+                        coordinate={{latitude: location.lat, longitude: location.lon}}
+                        title="You"
+                      />
+                    )}
+                  </MapView>
+                </View>
+                <View style={styles.weatherInfoRow}>
+                  <Image
+                    source={{uri: `https:${weather.current.condition.icon}`}}
+                    style={styles.weatherIcon}
+                  />
+                  <Text style={styles.weatherTemp}>{Math.round(weather.current.temp_c)}°C</Text>
+                </View>
+                <Text style={styles.weatherCondition}>{weather.current.condition.text}</Text>
+                <View style={styles.weatherDetailsRow}>
+                  <View style={styles.weatherDetail}>
+                    <MCIcon name="water-outline" size={14} color="#666" />
+                    <Text style={styles.weatherDetailText}>{weather.current.humidity}%</Text>
+                  </View>
+                  <View style={styles.weatherDetail}>
+                    <MCIcon name="weather-windy" size={14} color="#666" />
+                    <Text style={styles.weatherDetailText}>{weather.current.wind_kph} km/h</Text>
+                  </View>
+                </View>
+              </>
+            ) : (
+              <Text style={styles.weatherNoData}>No weather data</Text>
+            )}
+          </View>
+        </TouchableOpacity>
       </View>
 
       {/* Summary Statistics */}
@@ -293,6 +393,78 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 4,
+  },
+  weatherBox: {
+    alignItems: 'center',
+  },
+  weatherTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  weatherTitleDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#388e3c',
+    marginRight: 6,
+  },
+  weatherTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1b5e20',
+  },
+  mapContainer: {
+    width: '100%',
+    height: 100,
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  miniMap: {
+    width: '100%',
+    height: '100%',
+  },
+  weatherInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  weatherIcon: {
+    width: 36,
+    height: 36,
+  },
+  weatherTemp: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1b5e20',
+  },
+  weatherCondition: {
+    fontSize: 11,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  weatherDetailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  weatherDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  weatherDetailText: {
+    fontSize: 10,
+    color: '#666',
+    fontWeight: '600',
+  },
+  weatherNoData: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 40,
   },
 });
 

@@ -12,7 +12,7 @@ import {Avatar} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {BarChart, PieChart} from 'react-native-chart-kit';
+import {BarChart} from 'react-native-chart-kit';
 import axios from 'axios';
 import {API_URL} from '../../config';
 import {getDatabase} from '../../bird-module/database/db';
@@ -23,11 +23,6 @@ import MiniSamplingChart from './bar-charts/sampling-method-chart';
 const screenWidth = Dimensions.get('window').width;
 const GREEN = '#2e7d32';
 
-const PIE_COLORS = [
-  '#1b5e20', '#2e7d32', '#388e3c', '#43a047', '#4caf50',
-  '#66bb6a', '#81c784', '#a5d6a7', '#c8e6c9', '#00695c',
-  '#00897b', '#009688', '#26a69a', '#4db6ac',
-];
 
 const ByvalviDashboard = () => {
   const navigation = useNavigation<any>();
@@ -42,7 +37,6 @@ const ByvalviDashboard = () => {
   const [statsLoading, setStatsLoading] = useState(true);
   const [speciesData, setSpeciesData] = useState<any>(null);
   const [speciesLoading, setSpeciesLoading] = useState(true);
-  const [pieData, setPieData] = useState<any[]>([]);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -104,7 +98,6 @@ const ByvalviDashboard = () => {
 
         if (!data || data.length === 0) {
           setSpeciesData(null);
-          setPieData([]);
           setSpeciesLoading(false);
           return;
         }
@@ -116,19 +109,9 @@ const ByvalviDashboard = () => {
           datasets: [{data: top8.map((s: any) => s.count)}],
         });
 
-        // All species for pie chart
-        const pie = data.map((s: any, index: number) => ({
-          name: s.name,
-          population: s.count,
-          color: PIE_COLORS[index % PIE_COLORS.length],
-          legendFontColor: '#333',
-          legendFontSize: 11,
-        }));
-        setPieData(pie);
       } catch (error) {
         console.error('Error fetching bivalvi species:', error);
         setSpeciesData(null);
-        setPieData([]);
       } finally {
         setSpeciesLoading(false);
       }
@@ -232,37 +215,6 @@ const ByvalviDashboard = () => {
             <Text style={styles.emptyIcon}>📊</Text>
             <Text style={styles.noDataText}>No species data yet</Text>
             <Text style={styles.noDataHint}>Submit a survey to see analytics</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Species Pie Chart */}
-      <View style={styles.chartCard}>
-        <View style={styles.chartTitleRow}>
-          <View style={styles.titleDot} />
-          <Text style={styles.chartTitle}>Species Distribution</Text>
-        </View>
-        <Text style={styles.chartSubtitle}>Proportion of each species observed</Text>
-        {speciesLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={GREEN} />
-          </View>
-        ) : pieData.length > 0 ? (
-          <PieChart
-            data={pieData}
-            width={screenWidth - 50}
-            height={220}
-            chartConfig={{
-              color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            }}
-            accessor="population"
-            backgroundColor="transparent"
-            paddingLeft="10"
-            absolute
-          />
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.noDataText}>No distribution data yet</Text>
           </View>
         )}
       </View>

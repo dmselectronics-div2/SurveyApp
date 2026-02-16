@@ -69,7 +69,7 @@ const ModuleSelector: React.FC = () => {
         <View style={styles.topBar}>
           <TouchableOpacity
             style={styles.topButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.navigate('OptionSelection')}
             activeOpacity={0.7}>
             <MaterialIcon name="arrow-back" size={28} color="#FFFFFF" />
           </TouchableOpacity>

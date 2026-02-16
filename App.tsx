@@ -68,6 +68,7 @@ import BirdPieChartModel from './src/bird-module/dashboard-page/pie-charts/diver
 import BirdPieChartModel1 from './src/bird-module/dashboard-page/pie-charts/diversity-indices1';
 import BirdPieChartModel2 from './src/bird-module/dashboard-page/pie-charts/diversity-indices2';
 import BirdPieChartModel3 from './src/bird-module/dashboard-page/pie-charts/diversity indices3';
+import BirdMapPage from './src/bird-module/dashboard-page/area-map/area-map';
 
 // Citizen Module Components
 import CitizenStartPage from './src/citizen-module/start-pages/start-page';
@@ -277,6 +278,7 @@ const App = () => {
           <Stack.Screen name="PieChartModel1" component={BirdPieChartModel1} />
           <Stack.Screen name="PieChartModel2" component={BirdPieChartModel2} />
           <Stack.Screen name="PieChartModel3" component={BirdPieChartModel3} />
+          <Stack.Screen name="BirdMapPage" component={BirdMapPage} />
 
           {/* ============== CITIZEN MODULE SCREENS ============== */}
           <Stack.Screen name="CitizenStartPage" component={CitizenStartPage} />
