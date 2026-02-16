@@ -447,7 +447,7 @@ const BirdObservationCard = ({observation, index, onUpdate, onDelete, onToggle, 
 
           <TextInput
             mode="outlined"
-            placeholder="Remarks"
+            placeholder="Remarksesse"
             value={observation.remark}
             onChangeText={val => onUpdate({...observation, remark: val})}
             outlineStyle={cardStyles.txtInputOutline}
@@ -703,6 +703,25 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
   const showAlert = (type: 'success' | 'error', message: string, title?: string, onCloseCallback?: () => void) => {
     setAlertConfig({type, title, message, onClose: onCloseCallback});
     setShowCustomAlert(true);
+  };
+
+  const resetFormForNewSurvey = () => {
+    setCurrentStep(1);
+    setErrors({});
+    setDateText('');
+    setDate(new Date());
+    setObservers('');
+    setSelectedStartTime(new Date());
+    setSelectedEndTime(new Date());
+    setSelectedWeatherString('');
+    setSelectedWaterString('');
+    setPaddySeason(null);
+    setVisibility(null);
+    setVegetationStatus(null);
+    setDominantVegetation(null);
+    setImageUri(null);
+    setBirdDataArray([]);
+    setEditId(null);
   };
 
   // Focus states
@@ -1190,7 +1209,7 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
   const validateStep3 = () => {
     for (const bird of birdDataArray) {
       if (!bird.species || !bird.count) {
-        Alert.alert('Error', 'Bird species and count are mandatory for all observations.');
+        showAlert('error', 'Bird species and count are mandatory for all observations.');
         return false;
       }
     }
@@ -1296,14 +1315,12 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
         const response = await axios.put(`${API_URL}/form-entry/${editId}`, formData);
         setIsSubmitting(false);
         if (response.status === 200) {
-          Alert.alert('Success', 'Survey updated successfully', [
-            {text: 'OK', onPress: () => onEditComplete?.()},
-          ]);
+          showAlert('success', 'Survey updated successfully', 'Success', () => onEditComplete?.());
         }
       } catch (error: any) {
         setIsSubmitting(false);
         console.log('Update error:', error?.message);
-        Alert.alert('Error', 'Failed to update survey');
+        showAlert('error', 'Failed to update survey');
       }
       return;
     }
@@ -1591,6 +1608,20 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
           <Text style={styles.nextStepBtnText}>Continue to Common Details</Text>
           <Icon name="arrow-right" size={16} color="#fff" />
         </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            saveDraft();
+            setCurrentStep(2);
+            setErrors({});
+            if (birdDataArray.length === 0) {
+              setBirdDataArray([createEmptyBirdObservation()]);
+            }
+          }}
+          style={styles.skipToBirdBtn}
+          activeOpacity={0.8}>
+          <Icon name="forward" size={16} color={GREEN} />
+          <Text style={styles.skipToBirdBtnText}>Skip to Bird Detail Record</Text>
+        </TouchableOpacity>
         <TouchableOpacity onPress={saveDraft} style={styles.saveDraftBtn} activeOpacity={0.7}>
           <Icon name="floppy-o" size={15} color={GREEN} />
           <Text style={styles.saveDraftBtnText}>Save as Draft</Text>
@@ -1702,12 +1733,11 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
       <View style={styles.step2ActionCard}>
         <TouchableOpacity
           onPress={() => {
-            if (validateStep2()) {
-              setCurrentStep(2);
-              setErrors({});
-              if (birdDataArray.length === 0) {
-                setBirdDataArray([createEmptyBirdObservation()]);
-              }
+            saveDraft();
+            setCurrentStep(2);
+            setErrors({});
+            if (birdDataArray.length === 0) {
+              setBirdDataArray([createEmptyBirdObservation()]);
             }
           }}
           style={styles.birdDetailBtn}
@@ -1884,11 +1914,23 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
       {/* Success Alert */}
       <CustomAlert
         visible={showSuccessAlert}
+        type="success"
+        message="Your survey has been successfully submitted! We'll get back to you soon."
         onClose={() => {
           setShowSuccessAlert(false);
-          navigation.navigate('BirdBottomNav');
+          resetFormForNewSurvey();
         }}
-        message="Survey Submitted Successfully!"
+      />
+
+      <CustomAlert
+        visible={showCustomAlert}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onClose={() => {
+          setShowCustomAlert(false);
+          alertConfig.onClose?.();
+        }}
       />
     </View>
   );
@@ -2555,6 +2597,23 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700' as const,
+  },
+  skipToBirdBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: GREEN,
+    backgroundColor: '#fff',
+    marginTop: 8,
+    gap: 8,
+  },
+  skipToBirdBtnText: {
+    color: GREEN,
+    fontSize: 14,
+    fontWeight: '600' as const,
   },
   saveDraftBtn: {
     flexDirection: 'row' as const,
