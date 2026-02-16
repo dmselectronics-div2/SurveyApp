@@ -119,6 +119,27 @@ exports.sendPasswordResetEmail = async (req, res) => {
   }
 };
 
+// Verify password reset code
+exports.verifyResetCode = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    if (user.confirmationCode === code) {
+      res.json({ status: 'ok', message: 'Code verified' });
+    } else {
+      res.json({ status: 'error', message: 'Invalid verification code' });
+    }
+  } catch (error) {
+    console.error('Verify reset code error:', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
 // Send email verification code (without actual email)
 exports.sendEmail = async (req, res) => {
   try {

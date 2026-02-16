@@ -21,6 +21,7 @@ const VerifyEmail = ({ navigation, route }: any) => {
   const [pin3, setPin3] = useState('');
   const [pin4, setPin4] = useState('');
   const [pin5, setPin5] = useState('');
+  const [pin6, setPin6] = useState('');
   const [loading, setLoading] = useState(false);
   const [confirmCode, setConfirmCode] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(30);
@@ -33,6 +34,7 @@ const VerifyEmail = ({ navigation, route }: any) => {
   const pin3Ref = useRef<any>(null);
   const pin4Ref = useRef<any>(null);
   const pin5Ref = useRef<any>(null);
+  const pin6Ref = useRef<any>(null);
 
   const db = SQLite.openDatabase(
     { name: 'user_db.db', location: 'default' },
@@ -78,7 +80,7 @@ const VerifyEmail = ({ navigation, route }: any) => {
   };
 
   const cleanFilled = () => {
-    setPin1(''); setPin2(''); setPin3(''); setPin4(''); setPin5('');
+    setPin1(''); setPin2(''); setPin3(''); setPin4(''); setPin5(''); setPin6('');
   };
 
   const updateEmailVerificationInSQLite = () => {
@@ -89,7 +91,8 @@ const VerifyEmail = ({ navigation, route }: any) => {
         () => {
           console.log('Email Confirmation status updated in SQLite');
           Alert.alert('Success', 'Email verified successfully');
-          navigation.navigate('SignupSuccess');
+          // Navigate to admin approval instead of success screen
+          navigation.navigate('GetAdminApprove', { email, name: gName });
         },
         (error: any) => console.error('Error updating Email Confirmation status:', error.message),
       );
@@ -97,12 +100,12 @@ const VerifyEmail = ({ navigation, route }: any) => {
   };
 
   const handleConfirmEmail = () => {
-    if (!pin1 || !pin2 || !pin3 || !pin4 || !pin5) {
+    if (!pin1 || !pin2 || !pin3 || !pin4 || !pin5 || !pin6) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
     setLoading(true);
-    const enteredPin = `${pin1}${pin2}${pin3}${pin4}${pin5}`;
+    const enteredPin = `${pin1}${pin2}${pin3}${pin4}${pin5}${pin6}`;
 
     if (enteredPin === confirmCode) {
       setLoading(false);
@@ -185,21 +188,22 @@ const VerifyEmail = ({ navigation, route }: any) => {
           <MaterialIcon name="arrow-back" size={28} color="#4A7856" />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
-
+ 
         <View style={styles.centerContainer}>
           <View style={styles.card}>
             <Text style={styles.title}>Verify your Email</Text>
             <Text style={styles.description}>
-              Please enter the verification code we sent to{' '}
+              Please enter the 6-digit verification code we sent to{' '}
               <Text style={styles.emailText}>{email}</Text>
             </Text>
-
+ 
             <View style={styles.pinContainer}>
               {renderPinInput(pin1, setPin1, pin1Ref, pin2Ref, null)}
               {renderPinInput(pin2, setPin2, pin2Ref, pin3Ref, pin1Ref)}
               {renderPinInput(pin3, setPin3, pin3Ref, pin4Ref, pin2Ref)}
               {renderPinInput(pin4, setPin4, pin4Ref, pin5Ref, pin3Ref)}
-              {renderPinInput(pin5, setPin5, pin5Ref, null, pin4Ref)}
+              {renderPinInput(pin5, setPin5, pin5Ref, pin6Ref, pin4Ref)}
+              {renderPinInput(pin6, setPin6, pin6Ref, null, pin5Ref)}
             </View>
 
             <TouchableOpacity

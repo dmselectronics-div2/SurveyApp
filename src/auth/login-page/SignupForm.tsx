@@ -92,6 +92,24 @@ const SignupForm = () => {
     });
   };
 
+  const handleSendCode = async () => {
+    try {
+      const response = await axios.post(`${API_URL}/send-confirmation-email`, { email });
+      const { confirmationCode } = response.data;
+      console.log('Verification code sent');
+      navigation.navigate('VerifyEmail', {
+        email,
+        confirmationCode,
+        name: fullName,
+        role: selectedRole
+      });
+    } catch (err) {
+      console.error('Failed to send confirmation email:', err);
+      Alert.alert('Error', 'Registration successful, but failed to send verification email. Please try logging in to verify.');
+      navigation.replace('SigninForm');
+    }
+  };
+
   const handleSignup = async () => {
     if (!validateForm()) return;
 
@@ -109,7 +127,10 @@ const SignupForm = () => {
           setLoading(false);
           return;
         }
+
         saveUserToSQLite(email, password, fullName);
+
+        // Save additional user details
         await axios.post(`${API_URL}/add-username`, { email, name: fullName });
         await axios.post(`${API_URL}/save-signup-details`, {
           email,
@@ -118,9 +139,10 @@ const SignupForm = () => {
           researchAreas,
           periodicalCategories,
         });
+
+        // Send verification code
+        await handleSendCode();
         setLoading(false);
-        Alert.alert('Success', 'Registration successful!');
-        navigation.navigate('SignupSuccess');
       } else {
         Alert.alert('Error', response.data.data || 'Registration failed');
         setLoading(false);

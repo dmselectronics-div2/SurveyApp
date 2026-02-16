@@ -1,4 +1,4 @@
-import React, {useState, useRef, useEffect} from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,16 +10,16 @@ import {
   KeyboardAvoidingView,
   ScrollView,
 } from 'react-native';
-import {Switch} from 'react-native-paper';
-import {TextInput} from 'react-native-paper';
+import { Switch } from 'react-native-paper';
+import { TextInput } from 'react-native-paper';
 import axios from 'axios';
-import {API_URL} from '../../config';
+import { API_URL } from '../../config';
 import * as Keychain from 'react-native-keychain';
 import ReactNativeBiometrics from 'react-native-biometrics';
 import SQLite from 'react-native-sqlite-storage';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 
-const SetPin = ({navigation, route}: any) => {
+const SetPin = ({ navigation, route }: any) => {
   const [isSwitchOn, setIsSwitchOn] = useState(false);
   const [BiometicHas, isBiometricHas] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
@@ -29,7 +29,7 @@ const SetPin = ({navigation, route}: any) => {
   const pinRefs = [useRef<any>(null), useRef<any>(null), useRef<any>(null), useRef<any>(null)];
 
   const db = SQLite.openDatabase(
-    {name: 'user_db.db', location: 'default'},
+    { name: 'user_db.db', location: 'default' },
     () => console.log('Database opened'),
     (err: any) => console.error('Database error: ', err),
   );
@@ -39,7 +39,7 @@ const SetPin = ({navigation, route}: any) => {
 
   if (!email) {
     return (
-      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <Text>Error: Email not provided.</Text>
       </View>
     );
@@ -81,6 +81,10 @@ const SetPin = ({navigation, route}: any) => {
 
     setLoading(true);
     try {
+      // Save to server
+      await axios.post(`${API_URL}/save-pin`, { email, pin: completePin });
+
+      // Save locally
       await Keychain.setGenericPassword(email, completePin);
       updatePinInSQLite(completePin);
 
@@ -111,34 +115,34 @@ const SetPin = ({navigation, route}: any) => {
 
   const getResearchAreaDataFromMongo = (userEmail: string, userName: string) => {
     axios
-      .post(`${API_URL}/get-reArea`, {email: userEmail, gName: userName})
+      .post(`${API_URL}/get-reArea`, { email: userEmail, gName: userName })
       .then(res => {
         if (res.data.status === 'bird') {
           getResearchNameDataFromMongo(userEmail, userName);
         } else if (res.data.status === 'none') {
-          navigation.navigate('SignupSuccess', {email: userEmail, name: userName});
+          navigation.navigate('SignupSuccess', { email: userEmail, name: userName });
         } else {
-          navigation.navigate('SignupSuccess', {email: userEmail, name: userName});
+          navigation.navigate('SignupSuccess', { email: userEmail, name: userName });
         }
       })
       .catch(() => {
-        navigation.navigate('SignupSuccess', {email: userEmail, name: userName});
+        navigation.navigate('SignupSuccess', { email: userEmail, name: userName });
       });
   };
 
   const getResearchNameDataFromMongo = (userEmail: string, userName: string) => {
     axios
-      .post(`${API_URL}/get-name`, {email: userEmail, gName: userName})
+      .post(`${API_URL}/get-name`, { email: userEmail, gName: userName })
       .then(res => {
         const data = res.data;
         if (data && data.name && data.email) {
           ruuldildb(data.email, data.confirmEmail, data.name, data.profileImagePath, data.area);
         } else {
-          navigation.navigate('SignupSuccess', {email: userEmail, name: userName});
+          navigation.navigate('SignupSuccess', { email: userEmail, name: userName });
         }
       })
       .catch(() => {
-        navigation.navigate('SignupSuccess', {email: userEmail, name: userName});
+        navigation.navigate('SignupSuccess', { email: userEmail, name: userName });
       });
   };
 
@@ -165,11 +169,11 @@ const SetPin = ({navigation, route}: any) => {
             tx.executeSql(
               'UPDATE Users SET isGoogleLogin = ?, emailConfirm = ?, name = ?, userImageUrl = ?, area = ? WHERE email = ?',
               [0, 1, userName, profileImagePath, area, userEmail],
-              () => navigation.navigate('Welcome', {email: userEmail}),
+              () => navigation.navigate('Welcome', { email: userEmail }),
               (error: any) => console.log('Error saving user to SQLite: ' + error.message),
             );
           } else {
-            navigation.navigate('Welcome', {email: userEmail});
+            navigation.navigate('Welcome', { email: userEmail });
           }
         },
         (error: any) => console.log('Error querying Users table: ' + error.message),
@@ -185,7 +189,7 @@ const SetPin = ({navigation, route}: any) => {
     const rnBiometrics = new ReactNativeBiometrics();
     const checkBiometrics = async () => {
       try {
-        const {available} = await rnBiometrics.isSensorAvailable();
+        const { available } = await rnBiometrics.isSensorAvailable();
         if (available) {
           isBiometricHas(true);
         }
@@ -210,7 +214,7 @@ const SetPin = ({navigation, route}: any) => {
   const handleBiometricAuth = async () => {
     const rnBiometrics = new ReactNativeBiometrics();
     try {
-      const {success} = await rnBiometrics.simplePrompt({
+      const { success } = await rnBiometrics.simplePrompt({
         promptMessage: 'Confirm fingerprint',
       });
       if (success) {
@@ -236,7 +240,7 @@ const SetPin = ({navigation, route}: any) => {
       <View style={styles.overlay}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{flex: 1}}>
+          style={{ flex: 1 }}>
           <ScrollView
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled">
@@ -267,7 +271,7 @@ const SetPin = ({navigation, route}: any) => {
                     mode="outlined"
                     outlineColor="rgba(74, 120, 86, 0.3)"
                     activeOutlineColor="#4A7856"
-                    theme={{colors: {primary: '#4A7856', background: '#fff'}}}
+                    theme={{ colors: { primary: '#4A7856', background: '#fff' } }}
                   />
                 ))}
               </View>
@@ -304,20 +308,20 @@ const SetPin = ({navigation, route}: any) => {
 };
 
 const styles = StyleSheet.create({
-  backgroundImage: {flex: 1, resizeMode: 'cover'},
-  overlay: {flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.3)', justifyContent: 'center'},
-  scrollContent: {flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20},
+  backgroundImage: { flex: 1, resizeMode: 'cover' },
+  overlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.3)', justifyContent: 'center' },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20 },
   card: {
     backgroundColor: 'rgba(255, 255, 255, 0.98)',
     borderRadius: 20,
     padding: 30,
     alignItems: 'center',
     ...Platform.select({
-      ios: {shadowColor: 'black', shadowOffset: {width: 0, height: 5}, shadowOpacity: 0.35, shadowRadius: 10},
-      android: {elevation: 10},
+      ios: { shadowColor: 'black', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.35, shadowRadius: 10 },
+      android: { elevation: 10 },
     }),
   },
-  iconContainer: {marginBottom: 20},
+  iconContainer: { marginBottom: 20 },
   lockCircle: {
     width: 80,
     height: 80,
@@ -326,8 +330,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {fontSize: 24, fontWeight: '700', color: '#4A7856', marginBottom: 8, textAlign: 'center'},
-  subtitle: {fontSize: 14, color: '#666', textAlign: 'center', lineHeight: 22, marginBottom: 25},
+  title: { fontSize: 24, fontWeight: '700', color: '#4A7856', marginBottom: 8, textAlign: 'center' },
+  subtitle: { fontSize: 14, color: '#666', textAlign: 'center', lineHeight: 22, marginBottom: 25 },
   pinContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -352,8 +356,8 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(74, 120, 86, 0.15)',
     marginBottom: 20,
   },
-  fingerprintRow: {flexDirection: 'row', alignItems: 'center', gap: 10},
-  fingerprintText: {fontSize: 15, color: '#333', fontWeight: '500'},
+  fingerprintRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  fingerprintText: { fontSize: 15, color: '#333', fontWeight: '500' },
   saveButton: {
     backgroundColor: '#4A7856',
     paddingVertical: 14,
@@ -361,12 +365,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     ...Platform.select({
-      ios: {shadowColor: 'black', shadowOffset: {width: 0, height: 3}, shadowOpacity: 0.25, shadowRadius: 5},
-      android: {elevation: 6},
+      ios: { shadowColor: 'black', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 5 },
+      android: { elevation: 6 },
     }),
   },
-  saveButtonDisabled: {opacity: 0.6},
-  saveButtonText: {fontSize: 16, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.5},
+  saveButtonDisabled: { opacity: 0.6 },
+  saveButtonText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.5 },
 });
 
 export default SetPin;
