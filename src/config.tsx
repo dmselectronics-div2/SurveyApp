@@ -1,9 +1,9 @@
-
-export const API_URL = 'http://172.20.10.7:5000';
+// For USB Debugging (requires adb reverse tcp:5001 tcp:5001)
+export const API_URL = 'http://localhost:5001';
 
 // For development/testing, you can also use:
-// export const API_URL = 'http://localhost:5000'; // If running on same machine
-// export const API_URL = 'http://192.168.x.x:5000'; // Replace with your actual IP
+// export const API_URL = 'http://localhost:5001'; // If running on same machine
+// export const API_URL = 'http://192.168.x.x:5001'; // Replace with your actual IP
 
 // API Key
 export const API_KEY = '3a034590502b4b4aabf104931243107';
