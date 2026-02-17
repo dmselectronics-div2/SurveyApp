@@ -9,6 +9,8 @@ import {
   BackHandler,
   Alert,
   Image,
+  ScrollView,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
@@ -27,6 +29,16 @@ const SigninForm = ({ navigation }: any) => {
   const [rememberMe, setRememberMe] = useState(false);
   const [isFingerPrintAvailable, setFingerPrintAvailable] = useState(false);
   const [hasStoredCredentials, setHasStoredCredentials] = useState(false);
+  const [showPinSection, setShowPinSection] = useState(false);
+  const [pin, setPin] = useState(['', '', '', '']);
+  const [userEmail, setUserEmail] = useState('');
+  const [userPin, setUserPin] = useState('');
+  const pinRefs = [
+    React.useRef<any>(null),
+    React.useRef<any>(null),
+    React.useRef<any>(null),
+    React.useRef<any>(null),
+  ];
 
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -204,12 +216,52 @@ const SigninForm = ({ navigation }: any) => {
     }
   };
 
-  const handlePinLogin = () => {
+  const handlePinLogin = async () => {
     if (!hasStoredCredentials) {
       Alert.alert('Error', 'Please sign in with your credentials first to use PIN login.');
       return;
     }
-    navigation.navigate('AddPin');
+    try {
+      const credentials = await Keychain.getGenericPassword();
+      if (credentials) {
+        setUserEmail(credentials.username);
+        setUserPin(credentials.password);
+        setShowPinSection(true);
+      }
+    } catch (error) {
+      console.error('Failed to retrieve credentials:', error);
+    }
+  };
+
+  const handlePinChange = (text: string, index: number) => {
+    const newPin = [...pin];
+    newPin[index] = text;
+    setPin(newPin);
+    if (text.length === 1 && index < 3) {
+      pinRefs[index + 1].current?.focus();
+    }
+  };
+
+  const handlePinKeyPress = (e: any, index: number) => {
+    if (e.nativeEvent.key === 'Backspace' && pin[index] === '' && index > 0) {
+      pinRefs[index - 1].current?.focus();
+    }
+  };
+
+  const handlePinSubmit = async () => {
+    const enteredPin = pin.join('');
+    if (enteredPin.length < 4) {
+      Alert.alert('Error', 'Please enter all 4 digits');
+      return;
+    }
+    if (enteredPin === userPin) {
+      await setLoginEmail(userEmail);
+      navigation.replace('Welcome', { email: userEmail });
+    } else {
+      Alert.alert('Error', 'Invalid PIN. Please try again.');
+      setPin(['', '', '', '']);
+      pinRefs[0].current?.focus();
+    }
   };
 
   const handleForgotPassword = () => {
@@ -223,136 +275,199 @@ const SigninForm = ({ navigation }: any) => {
       <View style={styles.overlay}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            if (showPinSection) {
+              setShowPinSection(false);
+              setPin(['', '', '', '']);
+            } else {
+              navigation.goBack();
+            }
+          }}
           activeOpacity={0.7}>
-          <MaterialIcon name="arrow-back" size={28} color="#4A7856" />
+          <MaterialIcon name="arrow-back" size={28} color="#FFFFFF" />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
 
-        <View style={styles.formContainer}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Sign-in</Text>
-            <Text style={styles.subtitle}>
-              If you already have an account. Please sign in
-            </Text>
-          </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled">
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>E-mail address:</Text>
-            <TextInput
-              mode="outlined"
-              placeholder="Enter your email"
-              placeholderTextColor="#999"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              outlineColor="rgba(74, 120, 86, 0.3)"
-              activeOutlineColor="#4A7856"
-              style={styles.input}
-              theme={{ colors: { primary: '#4A7856', background: 'rgba(255, 255, 255, 0.95)' } }}
-            />
-          </View>
+            {showPinSection ? (
+              <View style={styles.formContainer}>
+                <View style={styles.pinIconContainer}>
+                  <View style={styles.pinLockCircle}>
+                    <MaterialIcon name="dialpad" size={40} color="#4A7856" />
+                  </View>
+                </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              mode="outlined"
-              placeholder="Enter your password"
-              placeholderTextColor="#999"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={secureTextEntry}
-              outlineColor="rgba(74, 120, 86, 0.3)"
-              activeOutlineColor="#4A7856"
-              style={styles.input}
-              right={
-                <TextInput.Icon
-                  icon={secureTextEntry ? 'eye-off' : 'eye'}
-                  onPress={() => setSecureTextEntry(!secureTextEntry)}
-                  color="#4A7856"
-                />
-              }
-              theme={{ colors: { primary: '#4A7856', background: 'rgba(255, 255, 255, 0.95)' } }}
-            />
-          </View>
+                <Text style={styles.pinTitle}>Enter Your PIN</Text>
+                <Text style={styles.pinSubtitle}>
+                  Enter your 4-digit PIN to access your account
+                </Text>
 
-          <View style={styles.optionsContainer}>
-            <TouchableOpacity
-              style={styles.rememberContainer}
-              onPress={() => setRememberMe(!rememberMe)}
-              activeOpacity={0.7}>
-              <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-                {rememberMe && <MaterialIcon name="check" size={16} color="#fff" />}
+                <View style={styles.pinInputContainer}>
+                  {pin.map((digit, index) => (
+                    <TextInput
+                      key={index}
+                      ref={pinRefs[index]}
+                      value={digit}
+                      onChangeText={text => handlePinChange(text, index)}
+                      onKeyPress={e => handlePinKeyPress(e, index)}
+                      style={styles.pinInput}
+                      keyboardType="number-pad"
+                      maxLength={1}
+                      secureTextEntry
+                      mode="outlined"
+                      outlineColor="rgba(74, 120, 86, 0.3)"
+                      activeOutlineColor="#4A7856"
+                      theme={{ colors: { primary: '#4A7856', background: '#fff' } }}
+                    />
+                  ))}
+                </View>
+
+                <TouchableOpacity
+                  style={styles.loginButton}
+                  onPress={handlePinSubmit}
+                  activeOpacity={0.8}>
+                  <Text style={styles.loginButtonText}>Continue</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowPinSection(false);
+                    setPin(['', '', '', '']);
+                  }}
+                  activeOpacity={0.7}>
+                  <Text style={styles.usePasswordText}>Use email & password instead</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.rememberText}>Remember</Text>
-            </TouchableOpacity>
+            ) : (
+              <View style={styles.formContainer}>
+                <View style={styles.header}>
+                  <Text style={styles.title}>Sign-in</Text>
+                  <Text style={styles.subtitle}>
+                    If you already have an account. Please sign in
+                  </Text>
+                </View>
 
-            <TouchableOpacity onPress={handleForgotPassword} activeOpacity={0.7}>
-              <Text style={styles.forgotText}>Forgot password?</Text>
-            </TouchableOpacity>
-          </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>E-mail address:</Text>
+                  <TextInput
+                    mode="outlined"
+                    placeholder="Enter your email"
+                    placeholderTextColor="#999"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    outlineColor="rgba(74, 120, 86, 0.3)"
+                    activeOutlineColor="#4A7856"
+                    style={styles.input}
+                    theme={{ colors: { primary: '#4A7856', background: 'rgba(255, 255, 255, 0.95)' } }}
+                  />
+                </View>
 
-          <TouchableOpacity
-            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-            onPress={handleLogin}
-            activeOpacity={0.8}
-            disabled={loading}>
-            <Text style={styles.loginButtonText}>
-              {loading ? 'Logging in...' : 'Login'}
-            </Text>
-          </TouchableOpacity>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Password</Text>
+                  <TextInput
+                    mode="outlined"
+                    placeholder="Enter your password"
+                    placeholderTextColor="#999"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={secureTextEntry}
+                    outlineColor="rgba(74, 120, 86, 0.3)"
+                    activeOutlineColor="#4A7856"
+                    style={styles.input}
+                    right={
+                      <TextInput.Icon
+                        icon={secureTextEntry ? 'eye-off' : 'eye'}
+                        onPress={() => setSecureTextEntry(!secureTextEntry)}
+                        color="#4A7856"
+                      />
+                    }
+                    theme={{ colors: { primary: '#4A7856', background: 'rgba(255, 255, 255, 0.95)' } }}
+                  />
+                </View>
 
-          <View style={styles.orContainer}>
-            <View style={styles.horizontalLine} />
-            <Text style={styles.orText}>or continue with</Text>
-            <View style={styles.horizontalLine} />
-          </View>
+                <View style={styles.optionsContainer}>
+                  <TouchableOpacity
+                    style={styles.rememberContainer}
+                    onPress={() => setRememberMe(!rememberMe)}
+                    activeOpacity={0.7}>
+                    <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                      {rememberMe && <MaterialIcon name="check" size={16} color="#fff" />}
+                    </View>
+                    <Text style={styles.rememberText}>Remember</Text>
+                  </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPress={handleGoogleLogin}
-            activeOpacity={0.8}>
-            <Image
-              source={require('../../assets/image/google.png')}
-              style={styles.googleIcon}
-            />
-            <Text style={styles.googleButtonText}>Google</Text>
-          </TouchableOpacity>
+                  <TouchableOpacity onPress={handleForgotPassword} activeOpacity={0.7}>
+                    <Text style={styles.forgotText}>Forgot password?</Text>
+                  </TouchableOpacity>
+                </View>
 
-          {(isFingerPrintAvailable || hasStoredCredentials) && (
-            <View style={styles.quickLoginContainer}>
-              {isFingerPrintAvailable && (
                 <TouchableOpacity
-                  style={styles.quickLoginButton}
-                  onPress={handleFingerprintLogin}
-                  activeOpacity={0.7}>
-                  <MaterialIcon name="fingerprint" size={32} color="#4A7856" />
-                  <Text style={styles.quickLoginText}>Fingerprint</Text>
+                  style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+                  onPress={handleLogin}
+                  activeOpacity={0.8}
+                  disabled={loading}>
+                  <Text style={styles.loginButtonText}>
+                    {loading ? 'Logging in...' : 'Login'}
+                  </Text>
                 </TouchableOpacity>
-              )}
-              {hasStoredCredentials && (
+
+                <View style={styles.orContainer}>
+                  <View style={styles.horizontalLine} />
+                  <Text style={styles.orText}>or continue with</Text>
+                  <View style={styles.horizontalLine} />
+                </View>
+
                 <TouchableOpacity
-                  style={styles.quickLoginButton}
-                  onPress={handlePinLogin}
-                  activeOpacity={0.7}>
-                  <MaterialIcon name="dialpad" size={32} color="#4A7856" />
-                  <Text style={styles.quickLoginText}>PIN</Text>
+                  style={styles.googleButton}
+                  onPress={handleGoogleLogin}
+                  activeOpacity={0.8}>
+                  <Image
+                    source={require('../../assets/image/google.png')}
+                    style={styles.googleIcon}
+                  />
+                  <Text style={styles.googleButtonText}>Google</Text>
                 </TouchableOpacity>
-              )}
-            </View>
-          )}
 
-          <View style={styles.signUpContainer}>
-            <Text style={styles.signUpText}>Don't have an account? </Text>
-            <TouchableOpacity
-              onPress={() => navigation.replace('SignupRoleSelection')}
-              activeOpacity={0.7}>
-              <Text style={styles.signUpLink}>Sign up</Text>
-            </TouchableOpacity>
-          </View>
+                <View style={styles.quickLoginContainer}>
+                  {isFingerPrintAvailable && (
+                    <TouchableOpacity
+                      style={styles.quickLoginButton}
+                      onPress={handleFingerprintLogin}
+                      activeOpacity={0.7}>
+                      <MaterialIcon name="fingerprint" size={32} color="#4A7856" />
+                      <Text style={styles.quickLoginText}>Fingerprint</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={styles.quickLoginButton}
+                    onPress={handlePinLogin}
+                    activeOpacity={0.7}>
+                    <MaterialIcon name="dialpad" size={32} color="#4A7856" />
+                    <Text style={styles.quickLoginText}>PIN</Text>
+                  </TouchableOpacity>
+                </View>
 
-        </View>
+                <View style={styles.signUpContainer}>
+                  <Text style={styles.signUpText}>Don't have an account? </Text>
+                  <TouchableOpacity
+                    onPress={() => navigation.replace('SignupRoleSelection')}
+                    activeOpacity={0.7}>
+                    <Text style={styles.signUpLink}>Sign up</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+          </ScrollView>
+        </KeyboardAvoidingView>
       </View>
     </ImageBackground>
   );
@@ -455,6 +570,32 @@ const styles = StyleSheet.create({
   signUpContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   signUpText: { fontSize: 12, color: '#666' },
   signUpLink: { fontSize: 12, color: '#4A7856', fontWeight: '700', textDecorationLine: 'underline' },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20 },
+  pinIconContainer: { alignItems: 'center', marginBottom: 20 },
+  pinLockCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(74, 120, 86, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pinTitle: { fontSize: 24, fontWeight: '700', color: '#4A7856', marginBottom: 8, textAlign: 'center' },
+  pinSubtitle: { fontSize: 14, color: '#666', textAlign: 'center', lineHeight: 22, marginBottom: 25 },
+  pinInputContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 15,
+    marginBottom: 25,
+  },
+  pinInput: {
+    width: 55,
+    height: 55,
+    textAlign: 'center',
+    fontSize: 24,
+    backgroundColor: '#fff',
+  },
+  usePasswordText: { fontSize: 13, color: '#4A7856', fontWeight: '600', textDecorationLine: 'underline', textAlign: 'center' },
 });
 
 export default SigninForm;
