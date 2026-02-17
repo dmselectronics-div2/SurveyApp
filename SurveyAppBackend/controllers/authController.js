@@ -606,6 +606,57 @@ exports.addCustomCategory = async (req, res) => {
   }
 };
 
+// Fingerprint login (validates user account status, no password needed)
+exports.fingerprintLogin = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      return res.status(404).json({ status: 'error', data: 'User not found' });
+    }
+
+    if (user.isDeleted) {
+      return res.json({ status: 'error', data: 'Account has been deleted' });
+    }
+
+    if (!user.emailConfirmed) {
+      return res.json({ status: 'notConfirmed', data: 'Email not confirmed' });
+    }
+
+    if (!user.isApproved) {
+      return res.json({ status: 'notApproved', data: 'Account not approved by admin' });
+    }
+
+    res.json({ status: 'ok', data: user });
+  } catch (error) {
+    console.error('Fingerprint login error:', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+// Enable fingerprint for user
+exports.enableFingerprint = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      { fingerPrintEnabled: true },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    res.json({ status: 'ok' });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
 // Get pending users for admin approval
 exports.getPendingUsers = async (req, res) => {
   try {

@@ -45,8 +45,8 @@ const GetAdminApprove = ({ navigation, route }: any) => {
         if (status === 'ok') {
           setCheckingStatus(false);
           setIsApproved(true);
-          setDisplayMessage('Congratulations! The admin has approved your account.');
           setDisplayTitle('Approved');
+          setDisplayMessage('Congratulations! Your account has been approved. Setting up your PIN & security...');
           handleApprovedStatus(email, gName);
         } else if (status === 'no') {
           setDisplayTitle('Pending Approval');
@@ -63,15 +63,14 @@ const GetAdminApprove = ({ navigation, route }: any) => {
       tx.executeSql(
         'UPDATE Users SET userConfirm = ? WHERE email = ?',
         [1, userEmail],
-        () => {
-          console.log('Approved status saved');
-          setTimeout(() => {
-            navigation.navigate('SetPin', { email: userEmail, name: userName });
-          }, 2000);
-        },
+        () => console.log('Approved status saved'),
         (error: any) => console.log('Error saving to SQLite: ' + error.message),
       );
     });
+
+    setTimeout(() => {
+      navigation.replace('SetPin', { email: userEmail, name: userName });
+    }, 1000);
   };
 
   return (

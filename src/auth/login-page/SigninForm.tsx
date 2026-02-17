@@ -177,8 +177,20 @@ const SigninForm = ({ navigation }: any) => {
         if (success) {
           const credentials = await Keychain.getGenericPassword();
           if (credentials) {
-            await setLoginEmail(credentials.username);
-            navigation.replace('Welcome', { email: credentials.username });
+            const response = await axios.post(`${API_URL}/fingerprint-login`, {
+              email: credentials.username,
+            });
+
+            if (response.data.status === 'ok') {
+              await setLoginEmail(credentials.username);
+              navigation.replace('Welcome', { email: credentials.username });
+            } else if (response.data.status === 'notApproved') {
+              Alert.alert('Pending', 'Your account is awaiting admin approval.');
+            } else if (response.data.status === 'notConfirmed') {
+              Alert.alert('Error', 'Please verify your email first.');
+            } else {
+              Alert.alert('Error', response.data.data || 'Login failed');
+            }
           }
         } else {
           Alert.alert('Failed', 'Authentication failed. Please try again.');
@@ -340,13 +352,6 @@ const SigninForm = ({ navigation }: any) => {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={styles.nextButton}
-            onPress={() => navigation.replace('Welcome')}
-            activeOpacity={0.8}>
-            <Text style={styles.nextButtonText}>Next</Text>
-            <MaterialIcon name="arrow-forward" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
         </View>
       </View>
     </ImageBackground>
@@ -450,17 +455,6 @@ const styles = StyleSheet.create({
   signUpContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   signUpText: { fontSize: 12, color: '#666' },
   signUpLink: { fontSize: 12, color: '#4A7856', fontWeight: '700', textDecorationLine: 'underline' },
-  nextButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#4A7856',
-    paddingVertical: 12,
-    borderRadius: 25,
-    marginTop: 16,
-    gap: 8,
-  },
-  nextButtonText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
 });
 
 export default SigninForm;

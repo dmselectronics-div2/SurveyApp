@@ -1191,28 +1191,16 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
 
   // ===== VALIDATION =====
   const validateStep1 = () => {
-    const e: any = {};
-    if (!habitatType) e.habitatType = 'Habitat Type is required';
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    setErrors({});
+    return true;
   };
 
   const validateStep2 = () => {
-    const e: any = {};
-    if (!dateText) e.date = 'Date is required';
-    if (!observers) e.observers = 'Observer is required';
-    if (!selectedWeatherString) e.weather = 'Weather condition is required';
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    setErrors({});
+    return true;
   };
 
   const validateStep3 = () => {
-    for (const bird of birdDataArray) {
-      if (!bird.species || !bird.count) {
-        showAlert('error', 'Bird species and count are mandatory for all observations.');
-        return false;
-      }
-    }
     return true;
   };
 
@@ -1238,41 +1226,10 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
 
   // ===== SUBMIT =====
   const handleSubmitFullSurvey = async () => {
-    const step1Valid = !!habitatType;
-    const step2Valid = dateText && observers && selectedWeatherString;
-
-    if (!step1Valid || !step2Valid) {
-      Alert.alert(
-        'Incomplete Form',
-        'Please fill in all required fields (Habitat Type, Date, Observer, Weather) before submitting.',
-        [
-          {text: 'Cancel', style: 'cancel'},
-          {text: 'Save as Draft', onPress: saveDraft},
-        ],
-      );
-      return;
-    }
-
     setShowSubmitConfirm(true);
   };
 
   const handleSubmit = async () => {
-    const step1Valid = !!habitatType;
-    const step2Valid = dateText && observers && selectedWeatherString;
-    const step3Valid = birdDataArray.length > 0 && birdDataArray.every((bird: any) => bird.species && bird.count);
-
-    if (!step1Valid || !step2Valid || !step3Valid) {
-      Alert.alert(
-        'Incomplete Form',
-        'Some required fields are missing. Would you like to save this as a draft?',
-        [
-          {text: 'Cancel', style: 'cancel'},
-          {text: 'Save as Draft', onPress: saveDraft},
-        ],
-      );
-      return;
-    }
-
     setShowSubmitConfirm(true);
   };
 
@@ -1765,11 +1722,6 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
               <Text style={styles.submitFullBtnText}>Submit Full Survey</Text>
             </>
           )}
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={saveDraft} style={styles.saveDraftBtn} activeOpacity={0.7}>
-          <Icon name="floppy-o" size={15} color={GREEN} />
-          <Text style={styles.saveDraftBtnText}>Save as Draft</Text>
         </TouchableOpacity>
       </View>
     </View>

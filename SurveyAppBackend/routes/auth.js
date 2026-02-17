@@ -74,6 +74,12 @@ router.post('/get-name', authController.getNameData);
 // Save signup details (survey types, research areas, etc.)
 router.post('/save-signup-details', authController.saveSignupDetails);
 
+// Fingerprint login
+router.post('/fingerprint-login', authController.fingerprintLogin);
+
+// Enable fingerprint for user
+router.post('/enable-fingerprint', authController.enableFingerprint);
+
 // Get pending users for admin
 router.get('/pending-users', authController.getPendingUsers);
 

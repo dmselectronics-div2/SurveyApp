@@ -90,10 +90,15 @@ const SetPin = ({ navigation, route }: any) => {
 
       if (biometricEnabled) {
         updateFingerPrintInSQLite();
+        await axios.post(`${API_URL}/enable-fingerprint`, { email });
       }
 
-      Alert.alert('Success', 'PIN set successfully!');
-      getResearchAreaDataFromMongo(email, gName);
+      Alert.alert('Success', 'PIN set successfully! Please sign in to continue.', [
+        {
+          text: 'OK',
+          onPress: () => navigation.replace('SigninForm'),
+        },
+      ]);
     } catch (error) {
       console.error('Error storing PIN:', error);
       Alert.alert('Error', 'Failed to set PIN. Please try again.');
