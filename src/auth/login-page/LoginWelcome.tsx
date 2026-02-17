@@ -61,7 +61,7 @@ const LoginWelcome = () => {
         <View style={styles.welcomeContainer}>
           <Text style={styles.welcomeTitle}>Welcome back</Text>
           <Text style={styles.welcomeSubtitle}>
-            Continue your environmental research journey
+            Continue your  research journey
           </Text>
         </View>
 

@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     left: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    padding: 20,
     zIndex: 10,
   },
   backButtonText: {
