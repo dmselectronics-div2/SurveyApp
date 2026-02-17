@@ -28,6 +28,8 @@ Write-Host "Step 2: Clearing Metro Bundler cache..." -ForegroundColor Yellow
 # I'll add the react-native start --reset-cache command as an optional or default.
 
 Write-Host "Step 3: Starting React Native with reset cache..." -ForegroundColor Yellow
+# Run adb reverse to ensure physical devices can reach the local backend
+adb reverse tcp:5001 tcp:5001
 npx react-native run-android
 
 

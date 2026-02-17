@@ -9,6 +9,7 @@ import {
   BackHandler,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -16,6 +17,8 @@ import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import axios from 'axios';
 import { API_URL } from '../../config';
 import SQLite from 'react-native-sqlite-storage';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { setLoginEmail } from '../../assets/sql_lite/db_connection';
 
 const SignupForm = () => {
   const navigation = useNavigation<any>();
@@ -152,6 +155,92 @@ const SignupForm = () => {
       Alert.alert('Error', 'Registration failed. Please try again.');
       setLoading(false);
     }
+  };
+
+  const saveGoogleUserToSQLite = (userEmail: string, userName: string) => {
+    db.transaction((tx: any) => {
+      tx.executeSql(
+        `INSERT OR REPLACE INTO Users (email, password, pin, isGoogleLogin, emailConfirm, name, area, fingerPrint, userImageUrl)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [userEmail, 'google-auth', null, 1, 1, userName, null, 0, null],
+        () => console.log('Google User saved to SQLite'),
+        (error: any) => console.log('Error saving Google user to SQLite: ' + error.message),
+      );
+    });
+  };
+
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: '532310046514-217fr842olbptie78ubtgi4mkq84ljo8.apps.googleusercontent.com', // Using hardcoded ID to match other files if import fails
+      scopes: ['profile', 'email'],
+    });
+  }, []);
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    try {
+      await GoogleSignin.signOut();
+      const hasPlayServices = await GoogleSignin.hasPlayServices();
+      if (hasPlayServices) {
+        const userInfo = await GoogleSignin.signIn();
+        console.log('Google Sign-In User Info:', userInfo);
+
+        if (userInfo && userInfo.data && userInfo.data.user) {
+          const { email: gEmail, name, photo } = userInfo.data.user;
+          if (gEmail && name) {
+            handleGoogleRegister(gEmail, name, photo || '');
+          } else {
+            Alert.alert('Error', 'Google account missing email or name');
+          }
+        } else {
+          Alert.alert('Error', 'Google Sign-In returned invalid data');
+        }
+      }
+    } catch (error) {
+      console.error('Google Sign-In failed', error);
+      Alert.alert('Error', 'Google Sign-In failed: ' + (error as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleRegister = (gEmail: string, name: string, photo: string) => {
+    axios
+      .post(`${API_URL}/google-register`, { email: gEmail, name, photo })
+      .then(async res => {
+        if (res.data.status === 'ok') {
+          // New User
+          // Save user to SQLite (password is dummy/google)
+          saveGoogleUserToSQLite(gEmail, name);
+
+          // Save signup details
+          await axios.post(`${API_URL}/save-signup-details`, {
+            email: gEmail,
+            role: selectedRole,
+            surveyTypes,
+            researchAreas,
+            periodicalCategories,
+            nameWithInitials: name
+          });
+
+          await setLoginEmail(gEmail);
+          Alert.alert('Success', 'Account registered successfully');
+          // Navigate to Welcome or some landing page
+          navigation.replace('Welcome', { email: gEmail });
+
+        } else if (res.data.status === 'google') {
+          // Existing Google User
+          await setLoginEmail(gEmail);
+          Alert.alert('Success', 'Logged in successfully');
+          navigation.replace('Welcome', { email: gEmail });
+        } else if (res.data.status === 'notgoogle') {
+          Alert.alert('Error', 'This email is registered with email/password. Please use that method.');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        Alert.alert('Error', 'Failed to sign up with Google.');
+      });
   };
 
   return (
@@ -291,6 +380,23 @@ const SignupForm = () => {
               </Text>
             </TouchableOpacity>
 
+            <View style={styles.orContainer}>
+              <View style={styles.horizontalLine} />
+              <Text style={styles.orText}>or continue with</Text>
+              <View style={styles.horizontalLine} />
+            </View>
+
+            <TouchableOpacity
+              style={styles.googleButton}
+              onPress={handleGoogleLogin}
+              activeOpacity={0.8}>
+              <Image
+                source={require('../../assets/image/google.png')}
+                style={styles.googleIcon}
+              />
+              <Text style={styles.googleButtonText}>Google</Text>
+            </TouchableOpacity>
+
             <View style={styles.signInContainer}>
               <Text style={styles.signInText}>Already have an account? </Text>
               <TouchableOpacity
@@ -363,6 +469,26 @@ const styles = StyleSheet.create({
   signInContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   signInText: { fontSize: 12, color: '#666' },
   signInLink: { fontSize: 12, color: '#4A7856', fontWeight: '700', textDecorationLine: 'underline' },
+  orContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  horizontalLine: { flex: 1, height: 1, backgroundColor: 'rgba(74, 120, 86, 0.2)' },
+  orText: { fontSize: 11, color: '#999', marginHorizontal: 10 },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: 'rgba(74, 120, 86, 0.3)',
+    marginBottom: 16,
+  },
+  googleIcon: { width: 20, height: 20, marginRight: 8 },
+  googleButtonText: { fontSize: 14, fontWeight: '600', color: '#333' },
 });
 
 export default SignupForm;

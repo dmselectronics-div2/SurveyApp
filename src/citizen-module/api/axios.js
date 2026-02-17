@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// For USB Debugging (requires adb reverse tcp:5001 tcp:5001)
-const API_BASE_URL = 'http://localhost:5001/api';
+// For Android Emulator
+const API_BASE_URL = 'http://172.20.8.77:5001/api';
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
