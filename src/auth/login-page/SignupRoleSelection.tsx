@@ -70,8 +70,28 @@ const SignupRoleSelection = () => {
       Alert.alert('Error', 'Please select your role to continue');
       return;
     }
-    // Navigate to the next signup step with selected role
-    navigation.navigate('SignupSurveyType', { role: selectedRole });
+
+    // Role-based routing
+    if (selectedRole === 'ANRM' || selectedRole === 'Undergraduate') {
+      // ANRM & Undergraduate: Auto-assign Periodical Monthly Survey with modules
+      navigation.navigate('SignupForm', {
+        role: selectedRole,
+        surveyTypes: ['Periodical/monthly'],
+        researchAreas: ['Water', 'Flora', 'Fauna'],
+        periodicalCategories: ['Water', 'Bird', 'Phenology', 'Butterfly'],
+      });
+    } else if (selectedRole === 'Postgraduate') {
+      // Postgraduate: Only Byvalvi Module
+      navigation.navigate('SignupForm', {
+        role: selectedRole,
+        surveyTypes: ['Postgraduate'],
+        researchAreas: ['Byvalvi'],
+        periodicalCategories: [],
+      });
+    } else {
+      // Government, Academia, Naturalist: Full signup flow
+      navigation.navigate('SignupSurveyType', { role: selectedRole });
+    }
   };
 
   const RoleOption = ({ item }: any) => (

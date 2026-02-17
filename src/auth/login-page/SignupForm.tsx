@@ -181,6 +181,22 @@ const SignupForm = () => {
                 Register to contribute to environmental research data collection
               </Text>
               <Text style={styles.roleTag}>Role: {selectedRole}</Text>
+              {(selectedRole === 'ANRM' || selectedRole === 'Undergraduate') && (
+                <View style={styles.autoAssignedInfo}>
+                  <MaterialIcon name="info-outline" size={14} color="#4A7856" />
+                  <Text style={styles.autoAssignedText}>
+                    Periodical Monthly Survey — Water, Bird, Phenology, Butterfly
+                  </Text>
+                </View>
+              )}
+              {selectedRole === 'Postgraduate' && (
+                <View style={styles.autoAssignedInfo}>
+                  <MaterialIcon name="info-outline" size={14} color="#4A7856" />
+                  <Text style={styles.autoAssignedText}>
+                    Byvalvi Module
+                  </Text>
+                </View>
+              )}
             </View>
 
             <View style={styles.inputContainer}>
@@ -339,6 +355,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(74, 120, 86, 0.1)',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, alignSelf: 'flex-start',
   },
+  autoAssignedInfo: {
+    flexDirection: 'row', alignItems: 'center', marginTop: 8,
+    backgroundColor: 'rgba(74, 120, 86, 0.08)', paddingHorizontal: 10,
+    paddingVertical: 6, borderRadius: 6, gap: 6,
+  },
+  autoAssignedText: { fontSize: 11, color: '#4A7856', fontWeight: '500', flex: 1 },
   inputContainer: { marginBottom: 16 },
   label: { fontSize: 13, fontWeight: '500', color: '#333', marginBottom: 6 },
   input: { backgroundColor: 'rgba(255, 255, 255, 0.95)', fontSize: 13 },
