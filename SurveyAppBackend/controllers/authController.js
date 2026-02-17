@@ -4,10 +4,21 @@ const User = require('../models/User');
 
 // Email transporter configuration
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com', // Explicitly verify host
+  port: 587,
+  secure: false, // true for 465, false for other ports
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
+  }
+});
+
+// Verify email configuration on startup
+transporter.verify(function (error, success) {
+  if (error) {
+    console.log('❌ Email Service Error:', error);
+  } else {
+    console.log('✅ Email Service is ready to send messages');
   }
 });
 
@@ -115,6 +126,27 @@ exports.sendPasswordResetEmail = async (req, res) => {
     res.json({ status: 'ok', message: 'Reset email sent' });
   } catch (error) {
     console.error('Password reset error:', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+// Verify password reset code
+exports.verifyResetCode = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    if (user.confirmationCode === code) {
+      res.json({ status: 'ok', message: 'Code verified' });
+    } else {
+      res.json({ status: 'error', message: 'Invalid verification code' });
+    }
+  } catch (error) {
+    console.error('Verify reset code error:', error);
     res.status(500).json({ status: 'error', message: error.message });
   }
 };

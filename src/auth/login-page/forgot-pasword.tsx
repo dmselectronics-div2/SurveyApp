@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,12 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
-import {TextInput} from 'react-native-paper';
+import { TextInput } from 'react-native-paper';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import axios from 'axios';
-import {API_URL} from '../../config';
+import { API_URL } from '../../config';
 
-const ForgetPasswordPage = ({navigation}: any) => {
+const ForgetPasswordPage = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,32 +33,24 @@ const ForgetPasswordPage = ({navigation}: any) => {
 
     setLoading(true);
     axios
-      .post(`${API_URL}/send-password-reset-email`, {email})
+      .post(`${API_URL}/send-password-reset-email`, { email })
       .then(res => {
+        setLoading(false);
         if (res.data.status === 'ok') {
-          handleSendCode();
+          // The backend sends the email with the code
+          // For development/mocking purposes, we might need the code here if the user can't check email
+          // But usually we just notify the user and navigate
+          Alert.alert('Success', 'Please check your email for the verification code.');
+          navigation.navigate('VerifyFPEmail', { email });
         } else {
-          setLoading(false);
           Alert.alert('Error', 'Email not registered!');
         }
       })
-      .catch(() => {
+      .catch((error) => {
         setLoading(false);
-        Alert.alert('Error', 'Email not registered!');
+        console.error('Password reset error:', error);
+        Alert.alert('Error', 'Failed to send reset email. Please try again.');
       });
-  };
-
-  const handleSendCode = async () => {
-    try {
-      const response = await axios.post(`${API_URL}/send-confirmation-email`, {email});
-      const {confirmationCode} = response.data;
-      setLoading(false);
-      Alert.alert('Success', 'Please check your email for the verification code.');
-      navigation.navigate('VerifyFPEmail', {email, confirmationCode});
-    } catch (err) {
-      setLoading(false);
-      Alert.alert('Error', 'Failed to send confirmation email.');
-    }
   };
 
   return (
@@ -100,13 +92,13 @@ const ForgetPasswordPage = ({navigation}: any) => {
               activeOutlineColor="#4A7856"
               style={styles.input}
               error={!!emailError}
-              theme={{colors: {primary: '#4A7856', background: 'rgba(255, 255, 255, 0.95)'}}}
+              theme={{ colors: { primary: '#4A7856', background: 'rgba(255, 255, 255, 0.95)' } }}
             />
             {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
           </View>
 
           {loading ? (
-            <ActivityIndicator size="large" color="#4A7856" style={{marginVertical: 15}} />
+            <ActivityIndicator size="large" color="#4A7856" style={{ marginVertical: 15 }} />
           ) : (
             <TouchableOpacity
               style={styles.sendButton}
@@ -129,8 +121,8 @@ const ForgetPasswordPage = ({navigation}: any) => {
 };
 
 const styles = StyleSheet.create({
-  backgroundImage: {flex: 1, resizeMode: 'cover'},
-  overlay: {flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.4)', justifyContent: 'center', paddingHorizontal: 20},
+  backgroundImage: { flex: 1, resizeMode: 'cover' },
+  overlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.4)', justifyContent: 'center', paddingHorizontal: 20 },
   backButton: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 50 : 40,
@@ -140,18 +132,18 @@ const styles = StyleSheet.create({
     padding: 10,
     zIndex: 10,
   },
-  backButtonText: {fontSize: 14, color: '#FFFFFF', marginLeft: 5, fontWeight: '600'},
+  backButtonText: { fontSize: 14, color: '#FFFFFF', marginLeft: 5, fontWeight: '600' },
   formContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.98)',
     borderRadius: 20,
     padding: 28,
     alignItems: 'center',
     ...Platform.select({
-      ios: {shadowColor: 'black', shadowOffset: {width: 0, height: 5}, shadowOpacity: 0.35, shadowRadius: 10},
-      android: {elevation: 10},
+      ios: { shadowColor: 'black', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.35, shadowRadius: 10 },
+      android: { elevation: 10 },
     }),
   },
-  iconContainer: {marginBottom: 15},
+  iconContainer: { marginBottom: 15 },
   lockCircle: {
     width: 70,
     height: 70,
@@ -160,12 +152,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {fontSize: 24, fontWeight: '700', color: '#4A7856', marginBottom: 10, textAlign: 'center'},
-  subtitle: {fontSize: 13, color: '#666', textAlign: 'center', lineHeight: 20, marginBottom: 20},
-  inputContainer: {width: '100%', marginBottom: 20},
-  label: {fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 8},
-  input: {backgroundColor: 'rgba(255, 255, 255, 0.98)', fontSize: 13},
-  errorText: {color: 'red', fontSize: 12, marginTop: 4},
+  title: { fontSize: 24, fontWeight: '700', color: '#4A7856', marginBottom: 10, textAlign: 'center' },
+  subtitle: { fontSize: 13, color: '#666', textAlign: 'center', lineHeight: 20, marginBottom: 20 },
+  inputContainer: { width: '100%', marginBottom: 20 },
+  label: { fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 8 },
+  input: { backgroundColor: 'rgba(255, 255, 255, 0.98)', fontSize: 13 },
+  errorText: { color: 'red', fontSize: 12, marginTop: 4 },
   sendButton: {
     backgroundColor: '#4A7856',
     paddingVertical: 14,
@@ -174,14 +166,14 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 16,
     ...Platform.select({
-      ios: {shadowColor: 'black', shadowOffset: {width: 0, height: 3}, shadowOpacity: 0.25, shadowRadius: 5},
-      android: {elevation: 6},
+      ios: { shadowColor: 'black', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 5 },
+      android: { elevation: 6 },
     }),
   },
-  sendButtonText: {fontSize: 15, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.5},
-  loginContainer: {flexDirection: 'row', justifyContent: 'center', alignItems: 'center'},
-  loginText: {fontSize: 12, color: '#666'},
-  loginLink: {fontSize: 12, color: '#4A7856', fontWeight: '700', textDecorationLine: 'underline'},
+  sendButtonText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.5 },
+  loginContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  loginText: { fontSize: 12, color: '#666' },
+  loginLink: { fontSize: 12, color: '#4A7856', fontWeight: '700', textDecorationLine: 'underline' },
 });
 
 export default ForgetPasswordPage;
