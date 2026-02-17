@@ -89,6 +89,9 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  allowedModules: [{
+    type: String
+  }],
   isDeleted: {
     type: Boolean,
     default: false

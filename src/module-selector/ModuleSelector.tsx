@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,52 +8,88 @@ import {
   Platform,
   StatusBar,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
+import axios from 'axios';
+import {API_URL} from '../config';
+import {getLoginEmail} from '../assets/sql_lite/db_connection';
+
+const allModules = [
+  {
+    id: 'bird',
+    title: 'Bird Survey',
+    description: 'Bird observation and monitoring Data Collection',
+    icon: 'bird',
+    screen: 'BirdBottomNav',
+  },
+  {
+    id: 'byvalvi',
+    title: 'Byvalvi Survey',
+    description: 'Bivalve & gastropod observation and monitoring data collection',
+    icon: 'snail',
+    screen: 'ByvalviBottomNav',
+  },
+  {
+    id: 'phenology',
+    title: 'Phenology Survey',
+    description: 'Plant phenology and seasonal observation data collection',
+    icon: 'flower',
+    screen: 'PhenologySurvey',
+  },
+  {
+    id: 'butterfly',
+    title: 'Butterfly Survey',
+    description: 'Butterfly observation and monitoring data collection',
+    icon: 'butterfly',
+    screen: 'ButterflyBottomNav',
+  },
+  {
+    id: 'water',
+    title: 'Water Survey',
+    description: 'Water quality and aquatic ecosystem observation data collection',
+    icon: 'water',
+    screen: 'WaterSurvey',
+  },
+];
 
 const ModuleSelector: React.FC = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const [modules, setModules] = useState(allModules);
+  const [loading, setLoading] = useState(true);
 
-  const modules = [
-    {
-      id: 'bird',
-      title: 'Bird Survey',
-      description: 'Bird observation and monitoring Data Collection',
-      icon: 'bird',
-      screen: 'BirdBottomNav',
-    },
-    {
-      id: 'byvalvi',
-      title: 'Byvalvi Survey',
-      description: 'Bivalve & gastropod observation and monitoring data collection',
-      icon: 'snail',
-      screen: 'ByvalviBottomNav',
-    },
-    {
-      id: 'phenology',
-      title: 'Phenology Survey',
-      description: 'Plant phenology and seasonal observation data collection',
-      icon: 'flower',
-      screen: 'PhenologySurvey',
-    },
-    {
-      id: 'butterfly',
-      title: 'Butterfly Survey',
-      description: 'Butterfly observation and monitoring data collection',
-      icon: 'butterfly',
-      screen: 'ButterflyBottomNav',
-    },
-    {
-      id: 'water',
-      title: 'Water Survey',
-      description: 'Water quality and aquatic ecosystem observation data collection',
-      icon: 'water',
-      screen: 'WaterSurvey',
-    },
-   
-  ];
+  useEffect(() => {
+    fetchAllowedModules();
+  }, []);
+
+  const fetchAllowedModules = async () => {
+    try {
+      const email = route?.params?.email || (await getLoginEmail());
+      if (!email) {
+        setModules(allModules);
+        setLoading(false);
+        return;
+      }
+
+      const res = await axios.get(
+        `${API_URL}/user-modules?email=${encodeURIComponent(email)}`,
+      );
+
+      if (res.data.status === 'ok' && res.data.modules) {
+        const allowed = res.data.modules;
+        const filtered = allModules.filter(m => allowed.includes(m.id));
+        setModules(filtered.length > 0 ? filtered : allModules);
+      }
+    } catch (error) {
+      console.error('Error fetching modules:', error);
+      setModules(allModules);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleModuleSelect = (screenName: string) => {
     navigation.navigate(screenName);
@@ -83,28 +119,32 @@ const ModuleSelector: React.FC = () => {
         </View>
 
         {/* Module Buttons */}
-        <ScrollView 
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={true}>
-          {modules.map(module => (
-            <TouchableOpacity
-              key={module.id}
-              style={styles.button}
-              onPress={() => handleModuleSelect(module.screen)}
-              activeOpacity={0.8}>
-              <View style={styles.buttonIconContainer}>
-                <Icon name={module.icon} size={36} color="#FFFFFF" />
-              </View>
-              <View style={styles.buttonContentColumn}>
-                <Text style={styles.buttonTextEnglish}>{module.title}</Text>
-                <Text style={styles.buttonText}>{module.description}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-
-        </ScrollView>
-
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#4A7856" />
+          </View>
+        ) : (
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={true}>
+            {modules.map(module => (
+              <TouchableOpacity
+                key={module.id}
+                style={styles.button}
+                onPress={() => handleModuleSelect(module.screen)}
+                activeOpacity={0.8}>
+                <View style={styles.buttonIconContainer}>
+                  <Icon name={module.icon} size={36} color="#FFFFFF" />
+                </View>
+                <View style={styles.buttonContentColumn}>
+                  <Text style={styles.buttonTextEnglish}>{module.title}</Text>
+                  <Text style={styles.buttonText}>{module.description}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
       </View>
     </ImageBackground>
   );
@@ -163,7 +203,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 26,
-
     color: '#FFFFFF',
     fontWeight: 'bold',
     textAlign: 'center',
@@ -178,6 +217,11 @@ const styles = StyleSheet.create({
         elevation: 6,
       },
     }),
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollView: {
     flex: 1,
@@ -238,7 +282,6 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 14,
-
     color: '#333333',
     fontWeight: '500',
     letterSpacing: 0.5,
@@ -247,7 +290,6 @@ const styles = StyleSheet.create({
   },
   buttonTextEnglish: {
     fontSize: 20,
-
     color: '#4A7856',
     fontWeight: 'bold',
     letterSpacing: 1,

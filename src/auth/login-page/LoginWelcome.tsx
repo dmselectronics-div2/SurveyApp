@@ -17,6 +17,7 @@ const LoginWelcome = () => {
 
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      navigation.navigate('OptionSelection');
       return true;
     });
 
@@ -39,6 +40,15 @@ const LoginWelcome = () => {
       style={styles.backgroundImage}
     >
       <View style={styles.overlay}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.navigate('OptionSelection')}
+          activeOpacity={0.7}
+        >
+          <Icon name="arrow-back" size={28} color="#FFFFFF" />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+
         {/* Logo Container */}
         {/* <View style={styles.logoContainer}>
           <View style={styles.logo}>
@@ -188,6 +198,21 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#4A7856',
     letterSpacing: 0.6,
+  },
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 40,
+    left: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    zIndex: 10,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    marginLeft: 5,
+    fontWeight: '600',
   },
 });
 

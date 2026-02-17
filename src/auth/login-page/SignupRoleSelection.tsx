@@ -24,9 +24,9 @@ const SignupRoleSelection = () => {
       description: 'Government Official',
     },
     {
-      id: 'AHM',
-      label: 'AHM team',
-      description: 'Aquatic Habitat Management',
+      id: 'ANRM',
+      label: 'ANRM team',
+      description: 'Aquatic and Natural Resource Management',
     },
     {
       id: 'Academia',
@@ -114,7 +114,7 @@ const SignupRoleSelection = () => {
           onPress={handleBackPress}
           activeOpacity={0.7}
         >
-          <MaterialIcon name="arrow-back" size={28} color="#4A7856" />
+          <MaterialIcon name="arrow-back" size={28} color="#FFFFFF" />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
 
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: '#4A7856',
+    color: '#FFFFFF',
     marginLeft: 5,
     fontWeight: '600',
   },
