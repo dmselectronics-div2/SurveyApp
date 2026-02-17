@@ -20,7 +20,7 @@ import GetLocation from 'react-native-get-location';
 import {API_URL, API_KEY} from '../../config';
 import {getDatabase} from '../database/db';
 import BarChartModel from './bar-charts/bar-chart';
-import MiniBarChartModel from './bar-charts/mini-bar-chart';
+import HabitatBarChart from './bar-charts/habitat-bar-chart';
 
 const GREEN = '#2e7d32';
 
@@ -182,70 +182,70 @@ const MainDashboardPage = () => {
         <BarChartModel />
       </View>
 
-      {/* Mini Charts */}
-      <View style={styles.miniChartsRow}>
-        <View style={[styles.chartCard, styles.miniChartCard]}>
-          <MiniBarChartModel title="Statistical Summary" />
-        </View>
-        <TouchableOpacity
-          style={[styles.chartCard, styles.miniChartCard]}
-          activeOpacity={0.8}
-          onPress={() => navigation.navigate('BirdMapPage')}>
-          <View style={styles.weatherBox}>
-            <View style={styles.weatherTitleRow}>
-              <View style={styles.weatherTitleDot} />
-              <Text style={styles.weatherTitle}>Current Weather</Text>
-            </View>
-            {weatherLoading ? (
-              <ActivityIndicator size="small" color={GREEN} style={{marginTop: 40}} />
-            ) : weather ? (
-              <>
-                <View style={styles.mapContainer}>
-                  <MapView
-                    style={styles.miniMap}
-                    region={{
-                      latitude: location?.lat || 7.7,
-                      longitude: location?.lon || 79.8,
-                      latitudeDelta: 0.02,
-                      longitudeDelta: 0.02,
-                    }}
-                    scrollEnabled={false}
-                    zoomEnabled={false}
-                    rotateEnabled={false}
-                    pitchEnabled={false}>
-                    {location && (
-                      <Marker
-                        coordinate={{latitude: location.lat, longitude: location.lon}}
-                        title="You"
-                      />
-                    )}
-                  </MapView>
-                </View>
-                <View style={styles.weatherInfoRow}>
-                  <Image
-                    source={{uri: `https:${weather.current.condition.icon}`}}
-                    style={styles.weatherIcon}
-                  />
-                  <Text style={styles.weatherTemp}>{Math.round(weather.current.temp_c)}°C</Text>
-                </View>
-                <Text style={styles.weatherCondition}>{weather.current.condition.text}</Text>
-                <View style={styles.weatherDetailsRow}>
-                  <View style={styles.weatherDetail}>
-                    <MCIcon name="water-outline" size={14} color="#666" />
-                    <Text style={styles.weatherDetailText}>{weather.current.humidity}%</Text>
-                  </View>
-                  <View style={styles.weatherDetail}>
-                    <MCIcon name="weather-windy" size={14} color="#666" />
-                    <Text style={styles.weatherDetailText}>{weather.current.wind_kph} km/h</Text>
-                  </View>
-                </View>
-              </>
-            ) : (
-              <Text style={styles.weatherNoData}>No weather data</Text>
-            )}
-          </View>
-        </TouchableOpacity>
+      {/* Habitat Distribution Chart */}
+      <View style={styles.chartCard}>
+        <HabitatBarChart title="Habitat Distribution" />
       </View>
+
+      {/* Weather Card */}
+      <TouchableOpacity
+        style={styles.chartCard}
+        activeOpacity={0.8}
+        onPress={() => navigation.navigate('BirdMapPage')}>
+        <View style={styles.weatherBox}>
+          <View style={styles.weatherTitleRow}>
+            <View style={styles.weatherTitleDot} />
+            <Text style={styles.weatherTitle}>Current Weather</Text>
+          </View>
+          {weatherLoading ? (
+            <ActivityIndicator size="small" color={GREEN} style={{marginTop: 40}} />
+          ) : weather ? (
+            <>
+              <View style={styles.mapContainer}>
+                <MapView
+                  style={styles.miniMap}
+                  region={{
+                    latitude: location?.lat || 7.7,
+                    longitude: location?.lon || 79.8,
+                    latitudeDelta: 0.02,
+                    longitudeDelta: 0.02,
+                  }}
+                  scrollEnabled={false}
+                  zoomEnabled={false}
+                  rotateEnabled={false}
+                  pitchEnabled={false}>
+                  {location && (
+                    <Marker
+                      coordinate={{latitude: location.lat, longitude: location.lon}}
+                      title="You"
+                    />
+                  )}
+                </MapView>
+              </View>
+              <View style={styles.weatherInfoRow}>
+                <Image
+                  source={{uri: `https:${weather.current.condition.icon}`}}
+                  style={styles.weatherIcon}
+                />
+                <Text style={styles.weatherTemp}>{Math.round(weather.current.temp_c)}°C</Text>
+              </View>
+              <Text style={styles.weatherCondition}>{weather.current.condition.text}</Text>
+              <View style={styles.weatherDetailsRow}>
+                <View style={styles.weatherDetail}>
+                  <MCIcon name="water-outline" size={14} color="#666" />
+                  <Text style={styles.weatherDetailText}>{weather.current.humidity}%</Text>
+                </View>
+                <View style={styles.weatherDetail}>
+                  <MCIcon name="weather-windy" size={14} color="#666" />
+                  <Text style={styles.weatherDetailText}>{weather.current.wind_kph} km/h</Text>
+                </View>
+              </View>
+            </>
+          ) : (
+            <Text style={styles.weatherNoData}>No weather data</Text>
+          )}
+        </View>
+      </TouchableOpacity>
 
       {/* Summary Statistics */}
       <Text style={styles.sectionTitle}>Summary</Text>

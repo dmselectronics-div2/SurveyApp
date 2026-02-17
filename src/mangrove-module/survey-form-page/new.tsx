@@ -44,6 +44,7 @@ import NetInfo from '@react-native-community/netinfo';
 import axios from 'axios';
 import { Modal, FlatList } from 'react-native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import CustomAlert from '../../bird-module/custom-alert/alert-design';
 
 
 // Define habitat type constants for consistency and to prevent errors
@@ -234,6 +235,7 @@ const GastropodBivalveForm = () => {
 
   // State for loading and network
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAlertVisible, setIsAlertVisible] = useState(false);
   const [isConnected, setIsConnected] = useState(true);
 
   // State for basic information
@@ -1062,19 +1064,10 @@ const GastropodBivalveForm = () => {
         console.log('Image upload response:', uploadResponse);
       }
 
-      Alert.alert(
-        'Success',
-        isEditMode ? 'Form data updated successfully!' : 'Form data submitted successfully!',
-        [{
-          text: 'OK',
-          onPress: () => {
-            resetForm();
-            setIsEditMode(false);
-            setEditItemId(null);
-            navigation.navigate('MangroveDataTable');
-          }
-        }]
-      );
+      resetForm();
+      setIsEditMode(false);
+      setEditItemId(null);
+      setIsAlertVisible(true);
     } catch (error) {
       console.error('Overall submission error:', error);
 
@@ -1257,6 +1250,14 @@ const GastropodBivalveForm = () => {
           </View>
         </RNModal>
       )}
+      <CustomAlert
+        visible={isAlertVisible}
+        onClose={() => setIsAlertVisible(false)}
+        type="success"
+        title="Success !"
+        message="Your form has been successfully submitted! You can now fill a new form."
+        buttonText="Continue"
+      />
       <ImageBackground
         source={require('../../assets/image/bivalvi.jpeg')}
         style={styles.backgroundImage}

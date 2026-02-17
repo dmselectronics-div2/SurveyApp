@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Dimensions,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
 import axios from 'axios';
@@ -63,36 +64,48 @@ const BarChartModel = () => {
       </View>
       <Text style={styles.chartSubtitle}>Total observations by species</Text>
       {hasRealData ? (
-        <BarChart
-          style={styles.chart}
-          data={chartData}
-          width={width - 64}
-          height={220}
-          fromZero
-          yAxisLabel=""
-          yAxisSuffix=""
-          chartConfig={{
-            backgroundColor: '#ffffff',
-            backgroundGradientFrom: '#ffffff',
-            backgroundGradientTo: '#f8fdf8',
-            decimalPlaces: 0,
-            color: (opacity = 1) => `rgba(46, 125, 50, ${opacity})`,
-            labelColor: (opacity = 1) => `rgba(75, 75, 75, ${opacity})`,
-            barPercentage: 0.6,
-            fillShadowGradient: '#43a047',
-            fillShadowGradientOpacity: 0.9,
-            propsForBackgroundLines: {
-              stroke: '#e8f5e9',
-              strokeWidth: 1,
-            },
-            propsForLabels: {
-              fontSize: 11,
-            },
-          }}
-          verticalLabelRotation={35}
-          showValuesOnTopOfBars={true}
-          withInnerLines={true}
-        />
+        <ScrollView
+          style={{maxHeight: 250}}
+          showsVerticalScrollIndicator={true}
+          nestedScrollEnabled={true}
+        >
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={true}
+            contentContainerStyle={styles.scrollContent}
+          >
+            <BarChart
+              style={styles.chart}
+              data={chartData}
+              width={Math.max(width - 64, chartData.labels.length * 100)}
+              height={250}
+              fromZero
+              yAxisLabel=""
+              yAxisSuffix=""
+              chartConfig={{
+                backgroundColor: '#ffffff',
+                backgroundGradientFrom: '#ffffff',
+                backgroundGradientTo: '#f8fdf8',
+                decimalPlaces: 0,
+                color: (opacity = 1) => `rgba(46, 125, 50, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(75, 75, 75, ${opacity})`,
+                barPercentage: 0.6,
+                fillShadowGradient: '#43a047',
+                fillShadowGradientOpacity: 0.9,
+                propsForBackgroundLines: {
+                  stroke: '#e8f5e9',
+                  strokeWidth: 1,
+                },
+                propsForLabels: {
+                  fontSize: 11,
+                },
+              }}
+              verticalLabelRotation={45}
+              showValuesOnTopOfBars={true}
+              withInnerLines={true}
+            />
+          </ScrollView>
+        </ScrollView>
       ) : (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>📊</Text>
@@ -109,7 +122,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    height: 250,
+    height: 1000,
   },
   loadingText: {
     fontSize: 13,
@@ -144,6 +157,9 @@ const styles = StyleSheet.create({
   chart: {
     marginVertical: 8,
     borderRadius: 12,
+  },
+  scrollContent: {
+    paddingRight: 16,
   },
   emptyContainer: {
     alignItems: 'center',

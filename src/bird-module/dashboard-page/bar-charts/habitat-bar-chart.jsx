@@ -7,15 +7,15 @@ import { API_URL } from '../../../config';
 const { width } = Dimensions.get('window');
 const CHART_WIDTH = (width - 80) / 2;
 
-const MiniBarChartModel1 = ({ title }) => {
+const HabitatBarChart = ({ title }) => {
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [sexCounts, setSexCounts] = useState({});
+  const [habitatCounts, setHabitatCounts] = useState({});
 
   useEffect(() => {
-    const fetchBirdDataBySex = async () => {
+    const fetchHabitatData = async () => {
       try {
-        const response = await axios.get(`${API_URL}/bird-sex`);
+        const response = await axios.get(`${API_URL}/bird-habitat`);
 
         if (!response.data || response.data.length === 0) {
           setChartData(null);
@@ -23,14 +23,13 @@ const MiniBarChartModel1 = ({ title }) => {
           return;
         }
 
-        const processedData = response.data.reduce((acc, item) => {
-          const sexCategory = item.name && item.name.trim() ? item.name : 'Unknown';
-          if (!acc[sexCategory]) acc[sexCategory] = 0;
-          acc[sexCategory] += item.count;
-          return acc;
-        }, {});
+        const processedData = {};
+        response.data.forEach((item) => {
+          const habitat = item.name && item.name.trim() ? item.name : 'Unknown';
+          processedData[habitat] = (processedData[habitat] || 0) + item.count;
+        });
 
-        setSexCounts(processedData);
+        setHabitatCounts(processedData);
 
         const labels = Object.keys(processedData);
         const values = Object.values(processedData);
@@ -40,14 +39,14 @@ const MiniBarChartModel1 = ({ title }) => {
           datasets: [{ data: values }],
         });
       } catch (error) {
-        console.error('Error fetching bird data by sex:', error);
+        console.error('Error fetching habitat data:', error);
         setChartData(null);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBirdDataBySex();
+    fetchHabitatData();
   }, []);
 
   if (loading) {
@@ -61,7 +60,7 @@ const MiniBarChartModel1 = ({ title }) => {
   const hasRealData = chartData && chartData.datasets && chartData.datasets[0] &&
     chartData.datasets[0].data.some((v) => v > 0);
 
-  const total = Object.values(sexCounts).reduce((a, b) => a + b, 0);
+  const total = Object.values(habitatCounts).reduce((a, b) => a + b, 0);
 
   return (
     <View style={styles.chartBox}>
@@ -79,6 +78,7 @@ const MiniBarChartModel1 = ({ title }) => {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={true}
+              contentContainerStyle={{flexGrow: 1, justifyContent: 'center'}}
             >
               <BarChart
                 style={styles.chart}
@@ -93,29 +93,30 @@ const MiniBarChartModel1 = ({ title }) => {
                   backgroundGradientFrom: '#ffffff',
                   backgroundGradientTo: '#f8fdf8',
                   decimalPlaces: 0,
-                  color: (opacity = 1) => `rgba(27, 94, 32, ${opacity})`,
+                  color: (opacity = 1) => `rgba(56, 142, 60, ${opacity})`,
                   labelColor: (opacity = 1) => `rgba(75, 75, 75, ${opacity})`,
                   barPercentage: 0.5,
-                  fillShadowGradient: '#81c784',
-                  fillShadowGradientOpacity: 0.9,
+                  fillShadowGradient: '#66bb6a',
+                  fillShadowGradientOpacity: 0.85,
                   propsForBackgroundLines: {
                     stroke: '#e8f5e9',
                     strokeWidth: 1,
                   },
                   propsForLabels: {
-                    fontSize: 10,
+                    fontSize: 8,
                   },
                 }}
                 showBarTops={false}
                 showValuesOnTopOfBars={true}
                 withInnerLines={true}
+                verticalLabelRotation={30}
               />
             </ScrollView>
           </ScrollView>
           <View style={styles.legendRow}>
-            {Object.entries(sexCounts).map(([sex, count]) => (
-              <View key={sex} style={styles.legendItem}>
-                <Text style={styles.legendLabel}>{sex}</Text>
+            {Object.entries(habitatCounts).slice(0, 4).map(([habitat, count]) => (
+              <View key={habitat} style={styles.legendItem}>
+                <Text style={styles.legendLabel} numberOfLines={1}>{habitat}</Text>
                 <Text style={styles.legendValue}>
                   {total > 0 ? Math.round((count / total) * 100) : 0}%
                 </Text>
@@ -160,23 +161,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     marginTop: 8,
   },
   legendItem: {
     backgroundColor: '#e8f5e9',
     borderRadius: 8,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 3,
     alignItems: 'center',
+    maxWidth: 70,
   },
   legendLabel: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#666',
     fontWeight: '600',
   },
   legendValue: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: '#2e7d32',
   },
@@ -195,4 +197,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MiniBarChartModel1;
+export default HabitatBarChart;

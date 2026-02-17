@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, ActivityIndicator, ScrollView } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
 import axios from 'axios';
 import { API_URL } from '../../../config';
 
-const CHART_WIDTH = (Dimensions.get('window').width - 80) / 2;
+const { width } = Dimensions.get('window');
+const CHART_WIDTH = (width - 80) / 2;
 
 const MiniBarChartModel = ({ title }) => {
   const [chartData, setChartData] = useState(null);
@@ -73,36 +74,41 @@ const MiniBarChartModel = ({ title }) => {
       </View>
       {hasRealData ? (
         <>
-          <BarChart
-            style={styles.chart}
-            data={chartData}
-            width={CHART_WIDTH}
-            height={150}
-            fromZero
-            yAxisLabel=""
-            yAxisSuffix=""
-            chartConfig={{
-              backgroundColor: '#ffffff',
-              backgroundGradientFrom: '#ffffff',
-              backgroundGradientTo: '#f8fdf8',
-              decimalPlaces: 1,
-              color: (opacity = 1) => `rgba(56, 142, 60, ${opacity})`,
-              labelColor: (opacity = 1) => `rgba(75, 75, 75, ${opacity})`,
-              barPercentage: 0.5,
-              fillShadowGradient: '#66bb6a',
-              fillShadowGradientOpacity: 0.85,
-              propsForBackgroundLines: {
-                stroke: '#e8f5e9',
-                strokeWidth: 1,
-              },
-              propsForLabels: {
-                fontSize: 10,
-              },
-            }}
-            showBarTops={false}
-            showValuesOnTopOfBars={true}
-            withInnerLines={true}
-          />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={true}
+          >
+            <BarChart
+              style={styles.chart}
+              data={chartData}
+              width={Math.max(CHART_WIDTH, chartData.labels.length * 60)}
+              height={150}
+              fromZero
+              yAxisLabel=""
+              yAxisSuffix=""
+              chartConfig={{
+                backgroundColor: '#ffffff',
+                backgroundGradientFrom: '#ffffff',
+                backgroundGradientTo: '#f8fdf8',
+                decimalPlaces: 1,
+                color: (opacity = 1) => `rgba(56, 142, 60, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(75, 75, 75, ${opacity})`,
+                barPercentage: 0.5,
+                fillShadowGradient: '#66bb6a',
+                fillShadowGradientOpacity: 0.85,
+                propsForBackgroundLines: {
+                  stroke: '#e8f5e9',
+                  strokeWidth: 1,
+                },
+                propsForLabels: {
+                  fontSize: 10,
+                },
+              }}
+              showBarTops={false}
+              showValuesOnTopOfBars={true}
+              withInnerLines={true}
+            />
+          </ScrollView>
           <View style={styles.statsRow}>
             <View style={styles.statBadge}>
               <Text style={styles.statLabel}>Mean</Text>
