@@ -156,9 +156,9 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center',
-    borderWidth: 1, borderColor: '#4A7856',
+    backgroundColor: '#4A7856',
   },
-  backBtnText: { fontSize: 14, fontWeight: '600', color: '#4A7856' },
+  backBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
   nextBtn: {
     flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center',
     backgroundColor: '#4A7856',
