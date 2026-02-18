@@ -466,7 +466,7 @@ const WaterAvailabilityModal = ({ visible, onClose, onSelect }) => {
   data={radio_props5}
   labelField="label"
   valueField="value"
-  placeholder="Water Status"
+  placeholder="Water Sources"
   value={waterReservoir}
   onChange={(item) => setWaterReservoir(item.value)}
   

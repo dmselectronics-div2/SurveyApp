@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Platform,
   Dimensions,
   ActivityIndicator,
+  FlatList,
 } from 'react-native';
 import {Dropdown} from 'react-native-element-dropdown';
 import {TextInput, Button} from 'react-native-paper';
@@ -581,8 +582,8 @@ const WaterAvailabilityModal = ({visible, onClose, onSelect}: any) => {
     const parts = [];
     if (onLand === 'Yes' && onLandWaterLevel) parts.push(`On Land - Yes (Level: ${onLandWaterLevel} cm)`);
     else if (onLand) parts.push(`On Land - ${onLand}`);
-    if (waterReservoir === 'Yes' && waterLevel) parts.push(`Water Status - Yes (Level: ${waterLevel} cm)`);
-    else if (waterReservoir) parts.push(`Water Status - ${waterReservoir}`);
+    if (waterReservoir === 'Yes' && waterLevel) parts.push(`Water Source - Yes (Level: ${waterLevel} cm)`);
+    else if (waterReservoir) parts.push(`Water Source - ${waterReservoir}`);
     return parts.join(', ');
   };
 
@@ -609,7 +610,7 @@ const WaterAvailabilityModal = ({visible, onClose, onSelect}: any) => {
               </View>
             )}
             <Dropdown style={modalDd} placeholderStyle={{color: 'black'}} selectedTextStyle={{color: 'black'}} itemTextStyle={{color: 'black'}} containerStyle={containerS}
-              data={yesNoOptions} labelField="label" valueField="value" placeholder="Water Status" value={waterReservoir}
+              data={yesNoOptions} labelField="label" valueField="value" placeholder="Water Source" value={waterReservoir}
               onChange={item => setWaterReservoir(p => p === item.value ? null : item.value)} />
             {waterReservoir === 'Yes' && (
               <View style={{width: '100%', marginBottom: 10}}>
@@ -627,6 +628,373 @@ const WaterAvailabilityModal = ({visible, onClose, onSelect}: any) => {
         </View>
       </Modal>
     </>
+  );
+};
+
+// ========================================
+// SPECIES LIST ROW (eBird-like)
+// ========================================
+const SpeciesListRow = React.memo(({
+  item,
+  isAdded,
+  addedCount,
+  onPress,
+  onRemove,
+}: {
+  item: any;
+  isAdded: boolean;
+  addedCount: string;
+  onPress: () => void;
+  onRemove: () => void;
+}) => {
+  const parsed = parseSpeciesName(item.label);
+  return (
+    <TouchableOpacity onPress={onPress} style={speciesListStyles.row} activeOpacity={0.6}>
+      <View style={speciesListStyles.rowLeft}>
+        <View style={[speciesListStyles.addIcon, isAdded && speciesListStyles.addIconActive]}>
+          {isAdded ? (
+            <Text style={speciesListStyles.countBadgeText}>{addedCount}</Text>
+          ) : (
+            <Icon name="plus" size={14} color={GREEN} />
+          )}
+        </View>
+        <View style={speciesListStyles.nameContainer}>
+          <Text style={speciesListStyles.commonName}>{parsed.common}</Text>
+          {parsed.scientific ? (
+            <Text style={speciesListStyles.scientificName}>{parsed.scientific}</Text>
+          ) : null}
+        </View>
+      </View>
+      {isAdded && (
+        <TouchableOpacity
+          onPress={onRemove}
+          hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+          style={speciesListStyles.removeBtn}>
+          <Icon name="trash" size={14} color="#D32F2F" />
+        </TouchableOpacity>
+      )}
+    </TouchableOpacity>
+  );
+});
+
+// ========================================
+// SPECIES DETAIL MODAL (eBird-like)
+// ========================================
+const SpeciesDetailModal = ({
+  visible,
+  observation,
+  onUpdate,
+  onSave,
+  onClose,
+  onDelete,
+  customBirdStatuses,
+  onAddCustomStatus,
+}: any) => {
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+
+  if (!observation) return null;
+
+  const parsed = parseSpeciesName(observation.species);
+
+  const statusData = [
+    ...birdStatusOptions.filter(s => s.value !== 'Other'),
+    ...(customBirdStatuses || []).map((v: string) => ({label: v, value: v})),
+    {label: 'Other', value: 'Other'},
+  ];
+
+  const handleBehaviourChange = (item: any) => {
+    const current = observation.behaviours || [];
+    const updated = current.includes(item.value)
+      ? current.filter((b: string) => b !== item.value)
+      : [...current, item.value];
+    onUpdate({...observation, behaviours: updated});
+  };
+
+  const handleCamera = () => {
+    setShowPhotoModal(false);
+    launchCamera({mediaType: 'photo', quality: 1}, response => {
+      if (response.assets && response.assets.length > 0) {
+        const newUris = [...(observation.imageUris || []), ...response.assets.map(a => a.uri)];
+        onUpdate({...observation, imageUri: newUris[0], imageUris: newUris});
+      }
+    });
+  };
+
+  const handleGallery = () => {
+    setShowPhotoModal(false);
+    launchImageLibrary({mediaType: 'photo', quality: 1, selectionLimit: 0}, response => {
+      if (response.assets && response.assets.length > 0) {
+        const newUris = [...(observation.imageUris || []), ...response.assets.map(a => a.uri)];
+        onUpdate({...observation, imageUri: newUris[0], imageUris: newUris});
+      }
+    });
+  };
+
+  const removePhoto = (photoIndex: number) => {
+    const updated = (observation.imageUris || []).filter((_: any, i: number) => i !== photoIndex);
+    onUpdate({...observation, imageUri: updated[0] || null, imageUris: updated});
+  };
+
+  const canSave = observation.species && observation.count && parseInt(observation.count) > 0;
+
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <View style={{flex: 1, backgroundColor: '#F5F5F0'}}>
+        {/* Header */}
+        <View style={speciesDetailStyles.header}>
+          <TouchableOpacity onPress={onClose} style={{marginRight: 15, padding: 4}}>
+            <Icon name="times" size={20} color="white" />
+          </TouchableOpacity>
+          <View style={{flex: 1}}>
+            <Text style={speciesDetailStyles.headerTitle}>{parsed.common}</Text>
+            {parsed.scientific ? (
+              <Text style={speciesDetailStyles.headerSubtitle}>{parsed.scientific}</Text>
+            ) : null}
+          </View>
+          <TouchableOpacity onPress={onSave} disabled={!canSave} style={{padding: 4}}>
+            <Text style={{color: canSave ? 'white' : 'rgba(255,255,255,0.5)', fontSize: 16, fontWeight: 'bold'}}>Done</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView contentContainerStyle={{padding: 16, paddingBottom: 100}} keyboardShouldPersistTaps="handled">
+          {/* COUNT - Prominent */}
+          <View style={speciesDetailStyles.countCard}>
+            <Text style={speciesDetailStyles.countLabel}>Number Observed *</Text>
+            <View style={speciesDetailStyles.countRow}>
+              <TouchableOpacity
+                onPress={() => {
+                  const c = parseInt(observation.count || '0');
+                  if (c > 1) onUpdate({...observation, count: (c - 1).toString()});
+                }}
+                style={speciesDetailStyles.countBtn}>
+                <Icon name="minus" size={20} color={GREEN_DARK} />
+              </TouchableOpacity>
+              <TextInput
+                mode="flat"
+                value={observation.count}
+                onChangeText={text => {
+                  const numericValue = text.replace(/\D/g, '');
+                  onUpdate({...observation, count: numericValue});
+                }}
+                keyboardType="numeric"
+                style={speciesDetailStyles.countInput}
+                underlineColor="transparent"
+                activeUnderlineColor={GREEN}
+                textColor="#333"
+              />
+              <TouchableOpacity
+                onPress={() => {
+                  const c = parseInt(observation.count || '0');
+                  onUpdate({...observation, count: (c + 1).toString()});
+                }}
+                style={speciesDetailStyles.countBtn}>
+                <Icon name="plus" size={20} color={GREEN_DARK} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Maturity */}
+          <View style={speciesDetailStyles.detailCard}>
+            <Text style={speciesDetailStyles.sectionTitle}>Maturity</Text>
+            <View style={chipStyles.chipRow}>
+              {maturityOptions.map(opt => {
+                const selected = observation.maturity === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    onPress={() => onUpdate({...observation, maturity: selected ? null : opt.value})}
+                    style={[chipStyles.chip, selected && chipStyles.chipSelected]}
+                    activeOpacity={0.7}>
+                    <Text style={[chipStyles.chipText, selected && chipStyles.chipTextSelected]}>{opt.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Sex */}
+          <View style={speciesDetailStyles.detailCard}>
+            <Text style={speciesDetailStyles.sectionTitle}>Sex</Text>
+            <View style={chipStyles.chipRow}>
+              {sexOptions.map(opt => {
+                const selected = observation.sex === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    onPress={() => onUpdate({...observation, sex: selected ? null : opt.value})}
+                    style={[chipStyles.chipCircle, selected && chipStyles.chipCircleSelected]}
+                    activeOpacity={0.7}>
+                    <Text style={[chipStyles.chipCircleText, selected && chipStyles.chipCircleTextSelected]}>
+                      {opt.label.charAt(0)}
+                    </Text>
+                    <Text style={[chipStyles.chipCircleLabel, selected && {color: GREEN_DARK}]}>{opt.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Behaviour (multi-select) */}
+          <View style={speciesDetailStyles.detailCard}>
+            <Text style={speciesDetailStyles.sectionTitle}>Behaviour</Text>
+            <Text style={{fontSize: 12, color: '#999', marginBottom: 8}}>Tap to select multiple</Text>
+            <View style={chipStyles.chipRow}>
+              {behaviourOptions.map(opt => {
+                const selected = (observation.behaviours || []).includes(opt.value);
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    onPress={() => handleBehaviourChange(opt)}
+                    style={[chipStyles.chip, selected && chipStyles.chipSelected]}
+                    activeOpacity={0.7}>
+                    {selected && <Icon name="check" size={12} color="#fff" style={{marginRight: 4}} />}
+                    <Text style={[chipStyles.chipText, selected && chipStyles.chipTextSelected]}>{opt.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Identification */}
+          <View style={speciesDetailStyles.detailCard}>
+            <Text style={speciesDetailStyles.sectionTitle}>Identification</Text>
+            <View style={chipStyles.chipRow}>
+              {identificationOptions.map(opt => {
+                const selected = observation.identification === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    onPress={() => onUpdate({...observation, identification: selected ? null : opt.value})}
+                    style={[chipStyles.chipWide, selected && chipStyles.chipWideSelected]}
+                    activeOpacity={0.7}>
+                    <Icon name={opt.value === 'Sighting' ? 'eye' : 'headphones'} size={18}
+                      color={selected ? '#fff' : '#666'} style={{marginRight: 8}} />
+                    <Text style={[chipStyles.chipWideText, selected && chipStyles.chipWideTextSelected]}>{opt.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Status */}
+          <View style={speciesDetailStyles.detailCard}>
+            <Text style={speciesDetailStyles.sectionTitle}>Status</Text>
+            <View style={chipStyles.chipRow}>
+              {statusData.map(opt => {
+                const selected = observation.status === opt.value;
+                if (opt.value === 'Other') {
+                  return (
+                    <TouchableOpacity
+                      key="Other"
+                      onPress={() => onUpdate({...observation, showCustomStatus: true})}
+                      style={[chipStyles.chip, observation.showCustomStatus && chipStyles.chipSelected]}
+                      activeOpacity={0.7}>
+                      <Icon name="plus" size={12} color={observation.showCustomStatus ? '#fff' : '#666'} style={{marginRight: 4}} />
+                      <Text style={[chipStyles.chipText, observation.showCustomStatus && chipStyles.chipTextSelected]}>Other</Text>
+                    </TouchableOpacity>
+                  );
+                }
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    onPress={() => onUpdate({...observation, status: selected ? null : opt.value, showCustomStatus: false})}
+                    style={[chipStyles.chip, selected && chipStyles.chipSelected]}
+                    activeOpacity={0.7}>
+                    <Text style={[chipStyles.chipText, selected && chipStyles.chipTextSelected]}>{opt.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {observation.showCustomStatus && (
+              <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 10}}>
+                <TextInput mode="outlined" placeholder="Enter new status"
+                  value={observation.customStatus || ''}
+                  onChangeText={val => onUpdate({...observation, customStatus: val})}
+                  outlineStyle={cardStyles.txtInputOutline}
+                  style={[cardStyles.textInput, {flex: 1, marginRight: 8, marginBottom: 0}]}
+                  textColor="#333" />
+                <TouchableOpacity onPress={() => {
+                  const val = (observation.customStatus || '').trim();
+                  if (val && onAddCustomStatus) {
+                    onAddCustomStatus(val);
+                    onUpdate({...observation, status: val, showCustomStatus: false, customStatus: ''});
+                  }
+                }} style={{backgroundColor: GREEN, padding: 10, borderRadius: 8}}>
+                  <Icon name="plus" size={16} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
+          {/* Remarks */}
+          <View style={speciesDetailStyles.detailCard}>
+            <Text style={speciesDetailStyles.sectionTitle}>Remarks</Text>
+            <TextInput mode="outlined" placeholder="Add notes..."
+              value={observation.remark}
+              onChangeText={val => onUpdate({...observation, remark: val})}
+              outlineStyle={cardStyles.txtInputOutline}
+              style={[cardStyles.textInput, {height: 80}]}
+              textColor="#333" multiline />
+          </View>
+
+          {/* Photos Card */}
+          <View style={speciesDetailStyles.detailCard}>
+            <Text style={speciesDetailStyles.sectionTitle}>Photos</Text>
+            {(observation.imageUris || []).length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 10}}>
+                {(observation.imageUris || []).map((uri: string, photoIdx: number) => (
+                  <View key={photoIdx} style={{marginRight: 8, position: 'relative'}}>
+                    <Image source={{uri}} style={{width: 80, height: 80, borderRadius: 8}} />
+                    <TouchableOpacity style={cardStyles.removePhotoButton} onPress={() => removePhoto(photoIdx)} activeOpacity={0.8}>
+                      <MaterialIcon name="close" size={16} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+            <TouchableOpacity style={cardStyles.photoUploadArea} onPress={() => setShowPhotoModal(true)} activeOpacity={0.7}>
+              <View style={cardStyles.photoPlaceholder}>
+                <MaterialIcon name="add-a-photo" size={40} color="#CCC" />
+                <Text style={cardStyles.photoPlaceholderText}>
+                  {(observation.imageUris || []).length > 0 ? 'Add more photos' : 'Tap to upload or capture photos'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+
+        {/* Photo Picker Modal */}
+        <Modal visible={showPhotoModal} transparent animationType="fade">
+          <View style={cardStyles.imagePickerOverlay}>
+            <View style={cardStyles.imagePickerContainer}>
+              <Text style={cardStyles.imagePickerTitle}>Choose an option</Text>
+              <View style={cardStyles.imagePickerOptions}>
+                <TouchableOpacity style={cardStyles.imagePickerOption} onPress={handleCamera} activeOpacity={0.7}>
+                  <MaterialIcon name="photo-camera" size={50} color={GREEN} />
+                  <Text style={cardStyles.imagePickerOptionText}>Camera</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={cardStyles.imagePickerOption} onPress={handleGallery} activeOpacity={0.7}>
+                  <MaterialIcon name="photo-library" size={50} color={GREEN} />
+                  <Text style={cardStyles.imagePickerOptionText}>Gallery</Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity style={cardStyles.imagePickerCancelButton} onPress={() => setShowPhotoModal(false)}>
+                <Text style={cardStyles.imagePickerCancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {onDelete && (
+          <View style={speciesDetailStyles.deleteRow}>
+            <TouchableOpacity onPress={onDelete} style={speciesDetailStyles.deleteBtn}>
+              <Icon name="trash" size={16} color="#D32F2F" />
+              <Text style={speciesDetailStyles.deleteBtnText}>Remove this observation</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    </Modal>
   );
 };
 
@@ -692,6 +1060,11 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
 
   // Step 3: Bird Observations
   const [birdDataArray, setBirdDataArray] = useState<any[]>([]);
+
+  // eBird-like species list state
+  const [speciesSearchQuery, setSpeciesSearchQuery] = useState('');
+  const [selectedSpeciesForDetail, setSelectedSpeciesForDetail] = useState<any>(null);
+  const [showSpeciesDetailModal, setShowSpeciesDetailModal] = useState(false);
 
   // Submit state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1189,6 +1562,57 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
   const toggleBirdObservation = (id: string) =>
     setBirdDataArray(prev => prev.map((b: any) => b.id === id ? {...b, expanded: !b.expanded} : b));
 
+  // ===== eBird-like species list helpers =====
+  const addedSpeciesMap = useMemo(() => {
+    const map = new Map<string, any>();
+    birdDataArray.forEach((obs: any) => {
+      if (obs.species) map.set(obs.species, obs);
+    });
+    return map;
+  }, [birdDataArray]);
+
+  const filteredSpeciesList = useMemo(() => {
+    if (!speciesSearchQuery.trim()) return birdSpeciesData;
+    const q = speciesSearchQuery.toLowerCase();
+    return birdSpeciesData.filter((sp: any) => sp.label.toLowerCase().includes(q));
+  }, [speciesSearchQuery]);
+
+  const openSpeciesDetail = (speciesItem: any) => {
+    const existing = addedSpeciesMap.get(speciesItem.value);
+    if (existing) {
+      setSelectedSpeciesForDetail({...existing});
+    } else {
+      const newObs = createEmptyBirdObservation();
+      newObs.species = speciesItem.value;
+      setSelectedSpeciesForDetail(newObs);
+    }
+    setShowSpeciesDetailModal(true);
+  };
+
+  const saveSpeciesDetail = () => {
+    if (!selectedSpeciesForDetail) return;
+    const exists = birdDataArray.some((b: any) => b.id === selectedSpeciesForDetail.id);
+    if (exists) {
+      updateBirdObservation(selectedSpeciesForDetail);
+    } else {
+      setBirdDataArray(prev => [...prev, selectedSpeciesForDetail]);
+    }
+    setShowSpeciesDetailModal(false);
+    setSelectedSpeciesForDetail(null);
+  };
+
+  const removeSpeciesObservation = (speciesValue: string) => {
+    const obs = addedSpeciesMap.get(speciesValue);
+    if (obs) {
+      Alert.alert('Remove', 'Remove this bird observation?', [
+        {text: 'Cancel', style: 'cancel'},
+        {text: 'Remove', style: 'destructive', onPress: () => {
+          setBirdDataArray(prev => prev.filter((b: any) => b.id !== obs.id));
+        }},
+      ]);
+    }
+  };
+
   // ===== VALIDATION =====
   const validateStep1 = () => {
     setErrors({});
@@ -1212,9 +1636,6 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
     } else if (currentStep === 1 && validateStep2()) {
       setCurrentStep(2);
       setErrors({});
-      if (birdDataArray.length === 0) {
-        setBirdDataArray([createEmptyBirdObservation()]);
-      }
     }
   };
 
@@ -1425,68 +1846,93 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Survey Point Details</Text>
 
-        <Dropdown
-          style={[styles.formDropdown, focusStates.habitat && styles.dropdownFocused]}
-          placeholderStyle={styles.placeholderStyle} selectedTextStyle={styles.selectedTextStyle}
-          inputSearchStyle={styles.inputSearchStyle} iconStyle={styles.iconStyle}
-          itemTextStyle={{color: '#333'}} data={habitatTypeData} search maxHeight={300}
-          labelField="label" valueField="value" placeholder="Habitat type"
-          searchPlaceholder="Search..." value={habitatType}
-          onFocus={() => setFocus('habitat', true)} onBlur={() => setFocus('habitat', false)}
-          onChange={item => {
-            if (item.value === 'Other') {
-              setShowCustomInput({habitat: true});
-              setCustomInputValue('');
-            } else {
-              setHabitatType(item.value);
-              setShowCustomInput({});
+        {/* Habitat Type - Chips */}
+        <Text style={chipStyles.fieldLabel}>Habitat Type</Text>
+        <View style={chipStyles.chipRow}>
+          {habitatTypeData.map(opt => {
+            if (opt.value === 'Other') {
+              return (
+                <TouchableOpacity key="Other"
+                  onPress={() => { setShowCustomInput({habitat: true}); setCustomInputValue(''); }}
+                  style={[chipStyles.chip, showCustomInput.habitat && chipStyles.chipSelected]}
+                  activeOpacity={0.7}>
+                  <Icon name="plus" size={12} color={showCustomInput.habitat ? '#fff' : '#666'} style={{marginRight: 4}} />
+                  <Text style={[chipStyles.chipText, showCustomInput.habitat && chipStyles.chipTextSelected]}>Other</Text>
+                </TouchableOpacity>
+              );
             }
-            setFocus('habitat', false);
-          }}
-        />
+            const selected = habitatType === opt.value;
+            return (
+              <TouchableOpacity key={opt.value}
+                onPress={() => { setHabitatType(selected ? null : opt.value); setShowCustomInput({}); }}
+                style={[chipStyles.chip, selected && chipStyles.chipSelected]}
+                activeOpacity={0.7}>
+                <Text style={[chipStyles.chipText, selected && chipStyles.chipTextSelected]}>{opt.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
         {renderCustomInput('customHabitatTypes', 'habitat', 'habitat type')}
         {errors.habitatType && <Text style={styles.errorText}>{errors.habitatType}</Text>}
 
-        <Dropdown
-          style={[styles.formDropdown, focusStates.point && styles.dropdownFocused]}
-          placeholderStyle={styles.placeholderStyle} selectedTextStyle={styles.selectedTextStyle}
-          iconStyle={styles.iconStyle} itemTextStyle={{color: '#333'}} data={surveyPointData}
-          maxHeight={300} labelField="label" valueField="value" placeholder="Point" value={point}
-          onFocus={() => setFocus('point', true)} onBlur={() => setFocus('point', false)}
-          onChange={item => {
-            if (item.value === 'Other') {
-              setShowCustomInput({point: true});
-              setCustomInputValue('');
-            } else {
-              setPoint(item.value);
-              setShowCustomInput({});
+        {/* Survey Point - Chips */}
+        <Text style={[chipStyles.fieldLabel, {marginTop: 16}]}>Survey Point</Text>
+        <View style={chipStyles.chipRow}>
+          {surveyPointData.map(opt => {
+            if (opt.value === 'Other') {
+              return (
+                <TouchableOpacity key="Other"
+                  onPress={() => { setShowCustomInput({point: true}); setCustomInputValue(''); }}
+                  style={[chipStyles.chip, showCustomInput.point && chipStyles.chipSelected]}
+                  activeOpacity={0.7}>
+                  <Icon name="plus" size={12} color={showCustomInput.point ? '#fff' : '#666'} style={{marginRight: 4}} />
+                  <Text style={[chipStyles.chipText, showCustomInput.point && chipStyles.chipTextSelected]}>Other</Text>
+                </TouchableOpacity>
+              );
             }
-            setFocus('point', false);
-          }}
-        />
+            const selected = point === opt.value;
+            return (
+              <TouchableOpacity key={opt.value}
+                onPress={() => { setPoint(selected ? null : opt.value); setShowCustomInput({}); }}
+                style={[chipStyles.chip, selected && chipStyles.chipSelected]}
+                activeOpacity={0.7}>
+                <Text style={[chipStyles.chipText, selected && chipStyles.chipTextSelected]}>{opt.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
         {renderCustomInput('customPoints', 'point', 'point')}
 
-        <Dropdown
-          style={[styles.formDropdown, focusStates.tag && styles.dropdownFocused]}
-          placeholderStyle={styles.placeholderStyle} selectedTextStyle={styles.selectedTextStyle}
-          iconStyle={styles.iconStyle} itemTextStyle={{color: '#333'}} data={pointTagData}
-          maxHeight={300} labelField="label" valueField="value" placeholder="Point Tag" value={pointTag}
-          onFocus={() => setFocus('tag', true)} onBlur={() => setFocus('tag', false)}
-          onChange={item => {
-            if (item.value === 'Other') {
-              setShowCustomInput({tag: true});
-              setCustomInputValue('');
-            } else {
-              setPointTag(item.value);
-              setShowCustomInput({});
+        {/* Point Tag - Circle Chips */}
+        <Text style={[chipStyles.fieldLabel, {marginTop: 16}]}>Point Tag</Text>
+        <View style={chipStyles.chipRow}>
+          {pointTagData.map(opt => {
+            if (opt.value === 'Other') {
+              return (
+                <TouchableOpacity key="Other"
+                  onPress={() => { setShowCustomInput({tag: true}); setCustomInputValue(''); }}
+                  style={[chipStyles.chip, showCustomInput.tag && chipStyles.chipSelected]}
+                  activeOpacity={0.7}>
+                  <Icon name="plus" size={12} color={showCustomInput.tag ? '#fff' : '#666'} style={{marginRight: 4}} />
+                  <Text style={[chipStyles.chipText, showCustomInput.tag && chipStyles.chipTextSelected]}>Other</Text>
+                </TouchableOpacity>
+              );
             }
-            setFocus('tag', false);
-          }}
-        />
+            const selected = pointTag === opt.value;
+            return (
+              <TouchableOpacity key={opt.value}
+                onPress={() => { setPointTag(selected ? null : opt.value); setShowCustomInput({}); }}
+                style={[chipStyles.chipTag, selected && chipStyles.chipTagSelected]}
+                activeOpacity={0.7}>
+                <Text style={[chipStyles.chipTagText, selected && chipStyles.chipTagTextSelected]}>{opt.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
         {renderCustomInput('customPointTags', 'tag', 'point tag')}
 
         <TextInput mode="outlined" placeholder="Descriptor" value={descriptor} onChangeText={setDescriptor}
-          outlineStyle={styles.inputOutline} style={styles.formInput} textColor="#333" />
+          outlineStyle={styles.inputOutline} style={[styles.formInput, {marginTop: 16}]} textColor="#333" />
 
         <TextInput mode="outlined" placeholder="Latitude" value={latitude} onChangeText={setLatitude}
           keyboardType="numeric" outlineStyle={styles.inputOutline} style={styles.formInput} textColor="#333" />
@@ -1570,9 +2016,6 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
             saveDraft();
             setCurrentStep(2);
             setErrors({});
-            if (birdDataArray.length === 0) {
-              setBirdDataArray([createEmptyBirdObservation()]);
-            }
           }}
           style={styles.skipToBirdBtn}
           activeOpacity={0.8}>
@@ -1693,9 +2136,6 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
             saveDraft();
             setCurrentStep(2);
             setErrors({});
-            if (birdDataArray.length === 0) {
-              setBirdDataArray([createEmptyBirdObservation()]);
-            }
           }}
           style={styles.birdDetailBtn}
           activeOpacity={0.8}>
@@ -1703,8 +2143,8 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
             <Icon name="plus" size={16} color="#fff" />
           </View>
           <View style={styles.actionBtnTextWrap}>
-            <Text style={styles.actionBtnTitle}>Bird Detail Record</Text>
-            <Text style={styles.actionBtnSub}>Add bird observations to this survey</Text>
+            <Text style={styles.actionBtnTitle}>Add Observed Bird Data</Text>
+            <Text style={styles.actionBtnSub}>Select species from list and add counts</Text>
           </View>
           <Icon name="chevron-right" size={16} color={GREEN} />
         </TouchableOpacity>
@@ -1728,28 +2168,74 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
   );
 
   // ========================================
-  // RENDER STEP 3: Bird Detail Record
+  // RENDER STEP 3: Bird Detail Record (eBird-like)
   // ========================================
   const renderStepThree = () => (
     <View>
       <View style={styles.card}>
-        <View style={styles.cardTitleRow}>
-          <Text style={styles.cardTitle}>Bird Detail Record</Text>
-          <TouchableOpacity style={styles.addBirdSmallBtn} onPress={addBirdObservation}>
-            <Icon name="plus" size={18} color="#fff" />
-          </TouchableOpacity>
+        <Text style={styles.cardTitle}>Bird Detail Record</Text>
+
+        {/* Added species count summary */}
+        {birdDataArray.length > 0 && (
+          <View style={{backgroundColor: '#E8F5E9', borderRadius: 10, padding: 12, marginBottom: 12, flexDirection: 'row', alignItems: 'center'}}>
+            <MaterialIcon name="check-circle" size={20} color={GREEN_DARK} />
+            <Text style={{color: GREEN_DARK, fontWeight: '600', marginLeft: 8, fontSize: 14}}>
+              {birdDataArray.length} species added
+            </Text>
+          </View>
+        )}
+
+        {/* Search Bar */}
+        <View style={{flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0F0F0', borderRadius: 10, paddingHorizontal: 12, marginBottom: 12, height: 44}}>
+          <Icon name="search" size={16} color="#999" />
+          <TextInput
+            mode="flat"
+            placeholder="Add observation or find species"
+            value={speciesSearchQuery}
+            onChangeText={setSpeciesSearchQuery}
+            style={{flex: 1, backgroundColor: 'transparent', fontSize: 14, height: 44, marginLeft: 4}}
+            underlineColor="transparent"
+            activeUnderlineColor="transparent"
+            textColor="#333"
+            dense
+          />
+          {speciesSearchQuery ? (
+            <TouchableOpacity onPress={() => setSpeciesSearchQuery('')}>
+              <Icon name="times-circle" size={16} color="#999" />
+            </TouchableOpacity>
+          ) : null}
         </View>
 
-        {birdDataArray.map((obs: any, idx: number) => (
-          <BirdObservationCard
-            key={obs.id} observation={obs} index={idx}
-            onUpdate={updateBirdObservation}
-            onDelete={() => deleteBirdObservation(obs.id)}
-            onToggle={() => toggleBirdObservation(obs.id)}
-            customBirdStatuses={customBirdStatuses}
-            onAddCustomStatus={(val: string) => addCustomCategory('customBirdStatuses', val)}
+        {/* Species List */}
+        <View style={{maxHeight: 400, borderRadius: 8, borderWidth: 1, borderColor: '#E0E0E0', overflow: 'hidden'}}>
+          <FlatList
+            data={filteredSpeciesList}
+            keyExtractor={(item: any) => item.value}
+            renderItem={({item}: any) => {
+              const existing = addedSpeciesMap.get(item.value);
+              return (
+                <SpeciesListRow
+                  item={item}
+                  isAdded={!!existing}
+                  addedCount={existing?.count || ''}
+                  onPress={() => openSpeciesDetail(item)}
+                  onRemove={() => removeSpeciesObservation(item.value)}
+                />
+              );
+            }}
+            ItemSeparatorComponent={() => <View style={{height: 1, backgroundColor: '#F0F0F0'}} />}
+            initialNumToRender={20}
+            maxToRenderPerBatch={20}
+            windowSize={10}
+            getItemLayout={(_data: any, index: number) => ({length: 60, offset: 60 * index, index})}
+            ListEmptyComponent={
+              <View style={{padding: 20, alignItems: 'center'}}>
+                <Text style={{color: '#999', fontSize: 14}}>No species found</Text>
+              </View>
+            }
+            keyboardShouldPersistTaps="handled"
           />
-        ))}
+        </View>
       </View>
 
       {/* Action Buttons */}
@@ -1772,7 +2258,7 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
             ) : (
               <>
                 <Icon name="cloud-upload" size={18} color="#FFFFFF" />
-                <Text style={styles.submitBirdBtnText}>Submit Bird Record</Text>
+                <Text style={styles.submitBirdBtnText}>Submit Full Survey</Text>
               </>
             )}
           </TouchableOpacity>
@@ -1784,6 +2270,25 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
         </TouchableOpacity>
       </View>
 
+      {/* Species Detail Modal */}
+      <SpeciesDetailModal
+        visible={showSpeciesDetailModal}
+        observation={selectedSpeciesForDetail}
+        onUpdate={(updated: any) => setSelectedSpeciesForDetail(updated)}
+        onSave={saveSpeciesDetail}
+        onClose={() => {
+          setShowSpeciesDetailModal(false);
+          setSelectedSpeciesForDetail(null);
+        }}
+        onDelete={selectedSpeciesForDetail && addedSpeciesMap.has(selectedSpeciesForDetail.species) ? () => {
+          const id = selectedSpeciesForDetail.id;
+          setBirdDataArray(prev => prev.filter((b: any) => b.id !== id));
+          setShowSpeciesDetailModal(false);
+          setSelectedSpeciesForDetail(null);
+        } : null}
+        customBirdStatuses={customBirdStatuses}
+        onAddCustomStatus={(val: string) => addCustomCategory('customBirdStatuses', val)}
+      />
     </View>
   );
 
@@ -2087,6 +2592,246 @@ const cardStyles = StyleSheet.create({
     color: '#666',
     fontSize: 13,
     fontStyle: 'italic',
+  },
+});
+
+// ========================================
+// STYLES: Species List (eBird-like)
+// ========================================
+const speciesListStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    height: 60,
+    backgroundColor: 'white',
+  },
+  rowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  addIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: GREEN,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  addIconActive: {
+    backgroundColor: GREEN,
+    borderColor: GREEN,
+  },
+  countBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  nameContainer: {
+    flex: 1,
+  },
+  commonName: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#333',
+  },
+  scientificName: {
+    fontSize: 12,
+    color: '#888',
+    fontStyle: 'italic',
+    marginTop: 1,
+  },
+  removeBtn: {
+    padding: 6,
+  },
+});
+
+// ========================================
+// STYLES: Species Detail Modal
+// ========================================
+const speciesDetailStyles = StyleSheet.create({
+  header: {
+    backgroundColor: GREEN,
+    paddingVertical: 15,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  headerSubtitle: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 13,
+    fontStyle: 'italic',
+  },
+  countCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.15, shadowRadius: 8},
+      android: {elevation: 6},
+    }),
+  },
+  countLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  countRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  countInput: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    width: 120,
+    backgroundColor: 'transparent',
+    color: '#333',
+  },
+  detailCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: {shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.15, shadowRadius: 8},
+      android: {elevation: 6},
+    }),
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+  },
+  deleteRow: {
+    padding: 16,
+    paddingBottom: 30,
+    alignItems: 'center',
+  },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  deleteBtnText: {
+    color: '#D32F2F',
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 8,
+  },
+});
+
+// ========================================
+// STYLES: Chip / Radio Buttons
+// ========================================
+const chipStyles = StyleSheet.create({
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  // Standard chip (Maturity, Behaviour, Status)
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#D0D0D0',
+    backgroundColor: '#FAFAFA',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chipSelected: {
+    backgroundColor: GREEN,
+    borderColor: GREEN,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#555',
+  },
+  chipTextSelected: {
+    color: '#FFFFFF',
+  },
+  // Circle chip (Sex - M/F/U)
+  chipCircle: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 4,
+  },
+  chipCircleSelected: {},
+  chipCircleText: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: '#D0D0D0',
+    backgroundColor: '#FAFAFA',
+    textAlign: 'center',
+    lineHeight: 42,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#555',
+    overflow: 'hidden',
+  },
+  chipCircleTextSelected: {
+    backgroundColor: GREEN,
+    borderColor: GREEN,
+    color: '#FFFFFF',
+  },
+  chipCircleLabel: {
+    fontSize: 11,
+    color: '#888',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  // Wide chip (Identification - Sighting/Listening)
+  chipWide: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#D0D0D0',
+    backgroundColor: '#FAFAFA',
+  },
+  chipWideSelected: {
+    backgroundColor: GREEN,
+    borderColor: GREEN,
+  },
+  chipWideText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#555',
+  },
+  chipWideTextSelected: {
+    color: '#FFFFFF',
   },
 });
 
@@ -2611,5 +3356,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700' as const,
     color: '#FFFFFF',
+  },
+  addBirdDataBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: GREEN,
+    borderStyle: 'dashed' as const,
+  },
+  addBirdDataBtnText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: GREEN_DARK,
+    marginLeft: 12,
   },
 });
