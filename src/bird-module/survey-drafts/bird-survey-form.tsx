@@ -36,6 +36,7 @@ const {width} = Dimensions.get('window');
 // ========================================
 const GREEN = '#4A7856';
 const GREEN_DARK = '#2E7D32';
+const MINT_GREEN = '#66BB6A';
 
 const habitatTypes = [
   {label: 'Tanks', value: 'Tanks'},
@@ -515,121 +516,6 @@ const BirdObservationCard = ({observation, index, onUpdate, onDelete, onToggle, 
 // ========================================
 // WEATHER CONDITION MODAL
 // ========================================
-const WeatherConditionModal = ({visible, onClose, onSelect}: any) => {
-  const [cloudCover, setCloudCover] = useState<string | null>(null);
-  const [rain, setRain] = useState<string | null>(null);
-  const [wind, setWind] = useState<string | null>(null);
-  const [sunshine, setSunshine] = useState<string | null>(null);
-  const [visibilityVal, setVisibilityVal] = useState<string | null>(null);
-  const [summary, setSummary] = useState('');
-
-  const updateSummary = (c: string | null, r: string | null, w: string | null, s: string | null, v: string | null) => {
-    const parts = [];
-    if (c) parts.push(`Cloud - ${c}`);
-    if (r) parts.push(`Rain - ${r}`);
-    if (w) parts.push(`Wind - ${w}`);
-    if (s) parts.push(`Sunshine - ${s}`);
-    if (v) parts.push(`Visibility - ${v}`);
-    setSummary(parts.join(', '));
-  };
-
-  const modalDd = {height: 50, borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 8, paddingHorizontal: 8, backgroundColor: 'white', marginBottom: 10, width: '100%' as const};
-  const containerS = {backgroundColor: 'white', borderColor: '#ccc', borderWidth: 1, borderRadius: 8};
-
-  return (
-    <Modal visible={visible} transparent animationType="slide">
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <TouchableOpacity style={styles.modalCloseBtn} onPress={onClose}>
-            <Icon name="close" size={24} color="#333" />
-          </TouchableOpacity>
-          <Text style={styles.modalTitle}>{summary || 'Select Weather Condition'}</Text>
-          <Dropdown style={modalDd} placeholderStyle={{color: 'black'}} selectedTextStyle={{color: 'black'}} itemTextStyle={{color: 'black'}} containerStyle={containerS}
-            data={cloudCoverOptions} labelField="label" valueField="value" placeholder="Cloud Cover" value={cloudCover}
-            onChange={item => { setCloudCover(p => p === item.value ? null : item.value); updateSummary(item.value, rain, wind, sunshine, visibilityVal); }} />
-          <Dropdown style={modalDd} placeholderStyle={{color: 'black'}} selectedTextStyle={{color: 'black'}} itemTextStyle={{color: 'black'}} containerStyle={containerS}
-            data={rainOptions} labelField="label" valueField="value" placeholder="Rain" value={rain}
-            onChange={item => { setRain(p => p === item.value ? null : item.value); updateSummary(cloudCover, item.value, wind, sunshine, visibilityVal); }} />
-          <Dropdown style={modalDd} placeholderStyle={{color: 'black'}} selectedTextStyle={{color: 'black'}} itemTextStyle={{color: 'black'}} containerStyle={containerS}
-            data={windOptions} labelField="label" valueField="value" placeholder="Wind" value={wind}
-            onChange={item => { setWind(p => p === item.value ? null : item.value); updateSummary(cloudCover, rain, item.value, sunshine, visibilityVal); }} />
-          <Dropdown style={modalDd} placeholderStyle={{color: 'black'}} selectedTextStyle={{color: 'black'}} itemTextStyle={{color: 'black'}} containerStyle={containerS}
-            data={sunshineOptions} labelField="label" valueField="value" placeholder="Sunshine" value={sunshine}
-            onChange={item => { setSunshine(p => p === item.value ? null : item.value); updateSummary(cloudCover, rain, wind, item.value, visibilityVal); }} />
-          <Dropdown style={modalDd} placeholderStyle={{color: 'black'}} selectedTextStyle={{color: 'black'}} itemTextStyle={{color: 'black'}} containerStyle={containerS}
-            data={visibilityOptions} labelField="label" valueField="value" placeholder="Visibility" value={visibilityVal}
-            onChange={item => { setVisibilityVal(p => p === item.value ? null : item.value); updateSummary(cloudCover, rain, wind, sunshine, item.value); }} />
-          <Button mode="contained" onPress={() => { onSelect(summary || ''); onClose(); }} style={styles.modalButton} buttonColor={GREEN} textColor="white">Save</Button>
-        </View>
-      </View>
-    </Modal>
-  );
-};
-
-// ========================================
-// WATER AVAILABILITY MODAL
-// ========================================
-const WaterAvailabilityModal = ({visible, onClose, onSelect}: any) => {
-  const [onLand, setOnLand] = useState<string | null>(null);
-  const [onLandWaterLevel, setOnLandWaterLevel] = useState('');
-  const [waterReservoir, setWaterReservoir] = useState<string | null>(null);
-  const [waterLevel, setWaterLevel] = useState('');
-
-  const modalDd = {height: 50, borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 8, paddingHorizontal: 8, backgroundColor: 'white', marginBottom: 10, width: '100%' as const};
-  const containerS = {backgroundColor: 'white', borderColor: '#ccc', borderWidth: 1, borderRadius: 8};
-
-  const buildResult = () => {
-    const parts = [];
-    if (onLand === 'Yes' && onLandWaterLevel) parts.push(`On Land - Yes (Level: ${onLandWaterLevel} cm)`);
-    else if (onLand) parts.push(`On Land - ${onLand}`);
-    if (waterReservoir === 'Yes' && waterLevel) parts.push(`Water Source - Yes (Level: ${waterLevel} cm)`);
-    else if (waterReservoir) parts.push(`Water Source - ${waterReservoir}`);
-    return parts.join(', ');
-  };
-
-  return (
-    <>
-      <Modal visible={visible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <TouchableOpacity style={styles.modalCloseBtn} onPress={onClose}>
-              <Icon name="close" size={24} color="#333" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Select Water Availability</Text>
-            <Dropdown style={modalDd} placeholderStyle={{color: 'black'}} selectedTextStyle={{color: 'black'}} itemTextStyle={{color: 'black'}} containerStyle={containerS}
-              data={yesNoOptions} labelField="label" valueField="value" placeholder="On Land" value={onLand}
-              onChange={item => setOnLand(p => p === item.value ? null : item.value)} />
-            {onLand === 'Yes' && (
-              <View style={{width: '100%', marginBottom: 10}}>
-                <TextInput mode="outlined" placeholder="Water Level"
-                  value={onLandWaterLevel}
-                  onChangeText={text => setOnLandWaterLevel(text.replace(/[^0-9.]/g, ''))}
-                  keyboardType="numeric" style={{width: '100%', backgroundColor: 'white'}} textColor="#333"
-                  right={<TextInput.Affix text="cm" textStyle={{color: '#666'}} />}
-                />
-              </View>
-            )}
-            <Dropdown style={modalDd} placeholderStyle={{color: 'black'}} selectedTextStyle={{color: 'black'}} itemTextStyle={{color: 'black'}} containerStyle={containerS}
-              data={yesNoOptions} labelField="label" valueField="value" placeholder="Water Source" value={waterReservoir}
-              onChange={item => setWaterReservoir(p => p === item.value ? null : item.value)} />
-            {waterReservoir === 'Yes' && (
-              <View style={{width: '100%', marginBottom: 10}}>
-                <TextInput mode="outlined" placeholder="Water Level"
-                  value={waterLevel}
-                  onChangeText={text => setWaterLevel(text.replace(/[^0-9.]/g, ''))}
-                  keyboardType="numeric" style={{width: '100%', backgroundColor: 'white'}} textColor="#333"
-                  right={<TextInput.Affix text="cm" textStyle={{color: '#666'}} />}
-                />
-              </View>
-            )}
-            <Button mode="contained" onPress={() => { onSelect(buildResult()); onClose(); }}
-              style={styles.modalButton} buttonColor={GREEN} textColor="white">Save</Button>
-          </View>
-        </View>
-      </Modal>
-    </>
-  );
-};
 
 // ========================================
 // SPECIES LIST ROW (eBird-like)
@@ -751,9 +637,6 @@ const SpeciesDetailModal = ({
               <Text style={speciesDetailStyles.headerSubtitle}>{parsed.scientific}</Text>
             ) : null}
           </View>
-          <TouchableOpacity onPress={onSave} disabled={!canSave} style={{padding: 4}}>
-            <Text style={{color: canSave ? 'white' : 'rgba(255,255,255,0.5)', fontSize: 16, fontWeight: 'bold'}}>Done</Text>
-          </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={{padding: 16, paddingBottom: 100}} keyboardShouldPersistTaps="handled">
@@ -993,6 +876,14 @@ const SpeciesDetailModal = ({
             </TouchableOpacity>
           </View>
         )}
+
+        {/* Done Button at Bottom Center */}
+        <View style={speciesDetailStyles.doneButtonContainer}>
+          <TouchableOpacity onPress={onSave} disabled={!canSave} style={[speciesDetailStyles.doneButton, !canSave && speciesDetailStyles.doneButtonDisabled]}>
+            <Icon name="check" size={18} color="#FFFFFF" />
+            <Text style={speciesDetailStyles.doneButtonText}>Done</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </Modal>
   );
@@ -1049,9 +940,18 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
   const [selectedEndTime, setSelectedEndTime] = useState(new Date());
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
   const [selectedWeatherString, setSelectedWeatherString] = useState('');
-  const [isWeatherModalVisible, setWeatherModalVisible] = useState(false);
   const [selectedWaterString, setSelectedWaterString] = useState('');
-  const [isWaterModalVisible, setWaterModalVisible] = useState(false);
+  // Inline weather fields
+  const [cloudCover, setCloudCover] = useState<string | null>(null);
+  const [rain, setRain] = useState<string | null>(null);
+  const [wind, setWind] = useState<string | null>(null);
+  const [sunshine, setSunshine] = useState<string | null>(null);
+  const [visibilityVal, setVisibilityVal] = useState<string | null>(null);
+  // Inline water fields
+  const [onLandWater, setOnLandWater] = useState<string | null>(null);
+  const [onLandWaterLevel, setOnLandWaterLevel] = useState('');
+  const [waterSource, setWaterSource] = useState<string | null>(null);
+  const [waterSourceLevel, setWaterSourceLevel] = useState('');
   const [paddySeason, setPaddySeason] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<string | null>(null);
   const [vegetationStatus, setVegetationStatus] = useState<string | null>(null);
@@ -1088,6 +988,15 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
     setSelectedEndTime(new Date());
     setSelectedWeatherString('');
     setSelectedWaterString('');
+    setCloudCover(null);
+    setRain(null);
+    setWind(null);
+    setSunshine(null);
+    setVisibilityVal(null);
+    setOnLandWater(null);
+    setOnLandWaterLevel('');
+    setWaterSource(null);
+    setWaterSourceLevel('');
     setPaddySeason(null);
     setVisibility(null);
     setVegetationStatus(null);
@@ -1096,6 +1005,27 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
     setBirdDataArray([]);
     setEditId(null);
   };
+
+  // Auto-build weather string from individual chip selections
+  useEffect(() => {
+    const parts = [];
+    if (cloudCover) parts.push(`Cloud - ${cloudCover}`);
+    if (rain) parts.push(`Rain - ${rain}`);
+    if (wind) parts.push(`Wind - ${wind}`);
+    if (sunshine) parts.push(`Sunshine - ${sunshine}`);
+    if (visibilityVal) parts.push(`Visibility - ${visibilityVal}`);
+    setSelectedWeatherString(parts.join(', '));
+  }, [cloudCover, rain, wind, sunshine, visibilityVal]);
+
+  // Auto-build water string from individual chip selections
+  useEffect(() => {
+    const parts = [];
+    if (onLandWater === 'Yes' && onLandWaterLevel) parts.push(`On Land - Yes (Level: ${onLandWaterLevel} cm)`);
+    else if (onLandWater) parts.push(`On Land - ${onLandWater}`);
+    if (waterSource === 'Yes' && waterSourceLevel) parts.push(`Water Source - Yes (Level: ${waterSourceLevel} cm)`);
+    else if (waterSource) parts.push(`Water Source - ${waterSource}`);
+    setSelectedWaterString(parts.join(', '));
+  }, [onLandWater, onLandWaterLevel, waterSource, waterSourceLevel]);
 
   // Focus states
   const [focusStates, setFocusStates] = useState<{[key: string]: boolean}>({});
@@ -1107,7 +1037,7 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
     requestLocationPermission();
     initUserData();
     const subscription = NetInfo.addEventListener(state => {
-      if (state.isConnected) retryFailedSubmissions();
+      if (state.isConnected) syncPendingBirdSurveys();
     });
     return () => subscription();
   }, []);
@@ -1270,6 +1200,15 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
       if (draftData.weather) setSelectedWeatherString(draftData.weather);
       if (draftData.visibility) setVisibility(draftData.visibility);
       if (draftData.water) setSelectedWaterString(draftData.water);
+      if (draftData.cloudCover) setCloudCover(draftData.cloudCover);
+      if (draftData.rain) setRain(draftData.rain);
+      if (draftData.wind) setWind(draftData.wind);
+      if (draftData.sunshine) setSunshine(draftData.sunshine);
+      if (draftData.visibilityVal) setVisibilityVal(draftData.visibilityVal);
+      if (draftData.onLandWater) setOnLandWater(draftData.onLandWater);
+      if (draftData.onLandWaterLevel) setOnLandWaterLevel(draftData.onLandWaterLevel);
+      if (draftData.waterSource) setWaterSource(draftData.waterSource);
+      if (draftData.waterSourceLevel) setWaterSourceLevel(draftData.waterSourceLevel);
       if (draftData.paddySeason) setPaddySeason(draftData.paddySeason);
       if (draftData.vegetationStatus) setVegetationStatus(draftData.vegetationStatus);
       if (draftData.dominantVegetation) setDominantVegetation(draftData.dominantVegetation);
@@ -1342,6 +1281,8 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
     weather: selectedWeatherString,
     visibility,
     water: selectedWaterString,
+    cloudCover, rain, wind, sunshine, visibilityVal,
+    onLandWater, onLandWaterLevel, waterSource, waterSourceLevel,
     paddySeason, vegetationStatus, dominantVegetation, imageUri,
     birdDataArray, currentStep,
   });
@@ -1411,8 +1352,6 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
     try {
       const db = await getDatabase();
       db.transaction((tx: any) => {
-        // Drop and recreate to fix schema mismatches
-        tx.executeSql('DROP TABLE IF EXISTS bird_survey;');
         tx.executeSql(
           `CREATE TABLE IF NOT EXISTS bird_survey (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1420,21 +1359,33 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
             latitude TEXT, longitude TEXT, date TEXT, observers TEXT,
             startTime TEXT, endTime TEXT, weather TEXT, water TEXT,
             season TEXT, statusOfVegy TEXT, descriptor TEXT, radiusOfArea TEXT,
-            remark TEXT, imageUri TEXT
-          );`, [], () => {}, (_: any, e: any) => console.log('Error:', e),
+            dominantVegetation TEXT, remark TEXT, imageUri TEXT, email TEXT,
+            sync_status TEXT DEFAULT 'pending',
+            server_id TEXT
+          );`, [], () => {}, (_: any, e: any) => console.log('Error creating bird_survey:', e),
         );
+        // Add sync_status column if upgrading from old schema
+        tx.executeSql('ALTER TABLE bird_survey ADD COLUMN sync_status TEXT DEFAULT \'pending\';',
+          [], () => {}, () => {});
+        tx.executeSql('ALTER TABLE bird_survey ADD COLUMN server_id TEXT;',
+          [], () => {}, () => {});
+        tx.executeSql('ALTER TABLE bird_survey ADD COLUMN email TEXT;',
+          [], () => {}, () => {});
+        tx.executeSql('ALTER TABLE bird_survey ADD COLUMN dominantVegetation TEXT;',
+          [], () => {}, () => {});
+
         tx.executeSql(
           `CREATE TABLE IF NOT EXISTS bird_observations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             uniqueId TEXT, species TEXT, count TEXT, maturity TEXT,
             sex TEXT, behaviour TEXT, identification TEXT, status TEXT,
             remarks TEXT, imageUri TEXT
-          );`, [], () => {}, (_: any, e: any) => console.log('Error:', e),
+          );`, [], () => {}, (_: any, e: any) => console.log('Error creating bird_observations:', e),
         );
         tx.executeSql(
           `CREATE TABLE IF NOT EXISTS failed_submissions (
             id INTEGER PRIMARY KEY AUTOINCREMENT, formData TEXT
-          );`, [], () => {}, (_: any, e: any) => console.log('Error:', e),
+          );`, [], () => {}, (_: any, e: any) => console.log('Error creating failed_submissions:', e),
         );
         tx.executeSql(
           `CREATE TABLE IF NOT EXISTS bird_drafts (
@@ -1446,7 +1397,7 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
             lastModified TEXT,
             currentStep INTEGER DEFAULT 0,
             formData TEXT
-          );`, [], () => {}, (_: any, e: any) => console.log('Error:', e),
+          );`, [], () => {}, (_: any, e: any) => console.log('Error creating bird_drafts:', e),
         );
       });
     } catch (error) {
@@ -1477,38 +1428,128 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
       .catch(error => console.warn(error.code, error.message));
   };
 
-  // ===== FAILED SUBMISSIONS =====
-  const retryFailedSubmissions = async () => {
-    const db = await getDatabase();
-    db.transaction((tx: any) => {
-      tx.executeSql('SELECT * FROM failed_submissions', [], (_: any, results: any) => {
-        for (let i = 0; i < results.rows.length; i++) {
-          const row = results.rows.item(i);
-          const formData = JSON.parse(row.formData);
-          axios.post(`${API_URL}/form-entry`, formData)
-            .then(response => {
-              deleteFailedSubmission(row.id);
-              const addedId = response.data._id || response.data.formEntry?._id;
-              if (addedId) uploadImageToServer(formData.imageUri, addedId);
-            })
-            .catch(() => {});
-        }
+  // ===== SYNC PENDING SURVEYS =====
+  const syncPendingBirdSurveys = async () => {
+    try {
+      const netState = await NetInfo.fetch();
+      if (!netState.isConnected || !netState.isInternetReachable) return;
+
+      const db = await getDatabase();
+      db.transaction((tx: any) => {
+        // Sync new surveys (pending)
+        tx.executeSql(
+          'SELECT * FROM bird_survey WHERE sync_status = ?', ['pending'],
+          (_: any, results: any) => {
+            for (let i = 0; i < results.rows.length; i++) {
+              const row = results.rows.item(i);
+              // Get bird observations for this survey
+              tx.executeSql(
+                'SELECT * FROM bird_observations WHERE uniqueId = ?', [row.uniqueId],
+                (_: any, obsResults: any) => {
+                  const birdObservations = [];
+                  for (let j = 0; j < obsResults.rows.length; j++) {
+                    const obs = obsResults.rows.item(j);
+                    birdObservations.push({
+                      uniqueId: obs.uniqueId, species: obs.species, count: obs.count,
+                      maturity: obs.maturity, sex: obs.sex, behaviour: obs.behaviour,
+                      identification: obs.identification, status: obs.status,
+                      latitude: row.latitude, longitude: row.longitude,
+                      weather: row.weather, waterConditions: row.water,
+                      remarks: obs.remarks, imageUri: obs.imageUri,
+                    });
+                  }
+                  const formData = {
+                    uniqueId: row.uniqueId, email: row.email, habitatType: row.habitatType,
+                    point: row.point, pointTag: row.pointTag, latitude: row.latitude,
+                    longitude: row.longitude, date: row.date, observers: row.observers,
+                    startTime: row.startTime, endTime: row.endTime, weather: row.weather,
+                    visibility: '', water: row.water, season: row.season,
+                    statusOfVegy: row.statusOfVegy, dominantVegetation: row.dominantVegetation || '',
+                    descriptor: row.descriptor, radiusOfArea: row.radiusOfArea,
+                    remark: row.remark, imageUri: row.imageUri, birdObservations,
+                  };
+                  axios.post(`${API_URL}/form-entry`, formData)
+                    .then(response => {
+                      const addedId = response.data._id || response.data.formEntry?._id;
+                      if (addedId) {
+                        updateSyncStatus(row.uniqueId, 'synced', addedId);
+                        uploadImageToServer(row.imageUri, addedId);
+                      }
+                      console.log('Synced survey:', row.uniqueId);
+                    })
+                    .catch(err => console.log('Sync failed for:', row.uniqueId, err?.message));
+                },
+              );
+            }
+          },
+        );
+
+        // Sync updated surveys (pending_update)
+        tx.executeSql(
+          'SELECT * FROM bird_survey WHERE sync_status = ? AND server_id IS NOT NULL', ['pending_update'],
+          (_: any, results: any) => {
+            for (let i = 0; i < results.rows.length; i++) {
+              const row = results.rows.item(i);
+              tx.executeSql(
+                'SELECT * FROM bird_observations WHERE uniqueId = ?', [row.uniqueId],
+                (_: any, obsResults: any) => {
+                  const birdObservations = [];
+                  for (let j = 0; j < obsResults.rows.length; j++) {
+                    const obs = obsResults.rows.item(j);
+                    birdObservations.push({
+                      uniqueId: obs.uniqueId, species: obs.species, count: obs.count,
+                      maturity: obs.maturity, sex: obs.sex, behaviour: obs.behaviour,
+                      identification: obs.identification, status: obs.status,
+                      latitude: row.latitude, longitude: row.longitude,
+                      weather: row.weather, waterConditions: row.water,
+                      remarks: obs.remarks, imageUri: obs.imageUri,
+                    });
+                  }
+                  const formData = {
+                    uniqueId: row.uniqueId, email: row.email, habitatType: row.habitatType,
+                    point: row.point, pointTag: row.pointTag, latitude: row.latitude,
+                    longitude: row.longitude, date: row.date, observers: row.observers,
+                    startTime: row.startTime, endTime: row.endTime, weather: row.weather,
+                    visibility: '', water: row.water, season: row.season,
+                    statusOfVegy: row.statusOfVegy, dominantVegetation: row.dominantVegetation || '',
+                    descriptor: row.descriptor, radiusOfArea: row.radiusOfArea,
+                    remark: row.remark, imageUri: row.imageUri, birdObservations,
+                  };
+                  axios.put(`${API_URL}/form-entry/${row.server_id}`, formData)
+                    .then(() => {
+                      updateSyncStatus(row.uniqueId, 'synced');
+                      console.log('Synced update for:', row.uniqueId);
+                    })
+                    .catch(err => console.log('Update sync failed for:', row.uniqueId, err?.message));
+                },
+              );
+            }
+          },
+        );
+
+        // Also retry any old failed_submissions from before the migration
+        tx.executeSql('SELECT * FROM failed_submissions', [], (_: any, results: any) => {
+          for (let i = 0; i < results.rows.length; i++) {
+            const row = results.rows.item(i);
+            try {
+              const formData = JSON.parse(row.formData);
+              axios.post(`${API_URL}/form-entry`, formData)
+                .then(response => {
+                  const addedId = response.data._id || response.data.formEntry?._id;
+                  if (addedId) uploadImageToServer(formData.imageUri, addedId);
+                  // Delete from old table after successful sync
+                  db.transaction((dtx: any) => {
+                    dtx.executeSql('DELETE FROM failed_submissions WHERE id = ?', [row.id]);
+                  });
+                })
+                .catch(() => {});
+            } catch (e) {}
+          }
+        });
       });
-    });
-  };
-
-  const deleteFailedSubmission = async (id: number) => {
-    const db = await getDatabase();
-    db.transaction((tx: any) => {
-      tx.executeSql('DELETE FROM failed_submissions WHERE id = ?', [id]);
-    });
-  };
-
-  const storeFailedSubmission = async (formData: any) => {
-    const db = await getDatabase();
-    db.transaction((tx: any) => {
-      tx.executeSql('INSERT INTO failed_submissions (formData) VALUES (?)', [JSON.stringify(formData)]);
-    });
+    } catch (error) {
+      console.log('syncPendingBirdSurveys error:', error);
+    }
   };
 
   // ===== IMAGE UPLOAD =====
@@ -1687,63 +1728,88 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
       })),
     };
 
-    // Edit mode: PUT request
+    // Edit mode: save locally, then try PUT
     if (editId) {
-      try {
-        const response = await axios.put(`${API_URL}/form-entry/${editId}`, formData);
-        setIsSubmitting(false);
-        if (response.status === 200) {
-          showAlert('success', 'Survey updated successfully', 'Success', () => onEditComplete?.());
+      const netState = await NetInfo.fetch();
+      const isOnline = netState.isConnected && netState.isInternetReachable;
+
+      if (isOnline) {
+        try {
+          const response = await axios.put(`${API_URL}/form-entry/${editId}`, formData);
+          setIsSubmitting(false);
+          if (response.status === 200) {
+            showAlert('success', 'Survey updated and synced successfully!', 'Success', () => onEditComplete?.());
+          }
+        } catch (error: any) {
+          // Save edit locally for later sync
+          await saveFormDataSQL(formData, 'pending_update');
+          setIsSubmitting(false);
+          showAlert('success', 'Survey update saved locally. It will sync when you\'re back online.', 'Saved Offline', () => onEditComplete?.());
         }
-      } catch (error: any) {
+      } else {
+        // Offline: save edit locally
+        await saveFormDataSQL(formData, 'pending_update');
         setIsSubmitting(false);
-        console.log('Update error:', error?.message);
-        showAlert('error', 'Failed to update survey');
+        showAlert('success', 'Survey update saved locally. It will sync when you\'re back online.', 'Saved Offline', () => onEditComplete?.());
       }
       return;
     }
 
-    // Create mode: save locally first, then POST
-    await saveFormDataSQL(formData);
+    // Create mode: ALWAYS save to SQLite first (offline-first)
+    await saveFormDataSQL(formData, 'pending');
+    if (existingDraftId) await deleteDraft(existingDraftId);
     console.log('Local save completed for uniqueId:', formData.uniqueId);
 
-    try {
-      const response = await axios.post(`${API_URL}/form-entry`, formData);
+    // Check network and try to sync immediately
+    const netState = await NetInfo.fetch();
+    const isOnline = netState.isConnected && netState.isInternetReachable;
+
+    if (isOnline) {
+      try {
+        const response = await axios.post(`${API_URL}/form-entry`, formData);
+        const addedId = response.data._id || response.data.formEntry?._id;
+        if (addedId) {
+          await updateSyncStatus(formData.uniqueId, 'synced', addedId);
+          uploadImageToServer(imageUri, addedId);
+        }
+        setIsSubmitting(false);
+        showAlert('success', 'Survey submitted and synced successfully!', 'Synced');
+      } catch (error: any) {
+        // Saved locally, will retry later
+        setIsSubmitting(false);
+        console.log('Server sync failed, saved locally:', error?.message);
+        showAlert('success', 'Survey saved locally. It will sync automatically when you\'re back online.', 'Saved Offline');
+      }
+    } else {
+      // Offline: already saved locally
       setIsSubmitting(false);
-      const addedId = response.data._id || response.data.formEntry?._id;
-      if (addedId) uploadImageToServer(imageUri, addedId);
-      if (existingDraftId) await deleteDraft(existingDraftId);
-      setShowSuccessAlert(true);
-    } catch (error: any) {
-      setIsSubmitting(false);
-      console.log('Submit error:', error?.message);
-      console.log('Server response:', error?.response?.status, error?.response?.data);
-      storeFailedSubmission(formData);
-      if (existingDraftId) await deleteDraft(existingDraftId);
-      setShowSuccessAlert(true);
+      showAlert('success', 'Survey saved locally. It will sync automatically when you\'re back online.', 'Saved Offline');
     }
   };
 
-  const saveFormDataSQL = (formData: any): Promise<void> => {
+  const saveFormDataSQL = (formData: any, syncStatus: string = 'pending'): Promise<void> => {
     return new Promise(async (resolve) => {
       try {
         const db = await getDatabase();
         db.transaction(
           (tx: any) => {
-            // Insert survey
+            // Insert survey with sync_status
             tx.executeSql(
               `INSERT INTO bird_survey (
                 uniqueId, habitatType, point, pointTag, latitude, longitude,
                 date, observers, startTime, endTime, weather, water, season,
-                statusOfVegy, descriptor, radiusOfArea, remark, imageUri
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+                statusOfVegy, descriptor, radiusOfArea, dominantVegetation,
+                remark, imageUri, email, sync_status
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
               [
                 formData.uniqueId, formData.habitatType || '',
                 formData.point || '', formData.pointTag || '', formData.latitude || '', formData.longitude || '',
                 formData.date || '', formData.observers || '', formData.startTime || '', formData.endTime || '',
                 formData.weather || '', formData.water || '', formData.season || '',
                 formData.statusOfVegy || '', formData.descriptor || '', formData.radiusOfArea || '',
-                formData.remark || '', formData.imageUri || '',
+                formData.dominantVegetation || '',
+                formData.remark || '', formData.imageUri || '', formData.email || '',
+                syncStatus,
               ],
             );
             // Insert bird observations
@@ -1752,7 +1818,7 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
                 tx.executeSql(
                   `INSERT INTO bird_observations (uniqueId, species, count, maturity, sex, behaviour, identification, status, remarks, imageUri)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
-                  [bird.uniqueId || '', bird.species || '', bird.count || '', bird.maturity || '', bird.sex || '',
+                  [formData.uniqueId || '', bird.species || '', bird.count || '', bird.maturity || '', bird.sex || '',
                    bird.behaviour || '', bird.identification || '', bird.status || '', bird.remarks || '', bird.imageUri || ''],
                 );
               });
@@ -1772,6 +1838,21 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
         resolve();
       }
     });
+  };
+
+  const updateSyncStatus = async (uniqueId: string, status: string, serverId?: string) => {
+    try {
+      const db = await getDatabase();
+      db.transaction((tx: any) => {
+        if (serverId) {
+          tx.executeSql('UPDATE bird_survey SET sync_status = ?, server_id = ? WHERE uniqueId = ?', [status, serverId, uniqueId]);
+        } else {
+          tx.executeSql('UPDATE bird_survey SET sync_status = ? WHERE uniqueId = ?', [status, uniqueId]);
+        }
+      });
+    } catch (err) {
+      console.log('updateSyncStatus error:', err);
+    }
   };
 
   // ===== DATE/TIME HANDLERS =====
@@ -2057,76 +2138,214 @@ const BirdSurveyForm = ({editData, onEditComplete}: BirdSurveyFormProps = {}) =>
         />
         {errors.observers && <Text style={styles.errorText}>{errors.observers}</Text>}
 
-        <TouchableOpacity onPress={() => setShowStartTimePicker(true)} style={styles.dateTimeInput}>
-          <Text style={styles.dateTimeText}>
-            {selectedStartTime ? new Date(selectedStartTime).toLocaleTimeString('en-GB', {hour12: false}) : 'Start Time'}
-          </Text>
-          <Icon name="clock-o" size={20} color="gray" />
-        </TouchableOpacity>
+        <View style={{flexDirection: 'row', gap: 8, marginBottom: 12}}>
+          <TouchableOpacity onPress={() => setShowStartTimePicker(true)} style={[styles.dateTimeInput, {flex: 1, marginBottom: 0}]}>
+            <Text style={styles.dateTimeText}>
+              {selectedStartTime ? new Date(selectedStartTime).toLocaleTimeString('en-GB', {hour12: false}) : 'Start Time'}
+            </Text>
+            <Icon name="clock-o" size={18} color="gray" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowEndTimePicker(true)} style={[styles.dateTimeInput, {flex: 1, marginBottom: 0}]}>
+            <Text style={styles.dateTimeText}>
+              {selectedEndTime ? new Date(selectedEndTime).toLocaleTimeString('en-GB', {hour12: false}) : 'End Time'}
+            </Text>
+            <Icon name="clock-o" size={18} color="gray" />
+          </TouchableOpacity>
+        </View>
         {showStartTimePicker && <DateTimePicker value={selectedStartTime} mode="time" is24Hour display="default" onChange={onStartTimeChange} />}
-
-        <TouchableOpacity onPress={() => setShowEndTimePicker(true)} style={styles.dateTimeInput}>
-          <Text style={styles.dateTimeText}>
-            {selectedEndTime ? new Date(selectedEndTime).toLocaleTimeString('en-GB', {hour12: false}) : 'End Time'}
-          </Text>
-          <Icon name="clock-o" size={20} color="gray" />
-        </TouchableOpacity>
         {showEndTimePicker && <DateTimePicker value={selectedEndTime} mode="time" is24Hour display="default" onChange={onEndTimeChange} />}
+      </View>
 
-        <TouchableOpacity onPress={() => setWeatherModalVisible(true)}>
-          <TextInput mode="outlined" placeholder="Select Weather Condition" value={selectedWeatherString}
-            outlineStyle={styles.inputOutline} style={styles.formInput} textColor="#333" editable={false}
-            onPressIn={() => setWeatherModalVisible(true)} />
-        </TouchableOpacity>
+      {/* Weather Condition - Inline Radio Chips */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Weather Condition</Text>
+
+        <Text style={chipStyles.fieldLabel}>Cloud Cover</Text>
+        <View style={chipStyles.chipRow}>
+          {cloudCoverOptions.map(opt => {
+            const selected = cloudCover === opt.value;
+            return (
+              <TouchableOpacity key={opt.value}
+                onPress={() => setCloudCover(selected ? null : opt.value)}
+                style={[chipStyles.chip, selected && chipStyles.chipSelected]}
+                activeOpacity={0.7}>
+                <Text style={[chipStyles.chipText, selected && chipStyles.chipTextSelected]}>{opt.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <Text style={[chipStyles.fieldLabel, {marginTop: 14}]}>Rain</Text>
+        <View style={chipStyles.chipRow}>
+          {rainOptions.map(opt => {
+            const selected = rain === opt.value;
+            return (
+              <TouchableOpacity key={opt.value}
+                onPress={() => setRain(selected ? null : opt.value)}
+                style={[chipStyles.chip, selected && chipStyles.chipSelected]}
+                activeOpacity={0.7}>
+                <Text style={[chipStyles.chipText, selected && chipStyles.chipTextSelected]}>{opt.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <Text style={[chipStyles.fieldLabel, {marginTop: 14}]}>Wind</Text>
+        <View style={chipStyles.chipRow}>
+          {windOptions.map(opt => {
+            const selected = wind === opt.value;
+            return (
+              <TouchableOpacity key={opt.value}
+                onPress={() => setWind(selected ? null : opt.value)}
+                style={[chipStyles.chip, selected && chipStyles.chipSelected]}
+                activeOpacity={0.7}>
+                <Text style={[chipStyles.chipText, selected && chipStyles.chipTextSelected]}>{opt.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <Text style={[chipStyles.fieldLabel, {marginTop: 14}]}>Sunshine</Text>
+        <View style={chipStyles.chipRow}>
+          {sunshineOptions.map(opt => {
+            const selected = sunshine === opt.value;
+            return (
+              <TouchableOpacity key={opt.value}
+                onPress={() => setSunshine(selected ? null : opt.value)}
+                style={[chipStyles.chip, selected && chipStyles.chipSelected]}
+                activeOpacity={0.7}>
+                <Text style={[chipStyles.chipText, selected && chipStyles.chipTextSelected]}>{opt.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <Text style={[chipStyles.fieldLabel, {marginTop: 14}]}>Visibility</Text>
+        <View style={chipStyles.chipRow}>
+          {visibilityOptions.map(opt => {
+            const selected = visibilityVal === opt.value;
+            return (
+              <TouchableOpacity key={opt.value}
+                onPress={() => setVisibilityVal(selected ? null : opt.value)}
+                style={[chipStyles.chip, selected && chipStyles.chipSelected]}
+                activeOpacity={0.7}>
+                <Text style={[chipStyles.chipText, selected && chipStyles.chipTextSelected]}>{opt.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
         {errors.weather && <Text style={styles.errorText}>{errors.weather}</Text>}
-        <WeatherConditionModal visible={isWeatherModalVisible} onClose={() => setWeatherModalVisible(false)} onSelect={setSelectedWeatherString} />
+      </View>
 
-        <TouchableOpacity onPress={() => setWaterModalVisible(true)}>
-          <TextInput mode="outlined" placeholder="Select Water Availability" value={selectedWaterString}
-            outlineStyle={styles.inputOutline} style={styles.formInput} textColor="#333" editable={false}
-            onPressIn={() => setWaterModalVisible(true)} />
-        </TouchableOpacity>
-        <WaterAvailabilityModal visible={isWaterModalVisible} onClose={() => setWaterModalVisible(false)} onSelect={setSelectedWaterString} />
+      {/* Water Availability - Inline Radio Chips */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Water Availability</Text>
 
-        <Dropdown
-          style={[styles.formDropdown, focusStates.vegetation && styles.dropdownFocused]}
-          placeholderStyle={styles.placeholderStyle} selectedTextStyle={styles.selectedTextStyle}
-          inputSearchStyle={styles.inputSearchStyle} iconStyle={styles.iconStyle}
-          itemTextStyle={{color: '#333'}} data={vegetationStatusData} search maxHeight={300}
-          labelField="label" valueField="value" placeholder="Status Of Vegetation"
-          searchPlaceholder="Search..." value={vegetationStatus}
-          onFocus={() => setFocus('vegetation', true)} onBlur={() => setFocus('vegetation', false)}
-          onChange={item => {
-            if (item.value === 'Other') {
-              setShowCustomInput({vegetation: true});
-              setCustomInputValue('');
-            } else {
-              setVegetationStatus(item.value);
-              setShowCustomInput({});
+        <Text style={chipStyles.fieldLabel}>On Land</Text>
+        <View style={chipStyles.chipRow}>
+          {yesNoOptions.map(opt => {
+            const selected = onLandWater === opt.value;
+            return (
+              <TouchableOpacity key={opt.value}
+                onPress={() => setOnLandWater(selected ? null : opt.value)}
+                style={[chipStyles.chipWide, selected && chipStyles.chipWideSelected]}
+                activeOpacity={0.7}>
+                <Text style={[chipStyles.chipWideText, selected && chipStyles.chipWideTextSelected]}>{opt.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        {onLandWater === 'Yes' && (
+          <TextInput mode="outlined" placeholder="Water Level" value={onLandWaterLevel}
+            onChangeText={text => setOnLandWaterLevel(text.replace(/[^0-9.]/g, ''))}
+            keyboardType="numeric" outlineStyle={styles.inputOutline}
+            style={[styles.formInput, {marginTop: 8}]} textColor="#333"
+            right={<TextInput.Affix text="cm" textStyle={{color: '#666'}} />} />
+        )}
+
+        <Text style={[chipStyles.fieldLabel, {marginTop: 14}]}>Water Source</Text>
+        <View style={chipStyles.chipRow}>
+          {yesNoOptions.map(opt => {
+            const selected = waterSource === opt.value;
+            return (
+              <TouchableOpacity key={opt.value}
+                onPress={() => setWaterSource(selected ? null : opt.value)}
+                style={[chipStyles.chipWide, selected && chipStyles.chipWideSelected]}
+                activeOpacity={0.7}>
+                <Text style={[chipStyles.chipWideText, selected && chipStyles.chipWideTextSelected]}>{opt.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        {waterSource === 'Yes' && (
+          <TextInput mode="outlined" placeholder="Water Level" value={waterSourceLevel}
+            onChangeText={text => setWaterSourceLevel(text.replace(/[^0-9.]/g, ''))}
+            keyboardType="numeric" outlineStyle={styles.inputOutline}
+            style={[styles.formInput, {marginTop: 8}]} textColor="#333"
+            right={<TextInput.Affix text="cm" textStyle={{color: '#666'}} />} />
+        )}
+      </View>
+
+      {/* Vegetation & Season - Inline Radio Chips */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Vegetation & Season</Text>
+
+        <Text style={chipStyles.fieldLabel}>Status of Vegetation</Text>
+        <View style={chipStyles.chipRow}>
+          {vegetationStatusData.map(opt => {
+            if (opt.value === 'Other') {
+              return (
+                <TouchableOpacity key="Other"
+                  onPress={() => { setShowCustomInput({vegetation: true}); setCustomInputValue(''); }}
+                  style={[chipStyles.chip, showCustomInput.vegetation && chipStyles.chipSelected]}
+                  activeOpacity={0.7}>
+                  <Icon name="plus" size={12} color={showCustomInput.vegetation ? '#fff' : '#666'} style={{marginRight: 4}} />
+                  <Text style={[chipStyles.chipText, showCustomInput.vegetation && chipStyles.chipTextSelected]}>Other</Text>
+                </TouchableOpacity>
+              );
             }
-            setFocus('vegetation', false);
-          }}
-        />
+            const selected = vegetationStatus === opt.value;
+            return (
+              <TouchableOpacity key={opt.value}
+                onPress={() => { setVegetationStatus(selected ? null : opt.value); setShowCustomInput({}); }}
+                style={[chipStyles.chip, selected && chipStyles.chipSelected]}
+                activeOpacity={0.7}>
+                <Text style={[chipStyles.chipText, selected && chipStyles.chipTextSelected]}>{opt.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
         {renderCustomInput('customVegetationStatuses', 'vegetation', 'vegetation status')}
 
-        <Dropdown
-          style={[styles.formDropdown, focusStates.season && styles.dropdownFocused]}
-          placeholderStyle={styles.placeholderStyle} selectedTextStyle={styles.selectedTextStyle}
-          iconStyle={styles.iconStyle} itemTextStyle={{color: '#333'}} data={paddySeasons}
-          maxHeight={300} labelField="label" valueField="value" placeholder="Season of Paddy Field"
-          value={paddySeason} onChange={item => setPaddySeason(item.value)}
-        />
+        <Text style={[chipStyles.fieldLabel, {marginTop: 16}]}>Season of Paddy Field</Text>
+        <View style={chipStyles.chipRow}>
+          {paddySeasons.map(opt => {
+            const selected = paddySeason === opt.value;
+            return (
+              <TouchableOpacity key={opt.value}
+                onPress={() => setPaddySeason(selected ? null : opt.value)}
+                style={[chipStyles.chip, selected && chipStyles.chipSelected]}
+                activeOpacity={0.7}>
+                <Text style={[chipStyles.chipText, selected && chipStyles.chipTextSelected]}>{opt.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
-        <Dropdown
-          style={[styles.formDropdown, focusStates.dominantVeg && styles.dropdownFocused]}
-          placeholderStyle={styles.placeholderStyle} selectedTextStyle={styles.selectedTextStyle}
-          iconStyle={styles.iconStyle} itemTextStyle={{color: '#333'}} data={dominantVegetationTypes}
-          maxHeight={300} labelField="label" valueField="value" placeholder="Type of Dominant Vegetation"
-          value={dominantVegetation}
-          onFocus={() => setFocus('dominantVeg', true)} onBlur={() => setFocus('dominantVeg', false)}
-          onChange={item => { setDominantVegetation(item.value); setFocus('dominantVeg', false); }}
-        />
-
+        <Text style={[chipStyles.fieldLabel, {marginTop: 16}]}>Type of Dominant Vegetation</Text>
+        <View style={chipStyles.chipRow}>
+          {dominantVegetationTypes.map(opt => {
+            const selected = dominantVegetation === opt.value;
+            return (
+              <TouchableOpacity key={opt.value}
+                onPress={() => setDominantVegetation(selected ? null : opt.value)}
+                style={[chipStyles.chip, selected && chipStyles.chipSelected]}
+                activeOpacity={0.7}>
+                <Text style={[chipStyles.chipText, selected && chipStyles.chipTextSelected]}>{opt.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
 
       {/* Action Buttons */}
@@ -2743,12 +2962,50 @@ const speciesDetailStyles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 8,
   },
+  doneButtonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    backgroundColor: '#F5F5F0',
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    alignItems: 'center',
+  },
+  doneButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: MINT_GREEN,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    gap: 8,
+    elevation: 3,
+  },
+  doneButtonDisabled: {
+    backgroundColor: '#CCCCCC',
+    opacity: 0.6,
+  },
+  doneButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
 
 // ========================================
 // STYLES: Chip / Radio Buttons
 // ========================================
 const chipStyles = StyleSheet.create({
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#555',
+    marginBottom: 8,
+  },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -2766,8 +3023,8 @@ const chipStyles = StyleSheet.create({
     alignItems: 'center',
   },
   chipSelected: {
-    backgroundColor: GREEN,
-    borderColor: GREEN,
+    backgroundColor: MINT_GREEN,
+    borderColor: MINT_GREEN,
   },
   chipText: {
     fontSize: 13,
@@ -2799,8 +3056,8 @@ const chipStyles = StyleSheet.create({
     overflow: 'hidden',
   },
   chipCircleTextSelected: {
-    backgroundColor: GREEN,
-    borderColor: GREEN,
+    backgroundColor: MINT_GREEN,
+    borderColor: MINT_GREEN,
     color: '#FFFFFF',
   },
   chipCircleLabel: {
@@ -2808,6 +3065,29 @@ const chipStyles = StyleSheet.create({
     color: '#888',
     marginTop: 4,
     fontWeight: '500',
+  },
+  // Tag chip (Point Tags - T1, T2, etc.)
+  chipTag: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#D0D0D0',
+    backgroundColor: '#FAFAFA',
+    minWidth: 48,
+    alignItems: 'center' as const,
+  },
+  chipTagSelected: {
+    backgroundColor: MINT_GREEN,
+    borderColor: MINT_GREEN,
+  },
+  chipTagText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#555',
+  },
+  chipTagTextSelected: {
+    color: '#FFFFFF',
   },
   // Wide chip (Identification - Sighting/Listening)
   chipWide: {
@@ -2822,8 +3102,8 @@ const chipStyles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
   },
   chipWideSelected: {
-    backgroundColor: GREEN,
-    borderColor: GREEN,
+    backgroundColor: MINT_GREEN,
+    borderColor: MINT_GREEN,
   },
   chipWideText: {
     fontSize: 14,

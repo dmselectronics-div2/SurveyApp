@@ -262,6 +262,137 @@ export const syncHumanActivities = async (): Promise<SyncResult> => {
 };
 
 // ============================================
+// BIRD SURVEY SYNC
+// ============================================
+import { getDatabase } from '../../bird-module/database/db';
+import { API_URL } from '../../config';
+import axiosMain from 'axios';
+
+// Get count of pending bird surveys
+export const getBirdPendingCount = (): Promise<number> => {
+  return new Promise(async (resolve) => {
+    try {
+      const db = await getDatabase();
+      db.transaction((tx: any) => {
+        tx.executeSql(
+          'SELECT COUNT(*) as count FROM bird_survey WHERE sync_status IN (?, ?)',
+          ['pending', 'pending_update'],
+          (_: any, results: any) => resolve(results.rows.item(0).count),
+          () => { resolve(0); return false; },
+        );
+      });
+    } catch {
+      resolve(0);
+    }
+  });
+};
+
+// Sync pending bird surveys to server
+export const syncBirdSurveys = async (): Promise<SyncResult> => {
+  const result: SyncResult = { success: true, synced: 0, failed: 0, errors: [] };
+
+  try {
+    const db = await getDatabase();
+
+    // Helper to get observations for a survey
+    const getObservations = (tx: any, uniqueId: string): Promise<any[]> => {
+      return new Promise((resolve) => {
+        tx.executeSql(
+          'SELECT * FROM bird_observations WHERE uniqueId = ?', [uniqueId],
+          (_: any, obsResults: any) => {
+            const obs = [];
+            for (let j = 0; j < obsResults.rows.length; j++) {
+              obs.push(obsResults.rows.item(j));
+            }
+            resolve(obs);
+          },
+          () => { resolve([]); return false; },
+        );
+      });
+    };
+
+    // Get all pending surveys
+    const pendingSurveys: any[] = await new Promise((resolve) => {
+      db.transaction((tx: any) => {
+        tx.executeSql(
+          'SELECT * FROM bird_survey WHERE sync_status IN (?, ?)',
+          ['pending', 'pending_update'],
+          (_: any, results: any) => {
+            const rows = [];
+            for (let i = 0; i < results.rows.length; i++) {
+              rows.push(results.rows.item(i));
+            }
+            resolve(rows);
+          },
+          () => { resolve([]); return false; },
+        );
+      });
+    });
+
+    for (const row of pendingSurveys) {
+      try {
+        // Get observations in a separate transaction
+        const observations: any[] = await new Promise((resolve) => {
+          db.transaction((tx: any) => {
+            getObservations(tx, row.uniqueId).then(resolve);
+          });
+        });
+
+        const birdObservations = observations.map((obs: any) => ({
+          uniqueId: obs.uniqueId, species: obs.species, count: obs.count,
+          maturity: obs.maturity, sex: obs.sex, behaviour: obs.behaviour,
+          identification: obs.identification, status: obs.status,
+          latitude: row.latitude, longitude: row.longitude,
+          weather: row.weather, waterConditions: row.water,
+          remarks: obs.remarks, imageUri: obs.imageUri,
+        }));
+
+        const formData = {
+          uniqueId: row.uniqueId, email: row.email, habitatType: row.habitatType,
+          point: row.point, pointTag: row.pointTag, latitude: row.latitude,
+          longitude: row.longitude, date: row.date, observers: row.observers,
+          startTime: row.startTime, endTime: row.endTime, weather: row.weather,
+          visibility: '', water: row.water, season: row.season,
+          statusOfVegy: row.statusOfVegy, dominantVegetation: row.dominantVegetation || '',
+          descriptor: row.descriptor, radiusOfArea: row.radiusOfArea,
+          remark: row.remark, imageUri: row.imageUri, birdObservations,
+        };
+
+        if (row.sync_status === 'pending_update' && row.server_id) {
+          // Update existing
+          await axiosMain.put(`${API_URL}/form-entry/${row.server_id}`, formData);
+          await new Promise<void>((resolve) => {
+            db.transaction((tx: any) => {
+              tx.executeSql('UPDATE bird_survey SET sync_status = ? WHERE uniqueId = ?',
+                ['synced', row.uniqueId], () => resolve(), () => { resolve(); return false; });
+            });
+          });
+        } else {
+          // Create new
+          const response = await axiosMain.post(`${API_URL}/form-entry`, formData);
+          const addedId = response.data._id || response.data.formEntry?._id;
+          await new Promise<void>((resolve) => {
+            db.transaction((tx: any) => {
+              tx.executeSql('UPDATE bird_survey SET sync_status = ?, server_id = ? WHERE uniqueId = ?',
+                ['synced', addedId || '', row.uniqueId], () => resolve(), () => { resolve(); return false; });
+            });
+          });
+        }
+        result.synced++;
+      } catch (error: any) {
+        result.failed++;
+        result.errors.push(`Bird survey ${row.uniqueId}: ${error.message}`);
+      }
+    }
+  } catch (error: any) {
+    result.success = false;
+    result.errors.push(`Bird survey sync error: ${error.message}`);
+  }
+
+  return result;
+};
+
+// ============================================
 // MAIN SYNC FUNCTION
 // ============================================
 
@@ -274,6 +405,7 @@ export interface FullSyncResult {
     animals: SyncResult;
     nature: SyncResult;
     humanActivities: SyncResult;
+    birdSurveys: SyncResult;
   };
 }
 
@@ -281,16 +413,16 @@ export interface FullSyncResult {
 export const syncAllPendingData = async (): Promise<FullSyncResult> => {
   const isOnline = await checkNetworkStatus();
 
+  const noConnection: SyncResult = { success: false, synced: 0, failed: 0, errors: ['No network connection'] };
   if (!isOnline) {
     return {
       success: false,
       totalSynced: 0,
       totalFailed: 0,
       results: {
-        plants: { success: false, synced: 0, failed: 0, errors: ['No network connection'] },
-        animals: { success: false, synced: 0, failed: 0, errors: ['No network connection'] },
-        nature: { success: false, synced: 0, failed: 0, errors: ['No network connection'] },
-        humanActivities: { success: false, synced: 0, failed: 0, errors: ['No network connection'] },
+        plants: noConnection, animals: noConnection,
+        nature: noConnection, humanActivities: noConnection,
+        birdSurveys: noConnection,
       },
     };
   }
@@ -301,9 +433,10 @@ export const syncAllPendingData = async (): Promise<FullSyncResult> => {
   const animalsResult = await syncAnimals();
   const natureResult = await syncNature();
   const humanActivitiesResult = await syncHumanActivities();
+  const birdSurveysResult = await syncBirdSurveys();
 
-  const totalSynced = plantsResult.synced + animalsResult.synced + natureResult.synced + humanActivitiesResult.synced;
-  const totalFailed = plantsResult.failed + animalsResult.failed + natureResult.failed + humanActivitiesResult.failed;
+  const totalSynced = plantsResult.synced + animalsResult.synced + natureResult.synced + humanActivitiesResult.synced + birdSurveysResult.synced;
+  const totalFailed = plantsResult.failed + animalsResult.failed + natureResult.failed + humanActivitiesResult.failed + birdSurveysResult.failed;
 
   console.log(`Sync complete. Synced: ${totalSynced}, Failed: ${totalFailed}`);
 
@@ -316,6 +449,7 @@ export const syncAllPendingData = async (): Promise<FullSyncResult> => {
       animals: animalsResult,
       nature: natureResult,
       humanActivities: humanActivitiesResult,
+      birdSurveys: birdSurveysResult,
     },
   };
 };
@@ -336,7 +470,9 @@ export const startAutoSync = (): void => {
 
   networkUnsubscribe = subscribeToNetworkChanges(async (isConnected) => {
     if (isConnected && !syncInProgress) {
-      const pendingCount = await getTotalPendingCount();
+      const citizenCount = await getTotalPendingCount();
+      const birdCount = await getBirdPendingCount();
+      const pendingCount = citizenCount + birdCount;
       if (pendingCount > 0) {
         console.log(`Network available. ${pendingCount} pending items to sync.`);
         syncInProgress = true;
@@ -378,6 +514,8 @@ export default {
   syncAnimals,
   syncNature,
   syncHumanActivities,
+  syncBirdSurveys,
+  getBirdPendingCount,
   syncAllPendingData,
   startAutoSync,
   stopAutoSync,

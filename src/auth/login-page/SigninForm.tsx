@@ -20,6 +20,8 @@ import { setLoginEmail } from '../../assets/sql_lite/db_connection';
 import ReactNativeBiometrics from 'react-native-biometrics';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as Keychain from 'react-native-keychain';
+import NetInfo from '@react-native-community/netinfo';
+import { getDatabase } from '../../bird-module/database/db';
 
 const SigninForm = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
@@ -93,30 +95,81 @@ const SigninForm = ({ navigation }: any) => {
     }
 
     setLoading(true);
-    try {
-      const response = await axios.post(`${API_URL}/login`, { email, password });
 
-      if (response.data.status === 'ok') {
-        await setLoginEmail(email);
-        Alert.alert('Success', 'Logged in successfully');
-        navigation.replace('Welcome', { email });
-      } else if (response.data.status === 'notConfirmed') {
-        // Enforce email verification
-        handleSendVerificationCode();
-      } else if (response.data.status === 'google') {
-        Alert.alert('Error', 'This account uses Google Sign-In. Please use the Google button.');
-      } else if (response.data.status === 'notApproved') {
-        Alert.alert('Pending', 'Your account is awaiting admin approval.');
-        navigation.navigate('GetAdminApprove', { email });
-      } else {
-        Alert.alert('Error', response.data.data || 'Login failed');
+    // Check network connectivity
+    const netState = await NetInfo.fetch();
+    const isOnline = netState.isConnected && netState.isInternetReachable;
+
+    if (isOnline) {
+      // ONLINE: try server login
+      try {
+        const response = await axios.post(`${API_URL}/login`, { email, password });
+
+        if (response.data.status === 'ok') {
+          await setLoginEmail(email);
+          // Save credentials locally for offline login
+          try {
+            const db = await getDatabase();
+            db.transaction((tx: any) => {
+              tx.executeSql(
+                'INSERT OR REPLACE INTO Users (email, password) VALUES (?, ?)',
+                [email, password],
+              );
+            });
+          } catch (e) { console.log('Local credential save error:', e); }
+          Alert.alert('Success', 'Logged in successfully');
+          navigation.replace('Welcome', { email });
+        } else if (response.data.status === 'notConfirmed') {
+          handleSendVerificationCode();
+        } else if (response.data.status === 'google') {
+          Alert.alert('Error', 'This account uses Google Sign-In. Please use the Google button.');
+        } else if (response.data.status === 'notApproved') {
+          Alert.alert('Pending', 'Your account is awaiting admin approval.');
+          navigation.navigate('GetAdminApprove', { email });
+        } else {
+          Alert.alert('Error', response.data.data || 'Login failed');
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        Alert.alert('Error', 'Login failed. Please check your credentials.');
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      Alert.alert('Error', 'Login failed. Please check your credentials.');
-    } finally {
-      setLoading(false);
+    } else {
+      // OFFLINE: check local SQLite credentials
+      try {
+        const db = await getDatabase();
+        db.transaction((tx: any) => {
+          tx.executeSql(
+            'SELECT * FROM Users WHERE email = ?', [email],
+            async (_: any, results: any) => {
+              if (results.rows.length > 0) {
+                const user = results.rows.item(0);
+                if (user.password === password) {
+                  await setLoginEmail(email);
+                  setLoading(false);
+                  Alert.alert('Offline Login', 'Logged in with saved credentials.');
+                  navigation.replace('Welcome', { email });
+                } else {
+                  setLoading(false);
+                  Alert.alert('Error', 'Invalid password. Please check your credentials or connect to internet.');
+                }
+              } else {
+                setLoading(false);
+                Alert.alert('Error', 'No saved credentials found. Please connect to internet for first login.');
+              }
+            },
+            () => {
+              setLoading(false);
+              Alert.alert('Error', 'Could not verify credentials offline.');
+            },
+          );
+        });
+        return; // loading state managed inside transaction callback
+      } catch (error) {
+        Alert.alert('Error', 'Offline login failed.');
+      }
     }
+
+    setLoading(false);
   };
 
   const handleSendVerificationCode = async () => {
@@ -189,19 +242,29 @@ const SigninForm = ({ navigation }: any) => {
         if (success) {
           const credentials = await Keychain.getGenericPassword();
           if (credentials) {
-            const response = await axios.post(`${API_URL}/fingerprint-login`, {
-              email: credentials.username,
-            });
+            const netState = await NetInfo.fetch();
+            const isOnline = netState.isConnected && netState.isInternetReachable;
 
-            if (response.data.status === 'ok') {
-              await setLoginEmail(credentials.username);
-              navigation.replace('Welcome', { email: credentials.username });
-            } else if (response.data.status === 'notApproved') {
-              Alert.alert('Pending', 'Your account is awaiting admin approval.');
-            } else if (response.data.status === 'notConfirmed') {
-              Alert.alert('Error', 'Please verify your email first.');
+            if (isOnline) {
+              const response = await axios.post(`${API_URL}/fingerprint-login`, {
+                email: credentials.username,
+              });
+
+              if (response.data.status === 'ok') {
+                await setLoginEmail(credentials.username);
+                navigation.replace('Welcome', { email: credentials.username });
+              } else if (response.data.status === 'notApproved') {
+                Alert.alert('Pending', 'Your account is awaiting admin approval.');
+              } else if (response.data.status === 'notConfirmed') {
+                Alert.alert('Error', 'Please verify your email first.');
+              } else {
+                Alert.alert('Error', response.data.data || 'Login failed');
+              }
             } else {
-              Alert.alert('Error', response.data.data || 'Login failed');
+              // OFFLINE: biometric already verified identity, Keychain has email
+              await setLoginEmail(credentials.username);
+              Alert.alert('Offline Login', 'Logged in with fingerprint (offline mode).');
+              navigation.replace('Welcome', { email: credentials.username });
             }
           }
         } else {
