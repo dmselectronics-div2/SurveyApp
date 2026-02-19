@@ -4,7 +4,7 @@ const path = require('path');
 require('dotenv').config();
 
 // Import configurations
-const connectDB = require('./config/db');
+const { connectDB, requireDB } = require('./config/db');
 const apiConfig = require('./config/api');
 
 // Import middleware
@@ -33,6 +33,9 @@ app.use((err, req, res, next) => {
 // Connect to MongoDB
 connectDB();
 
+// Block all routes if DB is not connected
+app.use(requireDB);
+
 // Use routes
 app.use('/', routes);
 
@@ -44,7 +47,7 @@ app.use(errorHandler);
 
 const PORT = apiConfig.port;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`Health Check: http://0.0.0.0:${PORT}/health`);
   console.log(`API Base: http://0.0.0.0:${PORT}/api/v1`);

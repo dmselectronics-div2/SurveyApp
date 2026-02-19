@@ -50,10 +50,15 @@ exports.register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Check if this is the first user
+    const userCount = await User.countDocuments();
+
     // Create new user
     user = new User({
       email: email.toLowerCase(),
-      password: hashedPassword
+      password: hashedPassword,
+      role: userCount === 0 ? 'admin' : 'user',
+      isApproved: userCount === 0 // Auto-approve the first admin
     });
 
     await user.save();
@@ -296,38 +301,51 @@ exports.saveOrUpdateTeamData = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log(`Login attempt for: ${email}`);
+
+    if (!email || !password) {
+      return res.status(400).json({ status: 'error', data: 'Email and password are required' });
+    }
 
     const user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
+      console.log('User not found');
       return res.status(404).json({ status: 'error', data: 'User not found' });
     }
 
     if (user.isDeleted) {
+      console.log('User is deleted');
       return res.json({ status: 'error', data: 'Account has been deleted' });
     }
 
     if (user.isGoogleLogin) {
+      console.log('User is Google login');
       return res.json({ status: 'google', data: 'Please use Google Sign-In' });
     }
 
+    console.log('Comparing passwords...');
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      console.log('Password mismatch');
       return res.json({ status: 'error', data: 'Invalid password' });
     }
 
     if (!user.emailConfirmed) {
+      console.log('Email not confirmed');
       return res.json({ status: 'notConfirmed', data: 'Email not confirmed' });
     }
 
     if (!user.isApproved) {
+      console.log('User not approved');
       return res.json({ status: 'notApproved', data: 'Account not approved by admin' });
     }
 
+    console.log('Login successful');
     res.json({ status: 'ok', data: user });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ status: 'error', message: error.message });
+    console.error('Login error detail:', error);
+    res.status(500).json({ status: 'error', message: error.message, stack: error.stack });
   }
 };
 
@@ -346,13 +364,18 @@ exports.googleRegister = async (req, res) => {
       }
     }
 
+    // Check if this is the first user
+    const userCount = await User.countDocuments();
+
     user = new User({
       email: email.toLowerCase(),
       password: 'google-auth',
       name: name || '',
       profileImage: photo || '',
       isGoogleLogin: true,
-      emailConfirmed: true
+      emailConfirmed: true,
+      role: userCount === 0 ? 'admin' : 'user',
+      isApproved: userCount === 0
     });
 
     await user.save();
@@ -537,8 +560,16 @@ exports.saveSignupDetails = async (req, res) => {
       designation, institute, instituteAddress
     } = req.body;
 
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (!existingUser) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
     const updateData = {};
-    if (role !== undefined) updateData.role = role;
+    // Only allow role update if user is NOT already an admin
+    if (role !== undefined && existingUser.role !== 'admin') {
+      updateData.role = role;
+    }
     if (surveyTypes !== undefined) updateData.surveyTypes = surveyTypes;
     if (researchAreas !== undefined) updateData.researchAreas = researchAreas;
     if (periodicalCategories !== undefined) updateData.periodicalCategories = periodicalCategories;

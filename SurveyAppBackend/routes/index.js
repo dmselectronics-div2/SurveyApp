@@ -9,6 +9,7 @@ const citizenRoutes = require('./citizen');
 const mangroveRoutes = require('./Bivalvi');
 const uploadRoutes = require('./upload');
 const citizenFormRoutes = require('./citizenForm');
+const adminRoutes = require('../admin/routes/admin');
 
 // API v1 routes with consistent namespacing
 const apiV1 = express.Router();
@@ -23,6 +24,7 @@ apiV1.use('/upload', uploadRoutes);
 
 // Mount API routes
 router.use('/api/v1', apiV1);
+router.use('/admin', adminRoutes);
 
 // Backward-compatible routes (frontend calls these directly)
 router.use('/', birdRoutes);

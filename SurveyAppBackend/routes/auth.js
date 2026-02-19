@@ -4,6 +4,7 @@ const authController = require('../controllers/authController');
 
 // Register user
 router.post('/registering', authController.register);
+router.post('/register', authController.register);
 
 // Login user
 router.post('/login', authController.login);

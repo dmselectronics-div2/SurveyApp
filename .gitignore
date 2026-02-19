@@ -85,3 +85,4 @@ coverage/
 SurveyAppBackend/node_modules/
 SurveyAppBackend/.env
 android/app/build/
+Admin_Dashboard/

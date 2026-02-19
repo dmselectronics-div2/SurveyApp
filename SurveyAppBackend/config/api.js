@@ -6,10 +6,9 @@ module.exports = {
 
   // CORS settings
   cors: {
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: false,
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-user-email'],
     optionsSuccessStatus: 200
   },
 
@@ -21,7 +20,7 @@ module.exports = {
 
   // API versioning
   apiVersion: 'v1',
-  
+
   // Database connection timeout
   dbTimeout: 30000,
 
