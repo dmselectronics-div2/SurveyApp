@@ -11,8 +11,14 @@ const connectDB = async () => {
     console.log("✅ MongoDB Connected");
   } catch (err) {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     console.log("MongoDB Error:", err);
     process.exit(1);
+=======
+    isConnected = false;
+    console.log("❌ MongoDB Connection Failed:", err.message);
+    console.log("👉 Fix: Whitelist your IP at https://cloud.mongodb.com → Security → Network Access");
+>>>>>>> Stashed changes
 =======
     isConnected = false;
     console.log("❌ MongoDB Connection Failed:", err.message);
