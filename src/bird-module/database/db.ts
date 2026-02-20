@@ -164,6 +164,13 @@ const initializeUserDb = async (database: SQLite.SQLiteDatabase) => {
       // Column already exists, ignore
     }
 
+    // Add missing policyConfirm column to Users table (migration for existing installs)
+    try {
+      await executeSqlAsync(database, "ALTER TABLE Users ADD COLUMN policyConfirm INTEGER DEFAULT 0");
+    } catch (e) {
+      // Column already exists, ignore
+    }
+
     // Add sync-related columns to bird_survey (migration for existing installs)
     const birdMigrationColumns = [
       { name: 'sync_status', def: "TEXT DEFAULT 'pending'" },
