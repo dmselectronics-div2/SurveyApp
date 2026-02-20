@@ -1,33 +1,41 @@
 {
   "project_info": {
-    "project_number": "216240600858",
-    "project_id": "mangrove-623a1",
-    "storage_bucket": "mangrove-623a1.appspot.com"
+    "project_number": "617218324734",
+    "project_id": "blue-tally",
+    "storage_bucket": "blue-tally.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:216240600858:android:c24ae8cd3b2363706b9ea3",
+        "mobilesdk_app_id": "1:617218324734:android:a77a1edef082f49c3b0daf",
         "android_client_info": {
           "package_name": "com.mangrove"
         }
       },
       "oauth_client": [
         {
-          "client_id": "532310046514-217fr842olbptie78ubtgi4mkq84ljo8.apps.googleusercontent.com",
+          "client_id": "617218324734-3o4aj9uefri7njaqgmhcic2p6v34pe2u.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mangrove",
+            "certificate_hash": "8600c7a591a330712bbd5d9185dffd9cf7fb64f8"
+          }
+        },
+        {
+          "client_id": "617218324734-2bnsqmibeaq21k5iruiisvtvh22cv32r.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyDXSKpPJ4kqUK1jAAy_b-X3s-s0khXpvPk"
+          "current_key": "AIzaSyCAURpjlLGXra4ttSbkSPuDe5OY6nHJEOA"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "532310046514-217fr842olbptie78ubtgi4mkq84ljo8.apps.googleusercontent.com",
+              "client_id": "617218324734-2bnsqmibeaq21k5iruiisvtvh22cv32r.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

@@ -17,13 +17,10 @@ import {
 
 import {useNavigation} from '@react-navigation/native';
 import axios from 'axios';
-import {API_URL} from '../../config';
+import {API_URL, GOOGLE_WEB_CLIENT_ID} from '../../config';
 import {setLoginEmail} from '../../assets/sql_lite/db_connection';
 import ReactNativeBiometrics from 'react-native-biometrics';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
-
-const GOOGLE_WEB_CLIENT_ID: string =
-  '532310046514-217fr842olbptie78ubtgi4mkq84ljo8.apps.googleusercontent.com';
 
 GoogleSignin.configure({
   webClientId: GOOGLE_WEB_CLIENT_ID,
@@ -49,23 +46,31 @@ const LoginPage = ({route}: any) => {
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
-      // Initiate Google Sign-In
-      const userInfo = await GoogleSignin.signIn();
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const result = await GoogleSignin.signIn();
 
-      // Log the full userInfo object to inspect its structure
-      console.log('User Info:', JSON.stringify(userInfo, null, 2));
-
-      // Access user data from the response
-      if (userInfo && userInfo.data && userInfo.data.user) {
-        const {email, name, photo} = userInfo.data.user;
-        console.log('Google Login:', email, name);
-        handleSignUp(email, name, photo);
-      } else {
-        console.error('User object is undefined or invalid');
+      if (!result || (result as any).type === 'cancelled') {
+        setLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error('Google Sign-In failed', error);
-      Alert.alert('Error', 'Google Sign-In failed.');
+
+      const userData = (result as any).data?.user ?? (result as any).user;
+      if (userData && userData.email) {
+        handleSignUp(userData.email, userData.name || '', userData.photo || '');
+      } else {
+        Alert.alert('Error', 'Google Sign-In returned no account data. Please try again.');
+      }
+    } catch (error: any) {
+      console.error('Google Sign-In failed', error?.code, error?.message);
+      if (error?.code === 'SIGN_IN_CANCELLED' || error?.code === -5) {
+        // User cancelled, do nothing
+      } else if (error?.code === 'PLAY_SERVICES_NOT_AVAILABLE') {
+        Alert.alert('Error', 'Google Play Services is not available on this device.');
+      } else if (error?.code === 'DEVELOPER_ERROR' || error?.code === 10) {
+        Alert.alert('Configuration Error', 'Google Sign-In is not properly configured. Please contact support.');
+      } else {
+        Alert.alert('Error', `Google Sign-In failed: ${error?.message || 'Please try again.'}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -220,7 +225,7 @@ const LoginPage = ({route}: any) => {
   };
 
   useEffect(() => {
-    GoogleSignin.signOut(); // Optional: Sign out to start fresh for testing
+    // No sign-out here — forcing signOut on load breaks the sign-in flow
   }, []);
 
   const handleBiometricAuth = async () => {

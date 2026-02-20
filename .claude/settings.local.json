@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(./gradlew signingReport:*)"
+      "Bash(./gradlew signingReport:*)",
+      "Bash(keytool:*)"
     ]
   }
 }
