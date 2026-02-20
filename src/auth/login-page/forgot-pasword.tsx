@@ -62,7 +62,7 @@ const ForgetPasswordPage = ({ navigation }: any) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}>
-          <MaterialIcon name="arrow-back" size={28} color="#4A7856" />
+          <MaterialIcon name="arrow-back" size={28} color="#FFFFFF" />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
 
@@ -79,7 +79,7 @@ const ForgetPasswordPage = ({ navigation }: any) => {
           </Text>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>E-mail address:</Text>
+            <Text style={styles.label}>Email Address</Text>
             <TextInput
               mode="outlined"
               placeholder="Enter your email"
@@ -90,6 +90,7 @@ const ForgetPasswordPage = ({ navigation }: any) => {
               autoCapitalize="none"
               outlineColor="rgba(74, 120, 86, 0.3)"
               activeOutlineColor="#4A7856"
+              textColor="#333333"
               style={styles.input}
               error={!!emailError}
               theme={{ colors: { primary: '#4A7856', background: 'rgba(255, 255, 255, 0.95)' } }}
@@ -110,7 +111,7 @@ const ForgetPasswordPage = ({ navigation }: any) => {
 
           <View style={styles.loginContainer}>
             <Text style={styles.loginText}>Remember your password? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('LoginPage')} activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => navigation.navigate('SigninForm')} activeOpacity={0.7}>
               <Text style={styles.loginLink}>Sign in</Text>
             </TouchableOpacity>
           </View>

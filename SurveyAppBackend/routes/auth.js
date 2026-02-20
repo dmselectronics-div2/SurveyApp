@@ -74,7 +74,28 @@ router.post('/get-name', authController.getNameData);
 // Save signup details (survey types, research areas, etc.)
 router.post('/save-signup-details', authController.saveSignupDetails);
 
+// Fingerprint login
+router.post('/fingerprint-login', authController.fingerprintLogin);
+
+// Enable fingerprint for user
+router.post('/enable-fingerprint', authController.enableFingerprint);
+
 // Get pending users for admin
 router.get('/pending-users', authController.getPendingUsers);
+
+// Get all users (admin panel)
+router.get('/all-users', authController.getAllUsers);
+
+// Update user role (admin)
+router.post('/update-user-role', authController.updateUserRole);
+
+// Update user allowed modules (admin)
+router.post('/update-user-modules', authController.updateUserModules);
+
+// Remove user (admin)
+router.post('/remove-user', authController.removeUser);
+
+// Get user modules (role-based)
+router.get('/user-modules', authController.getUserModules);
 
 module.exports = router;

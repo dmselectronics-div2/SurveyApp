@@ -81,7 +81,7 @@ const AddPin = ({navigation}: any) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}>
-          <MaterialIcon name="arrow-back" size={28} color="#4A7856" />
+          <MaterialIcon name="arrow-back" size={28} color="#FFFFFF" />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
 

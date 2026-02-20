@@ -9,16 +9,28 @@ const getRandomColor = () => {
   return colors[Math.floor(Math.random() * colors.length)];
 };
 
-// Submit bird survey form (create or update)
+// Submit bird survey form (create or update with conflict detection)
 exports.submitBirdSurvey = async (req, res) => {
   try {
     const surveyData = req.body;
+    const clientUpdatedAt = surveyData.updatedAt ? new Date(surveyData.updatedAt) : new Date();
 
     // Check if survey with uniqueId already exists
     const existingSurvey = await BirdSurvey.findOne({ uniqueId: surveyData.uniqueId });
 
     if (existingSurvey) {
-      // Update existing
+      // Conflict detection: if server record is newer, report conflict
+      const serverUpdatedAt = existingSurvey.updatedAt || existingSurvey.createdAt;
+      if (serverUpdatedAt && clientUpdatedAt < serverUpdatedAt) {
+        return res.status(409).json({
+          status: 'conflict',
+          message: 'Server has a newer version',
+          serverUpdatedAt: serverUpdatedAt,
+          _id: existingSurvey._id,
+        });
+      }
+
+      // Update existing (client is newer or same)
       const updated = await BirdSurvey.findOneAndUpdate(
         { uniqueId: surveyData.uniqueId },
         surveyData,
@@ -55,14 +67,17 @@ exports.updateBirdSurvey = async (req, res) => {
   }
 };
 
-// Get all bird survey entries with pagination
+// Get all bird survey entries with pagination and optional since filter
 exports.getAllBirdSurveys = async (req, res) => {
   try {
-    const { email, page = 1, limit = 50 } = req.query;
+    const { email, page = 1, limit = 50, since } = req.query;
 
     let query = {};
     if (email) {
       query.email = email.toLowerCase();
+    }
+    if (since) {
+      query.updatedAt = { $gte: new Date(since) };
     }
 
     const surveys = await BirdSurvey.find(query)
@@ -253,7 +268,14 @@ exports.updateImagePath = async (req, res) => {
 exports.postImagePath = async (req, res) => {
   try {
     const { email, uri } = req.body;
-    // This could update user profile image or other logic
+    const User = require('../models/User');
+    if (email && uri) {
+      await User.findOneAndUpdate(
+        { email: email.toLowerCase() },
+        { profileImage: uri },
+        { new: true }
+      );
+    }
     res.json({ status: 'ok' });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });

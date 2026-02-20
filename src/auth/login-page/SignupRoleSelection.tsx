@@ -24,9 +24,9 @@ const SignupRoleSelection = () => {
       description: 'Government Official',
     },
     {
-      id: 'AHM',
-      label: 'AHM team',
-      description: 'Aquatic Habitat Management',
+      id: 'ANRM',
+      label: 'ANRM team',
+      description: 'Aquatic and Natural Resource Management',
     },
     {
       id: 'Academia',
@@ -70,8 +70,28 @@ const SignupRoleSelection = () => {
       Alert.alert('Error', 'Please select your role to continue');
       return;
     }
-    // Navigate to the next signup step with selected role
-    navigation.navigate('SignupSurveyType', { role: selectedRole });
+
+    // Role-based routing
+    if (selectedRole === 'ANRM' || selectedRole === 'Undergraduate') {
+      // ANRM & Undergraduate: Auto-assign Periodical Monthly Survey with modules
+      navigation.navigate('SignupForm', {
+        role: selectedRole,
+        surveyTypes: ['Periodical/monthly'],
+        researchAreas: ['Water', 'Flora', 'Fauna'],
+        periodicalCategories: ['Water', 'Bird', 'Phenology', 'Butterfly'],
+      });
+    } else if (selectedRole === 'Postgraduate') {
+      // Postgraduate: Only Byvalvi Module
+      navigation.navigate('SignupForm', {
+        role: selectedRole,
+        surveyTypes: ['Postgraduate'],
+        researchAreas: ['Byvalvi'],
+        periodicalCategories: [],
+      });
+    } else {
+      // Government, Academia, Naturalist: Full signup flow
+      navigation.navigate('SignupSurveyType', { role: selectedRole });
+    }
   };
 
   const RoleOption = ({ item }: any) => (
@@ -114,7 +134,7 @@ const SignupRoleSelection = () => {
           onPress={handleBackPress}
           activeOpacity={0.7}
         >
-          <MaterialIcon name="arrow-back" size={28} color="#4A7856" />
+          <MaterialIcon name="arrow-back" size={28} color="#FFFFFF" />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
 
@@ -122,7 +142,7 @@ const SignupRoleSelection = () => {
         <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Signup</Text>
+            <Text style={styles.title}>Sign Up</Text>
             <Text style={styles.subtitle}>
               Select your role
             </Text>
@@ -173,12 +193,12 @@ const styles = StyleSheet.create({
     left: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    padding: 20,
     zIndex: 10,
   },
   backButtonText: {
     fontSize: 16,
-    color: '#4A7856',
+    color: '#FFFFFF',
     marginLeft: 5,
     fontWeight: '600',
   },

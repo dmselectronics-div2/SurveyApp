@@ -1,10 +1,11 @@
-import React, {useState} from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity, BackHandler} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import PureSearchPage from './search-by-date';
 import SearchPage from './search-page';
 import SearchAllSpeciesCount from './search-all-species-count';
 import CitySearchPage from './search-citizen';
+import SearchByHabitat from './search-by-habitat';
 import BirdSurveyForm from '../survey-drafts/bird-survey-form';
 
 const GREEN = '#2e7d32';
@@ -29,6 +30,12 @@ const filterOptions = [
     subtitle: 'View all species with total counts',
     icon: 'bird',
   },
+  {
+    key: 'habitat',
+    title: 'Habitat Type Filter',
+    subtitle: 'Filter records by habitat type',
+    icon: 'tree-outline',
+  },
 ];
 
 const SearchOption = () => {
@@ -36,8 +43,25 @@ const SearchOption = () => {
   const [showPointFilter, setShowPointFilter] = useState(false);
   const [showAllSpeciesCount, setShowAllSpeciesCount] = useState(false);
   const [showCitizen, setShowCitizen] = useState(false);
+  const [showHabitatFilter, setShowHabitatFilter] = useState(false);
   const [editSurveyData, setEditSurveyData] = useState<any>(null);
   const [editSource, setEditSource] = useState<string | null>(null);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (editSurveyData) {
+        setEditSurveyData(null);
+        return true;
+      }
+      if (showDateFilter) { setShowDateFilter(false); return true; }
+      if (showPointFilter) { setShowPointFilter(false); return true; }
+      if (showAllSpeciesCount) { setShowAllSpeciesCount(false); return true; }
+      if (showCitizen) { setShowCitizen(false); return true; }
+      if (showHabitatFilter) { setShowHabitatFilter(false); return true; }
+      return false;
+    });
+    return () => backHandler.remove();
+  }, [showDateFilter, showPointFilter, showAllSpeciesCount, showCitizen, showHabitatFilter, editSurveyData]);
 
   const handlePress = (key: string) => {
     switch (key) {
@@ -53,6 +77,9 @@ const SearchOption = () => {
       case 'citizen':
         setShowCitizen(true);
         break;
+      case 'habitat':
+        setShowHabitatFilter(true);
+        break;
     }
   };
 
@@ -67,6 +94,8 @@ const SearchOption = () => {
       setShowDateFilter(true);
     } else if (editSource === 'point') {
       setShowPointFilter(true);
+    } else if (editSource === 'habitat') {
+      setShowHabitatFilter(true);
     }
     setEditSource(null);
   };
@@ -92,6 +121,14 @@ const SearchOption = () => {
   }
   if (showAllSpeciesCount) {
     return <SearchAllSpeciesCount setShowAllSpeciesCount={setShowAllSpeciesCount} />;
+  }
+  if (showHabitatFilter) {
+    return (
+      <SearchByHabitat
+        setShowHabitatFilter={setShowHabitatFilter}
+        onEditItem={(item: any) => handleEditItem(item, 'habitat')}
+      />
+    );
   }
   if (showCitizen) {
     return <CitySearchPage setShowCitizen={setShowCitizen} />;

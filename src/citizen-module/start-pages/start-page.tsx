@@ -41,7 +41,7 @@ const StartPage = () => {
     }, []);
 
     const handlePress = () => {
-        (navigation as any).navigate('PrivacyPolicy', {fromCitizen: true});
+        (navigation as any).navigate('WelcomeSinhala');
     };
 
     return (

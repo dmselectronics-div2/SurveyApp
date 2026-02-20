@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, ActivityIndicator, ScrollView } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
 import axios from 'axios';
 import { API_URL } from '../../../config';
 
-const CHART_WIDTH = (Dimensions.get('window').width - 80) / 2;
+const { width } = Dimensions.get('window');
+const CHART_WIDTH = (width - 80) / 2;
 
 const MiniBarChartModel1 = ({ title }) => {
   const [chartData, setChartData] = useState(null);
@@ -70,36 +71,47 @@ const MiniBarChartModel1 = ({ title }) => {
       </View>
       {hasRealData ? (
         <>
-          <BarChart
-            style={styles.chart}
-            data={chartData}
-            width={CHART_WIDTH}
-            height={150}
-            fromZero
-            yAxisLabel=""
-            yAxisSuffix=""
-            chartConfig={{
-              backgroundColor: '#ffffff',
-              backgroundGradientFrom: '#ffffff',
-              backgroundGradientTo: '#f8fdf8',
-              decimalPlaces: 0,
-              color: (opacity = 1) => `rgba(27, 94, 32, ${opacity})`,
-              labelColor: (opacity = 1) => `rgba(75, 75, 75, ${opacity})`,
-              barPercentage: 0.5,
-              fillShadowGradient: '#81c784',
-              fillShadowGradientOpacity: 0.9,
-              propsForBackgroundLines: {
-                stroke: '#e8f5e9',
-                strokeWidth: 1,
-              },
-              propsForLabels: {
-                fontSize: 10,
-              },
-            }}
-            showBarTops={false}
-            showValuesOnTopOfBars={true}
-            withInnerLines={true}
-          />
+          <ScrollView
+            style={{maxHeight: 200}}
+            showsVerticalScrollIndicator={true}
+            nestedScrollEnabled={true}
+          >
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={true}
+            >
+              <BarChart
+                style={styles.chart}
+                data={chartData}
+                width={Math.max(CHART_WIDTH, chartData.labels.length * 60)}
+                height={200}
+                fromZero
+                yAxisLabel=""
+                yAxisSuffix=""
+                chartConfig={{
+                  backgroundColor: '#ffffff',
+                  backgroundGradientFrom: '#ffffff',
+                  backgroundGradientTo: '#f8fdf8',
+                  decimalPlaces: 0,
+                  color: (opacity = 1) => `rgba(27, 94, 32, ${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(75, 75, 75, ${opacity})`,
+                  barPercentage: 0.5,
+                  fillShadowGradient: '#81c784',
+                  fillShadowGradientOpacity: 0.9,
+                  propsForBackgroundLines: {
+                    stroke: '#e8f5e9',
+                    strokeWidth: 1,
+                  },
+                  propsForLabels: {
+                    fontSize: 10,
+                  },
+                }}
+                showBarTops={false}
+                showValuesOnTopOfBars={true}
+                withInnerLines={true}
+              />
+            </ScrollView>
+          </ScrollView>
           <View style={styles.legendRow}>
             {Object.entries(sexCounts).map(([sex, count]) => (
               <View key={sex} style={styles.legendItem}>

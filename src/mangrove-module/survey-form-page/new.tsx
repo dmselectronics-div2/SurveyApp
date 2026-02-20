@@ -44,6 +44,8 @@ import NetInfo from '@react-native-community/netinfo';
 import axios from 'axios';
 import { Modal, FlatList } from 'react-native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import CustomAlert from '../../bird-module/custom-alert/alert-design';
+import {getDatabase} from '../../bird-module/database/db';
 
 
 // Define habitat type constants for consistency and to prevent errors
@@ -234,6 +236,8 @@ const GastropodBivalveForm = () => {
 
   // State for loading and network
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAlertVisible, setIsAlertVisible] = useState(false);
+  const [isDraftAlertVisible, setIsDraftAlertVisible] = useState(false);
   const [isConnected, setIsConnected] = useState(true);
 
   // State for basic information
@@ -538,6 +542,86 @@ const GastropodBivalveForm = () => {
       if (data.imageUri) setImageUri(data.imageUri);
     }
   }, [route.params?.editData]);
+
+  // Load draft data if navigated from Drafts page
+  const draftData = (route.params as any)?.draftData || null;
+  const existingDraftId = (route.params as any)?.draftId || null;
+
+  useEffect(() => {
+    if (draftData) {
+      if (draftData.date) setDate(new Date(draftData.date));
+      if (draftData.timeOfDataCollection) setTimeOfDataCollection(draftData.timeOfDataCollection);
+      if (draftData.nearestHighTideTime) setNearestHighTideTime(new Date(draftData.nearestHighTideTime));
+      if (draftData.timeOfSampling) setTimeOfSampling(new Date(draftData.timeOfSampling));
+      if (draftData.location) setLocation(draftData.location);
+      if (draftData.customLocation) setCustomLocation(draftData.customLocation);
+      if (draftData.latitude) setLatitude(draftData.latitude);
+      if (draftData.longitude) setLongitude(draftData.longitude);
+      if (draftData.weatherCondition) setWeatherCondition(draftData.weatherCondition);
+      if (draftData.weatherRemark) setWeatherRemark(draftData.weatherRemark);
+      if (draftData.samplingLayer) setSamplingLayer(draftData.samplingLayer);
+      if (draftData.samplingMethod) setSamplingMethod(draftData.samplingMethod);
+
+      if (draftData.quadratId) setQuadratId(draftData.quadratId);
+      if (draftData.quadratObservedBy) setQuadratObservedBy(draftData.quadratObservedBy);
+      if (draftData.dataEnteredBy) setDataEnteredBy(draftData.dataEnteredBy);
+      if (draftData.quadratSize) setQuadratSize(draftData.quadratSize);
+      if (draftData.quadratLocation) setQuadratLocation(draftData.quadratLocation);
+      if (draftData.customQuadratLocation) setCustomQuadratLocation(draftData.customQuadratLocation);
+
+      if (draftData.transectId) setTransectId(draftData.transectId);
+      if (draftData.transectObservedBy) setTransectObservedBy(draftData.transectObservedBy);
+      if (draftData.transectDataEnteredBy) setTransectDataEnteredBy(draftData.transectDataEnteredBy);
+      if (draftData.transectSize) setTransectSize(draftData.transectSize);
+      if (draftData.transectLatitude) setTransectLatitude(draftData.transectLatitude);
+      if (draftData.transectLongitude) setTransectLongitude(draftData.transectLongitude);
+      if (draftData.endPointLatitude) setEndPointLatitude(draftData.endPointLatitude);
+      if (draftData.endPointLongitude) setEndPointLongitude(draftData.endPointLongitude);
+
+      if (draftData.grabId) setGrabId(draftData.grabId);
+      if (draftData.grabObservedBy) setGrabObservedBy(draftData.grabObservedBy);
+      if (draftData.grabDataEnteredBy) setGrabDataEnteredBy(draftData.grabDataEnteredBy);
+      if (draftData.grabSize) setGrabSize(draftData.grabSize);
+      if (draftData.grabLatitude) setGrabLatitude(draftData.grabLatitude);
+      if (draftData.grabLongitude) setGrabLongitude(draftData.grabLongitude);
+
+      if (draftData.coreId) setCoreId(draftData.coreId);
+      if (draftData.coreObservedBy) setCoreObservedBy(draftData.coreObservedBy);
+      if (draftData.coreDataEnteredBy) setCoreDataEnteredBy(draftData.coreDataEnteredBy);
+      if (draftData.coreDepth) setCoreDepth(draftData.coreDepth);
+      if (draftData.sieveSize) setSieveSize(draftData.sieveSize);
+      if (draftData.coreLatitude) setCoreLatitude(draftData.coreLatitude);
+      if (draftData.coreLongitude) setCoreLongitude(draftData.coreLongitude);
+
+      if (draftData.habitatType) setHabitatType(draftData.habitatType);
+      if (draftData.customHabitatType) setCustomHabitatType(draftData.customHabitatType);
+      if (draftData.restorationYear) setRestorationYear(draftData.restorationYear);
+      if (draftData.vegetation) setVegetation(draftData.vegetation);
+      if (draftData.customVegetation) setCustomVegetation(draftData.customVegetation);
+      if (draftData.microhabitat) setMicrohabitat(draftData.microhabitat);
+      if (draftData.customMicrohabitat) setCustomMicrohabitat(draftData.customMicrohabitat);
+
+      if (draftData.speciesClumped) setSpeciesClumped(draftData.speciesClumped);
+      if (draftData.species_seen_clumped_what) setSpeciesSeenClumpedWhat(draftData.species_seen_clumped_what);
+      if (draftData.clumpedSpeciesName) setClumpedSpeciesName(draftData.clumpedSpeciesName);
+      if (draftData.clumpedWhere) setClumpedWhere(draftData.clumpedWhere);
+      if (draftData.clumpedCount) setClumpedCount(draftData.clumpedCount);
+
+      if (draftData.speciesOnRoot) setSpeciesOnRoot(draftData.speciesOnRoot);
+      if (draftData.speciesOnRootWhere) setSpeciesOnRootWhere(draftData.speciesOnRootWhere);
+      if (draftData.speciesOnRootWhat) setSpeciesOnRootWhat(draftData.speciesOnRootWhat);
+
+      if (draftData.isInWater) setIsInWater(draftData.isInWater);
+      if (draftData.waterStatus) setWaterStatus(draftData.waterStatus);
+      if (draftData.waterDepth) setWaterDepth(draftData.waterDepth);
+
+      if (draftData.speciesCounts) setSpeciesCounts(draftData.speciesCounts);
+      if (draftData.remark) setRemark(draftData.remark);
+      if (draftData.text) setText(draftData.text);
+      if (draftData.imageUri) setImageUri(draftData.imageUri);
+      if (draftData.teamMembersList) setTeamMembersList(draftData.teamMembersList);
+    }
+  }, []);
 
   // Handle date picker confirm
   const handleDateConfirm = (selectedDate) => {
@@ -1062,19 +1146,10 @@ const GastropodBivalveForm = () => {
         console.log('Image upload response:', uploadResponse);
       }
 
-      Alert.alert(
-        'Success',
-        isEditMode ? 'Form data updated successfully!' : 'Form data submitted successfully!',
-        [{
-          text: 'OK',
-          onPress: () => {
-            resetForm();
-            setIsEditMode(false);
-            setEditItemId(null);
-            navigation.navigate('MangroveDataTable');
-          }
-        }]
-      );
+      resetForm();
+      setIsEditMode(false);
+      setEditItemId(null);
+      setIsAlertVisible(true);
     } catch (error) {
       console.error('Overall submission error:', error);
 
@@ -1240,6 +1315,73 @@ const GastropodBivalveForm = () => {
     setErrors({});
   };
 
+  const saveDraft = async () => {
+    try {
+      const db = await getDatabase();
+      const now = new Date();
+      const draftId = existingDraftId || `BIVALVI_DRAFT_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}${now.getSeconds().toString().padStart(2,'0')}`;
+
+      const formState = {
+        date: date.toISOString(),
+        timeOfDataCollection,
+        nearestHighTideTime: nearestHighTideTime.toISOString(),
+        timeOfSampling: timeOfSampling.toISOString(),
+        location, customLocation, latitude, longitude,
+        weatherCondition, weatherRemark,
+        samplingLayer, samplingMethod,
+        quadratId, quadratObservedBy, dataEnteredBy, quadratSize, quadratLocation, customQuadratLocation,
+        transectId, transectObservedBy, transectDataEnteredBy, transectSize, transectLatitude, transectLongitude, endPointLatitude, endPointLongitude,
+        grabId, grabObservedBy, grabDataEnteredBy, grabSize, grabLatitude, grabLongitude,
+        coreId, coreObservedBy, coreDataEnteredBy, coreDepth, sieveSize, coreLatitude, coreLongitude,
+        habitatType, customHabitatType, restorationYear,
+        vegetation, customVegetation,
+        microhabitat, customMicrohabitat,
+        speciesClumped, species_seen_clumped_what, clumpedSpeciesName, clumpedWhere, clumpedCount,
+        speciesOnRoot, speciesOnRootWhere, speciesOnRootWhat,
+        isInWater, waterStatus, waterDepth,
+        speciesCounts, remark, text, imageUri,
+        teamMembersList,
+      };
+
+      const lastModified = now.toISOString();
+
+      db.transaction((tx: any) => {
+        tx.executeSql(
+          `CREATE TABLE IF NOT EXISTS bivalvi_drafts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            draftId TEXT UNIQUE,
+            location TEXT,
+            date TEXT,
+            lastModified TEXT,
+            formData TEXT
+          );`,
+        );
+        tx.executeSql(
+          `INSERT OR REPLACE INTO bivalvi_drafts
+            (draftId, location, date, lastModified, formData)
+           VALUES (?, ?, ?, ?, ?);`,
+          [
+            draftId,
+            location || customLocation || '',
+            date.toISOString(),
+            lastModified,
+            JSON.stringify(formState),
+          ],
+          () => {
+            setIsDraftAlertVisible(true);
+          },
+          (_: any, error: any) => {
+            console.log('Error saving draft:', error);
+            Alert.alert('Error', 'Failed to save draft.');
+          },
+        );
+      });
+    } catch (error) {
+      console.error('saveDraft error:', error);
+      Alert.alert('Error', 'Failed to save draft.');
+    }
+  };
+
   return (
     <PaperProvider theme={customTheme}>
       {/* Loading overlay */}
@@ -1257,6 +1399,25 @@ const GastropodBivalveForm = () => {
           </View>
         </RNModal>
       )}
+      <CustomAlert
+        visible={isAlertVisible}
+        onClose={() => setIsAlertVisible(false)}
+        type="success"
+        title="Success !"
+        message="Your form has been successfully submitted! You can now fill a new form."
+        buttonText="Continue"
+      />
+      <CustomAlert
+        visible={isDraftAlertVisible}
+        onClose={() => {
+          setIsDraftAlertVisible(false);
+          (navigation as any).navigate('ByvalviBottomNav');
+        }}
+        type="success"
+        title="Draft Saved"
+        message="Your incomplete form has been saved as a draft."
+        buttonText="OK"
+      />
       <ImageBackground
         source={require('../../assets/image/bivalvi.jpeg')}
         style={styles.backgroundImage}
@@ -2563,7 +2724,7 @@ const GastropodBivalveForm = () => {
             )}
 
             {/* Form Buttons */}
-            <View style={styles.buttonContainer}>
+            <View style={styles.buttonRow}>
               <Button
                 mode="contained"
                 onPress={handleSubmit}
@@ -2574,6 +2735,19 @@ const GastropodBivalveForm = () => {
               >
                 {isEditMode ? 'Update' : 'Submit'}
               </Button>
+              <Button
+                mode="contained"
+                onPress={saveDraft}
+                style={[styles.draftButton, { borderRadius: 6 }]}
+                buttonColor="#FF9800"
+                textColor="white"
+                labelStyle={styles.button_label}
+                icon="content-save-outline"
+              >
+                Draft
+              </Button>
+            </View>
+            <View style={styles.resetButtonCenter}>
               <Button
                 mode="outlined"
                 onPress={resetForm}
@@ -2781,25 +2955,37 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontFamily: 'Times New Roman',
   },
-  buttonContainer: {
+  buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 20,
+    gap: 8,
+  },
+  resetButtonCenter: {
+    alignItems: 'center',
+    marginTop: 10,
     marginBottom: 32,
   },
+  draftButton: {
+    padding: 10,
+    backgroundColor: '#3ac997d8',
+    borderRadius: 8,
+    alignItems: 'center',
+    flex: 1,
+  },
   resetButton: {
-    padding: 15,
+    padding: 10,
     backgroundColor: '#E74C3C',
     borderRadius: 8,
     alignItems: 'center',
-    width: '48%',
+    width: '50%',
   },
   submitButton: {
-    padding: 15,
+    padding: 10,
     backgroundColor: '#4A7856',
     borderRadius: 8,
     alignItems: 'center',
-    width: '48%',
+    flex: 1,
   },
   submitText: {
     color: '#FFFFFF',

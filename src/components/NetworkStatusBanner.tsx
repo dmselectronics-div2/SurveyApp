@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { checkNetworkStatus, subscribeToNetworkChanges, syncAllPendingData } from '../assets/sql_lite/sync_service';
+import { checkNetworkStatus, subscribeToNetworkChanges, syncFullBidirectional, getBirdPendingCount } from '../assets/sql_lite/sync_service';
 import { getTotalPendingCount } from '../assets/sql_lite/db_connection';
 
 interface NetworkStatusBannerProps {
   showSyncButton?: boolean;
+  includeBirdSurveys?: boolean;
 }
 
-const NetworkStatusBanner: React.FC<NetworkStatusBannerProps> = ({ showSyncButton = true }) => {
+const NetworkStatusBanner: React.FC<NetworkStatusBannerProps> = ({ showSyncButton = true, includeBirdSurveys = false }) => {
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -38,7 +39,11 @@ const NetworkStatusBanner: React.FC<NetworkStatusBannerProps> = ({ showSyncButto
 
   const refreshPendingCount = async () => {
     try {
-      const count = await getTotalPendingCount();
+      let count = await getTotalPendingCount();
+      if (includeBirdSurveys) {
+        const birdCount = await getBirdPendingCount();
+        count += birdCount;
+      }
       setPendingCount(count);
     } catch (error) {
       // silently handle
@@ -52,7 +57,7 @@ const NetworkStatusBanner: React.FC<NetworkStatusBannerProps> = ({ showSyncButto
     setLastSyncResult(null);
 
     try {
-      const result = await syncAllPendingData();
+      const result = await syncFullBidirectional();
       await refreshPendingCount();
 
       if (result.totalSynced > 0 && result.totalFailed === 0) {

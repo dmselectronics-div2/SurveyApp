@@ -117,7 +117,7 @@ const BottomNavbar = ({ setTitle }: { setTitle?: (title: string) => void }) => {
         <View style={{flex: 1}}>
           {showBottomNav && (
             <>
-              <NetworkStatusBanner />
+              <NetworkStatusBanner showSyncButton={true} includeBirdSurveys={true} />
               <View style={{flex: 1}}>
                 <CurrentScene />
               </View>

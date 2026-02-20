@@ -63,13 +63,13 @@ const SignupSurveyType = () => {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <MaterialIcon name="arrow-back" size={28} color="#4A7856" />
+          <MaterialIcon name="arrow-back" size={28} color="#FFFFFF" />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
 
         <View style={styles.contentWrapper}>
           <View style={styles.headerArea}>
-            <Text style={styles.title}>Signup</Text>
+            <Text style={styles.title}>Sign Up</Text>
             <Text style={styles.subtitle}>
               Register to contribute to environmental research data collection
             </Text>
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     position: 'absolute', top: Platform.OS === 'ios' ? 50 : 40, left: 20,
     flexDirection: 'row', alignItems: 'center', padding: 10, zIndex: 10,
   },
-  backButtonText: { fontSize: 16, color: '#4A7856', marginLeft: 5, fontWeight: '600' },
+  backButtonText: { fontSize: 16, color: '#FFFFFF', marginLeft: 5, fontWeight: '600' },
   contentWrapper: {
     flex: 1, paddingHorizontal: 20,
     paddingTop: Platform.OS === 'ios' ? 90 : 80,

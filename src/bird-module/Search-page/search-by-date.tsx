@@ -15,7 +15,17 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import axios from 'axios';
 import RNFS from 'react-native-fs';
+import NetInfo from '@react-native-community/netinfo';
 import {API_URL} from '../../config';
+import {getDatabase} from '../database/db';
+
+const toLocalDate = (dateStr: string) => {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
 
 const GREEN = '#2e7d32';
 const GREEN_LIGHT = '#e8f5e9';
@@ -31,6 +41,86 @@ const PureSearchPage = ({setShowDateFilter, onEditItem}: {setShowDateFilter: (v:
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedBirds, setExpandedBirds] = useState<Record<string, boolean>>({});
+  const [isOffline, setIsOffline] = useState(false);
+
+  const loadOfflineData = async (startD: Date | null, endD: Date | null): Promise<void> => {
+    return new Promise(async resolve => {
+      try {
+        const db = await getDatabase();
+        db.transaction((tx: any) => {
+          tx.executeSql(
+            `SELECT bs.uniqueId, bs.habitatType, bs.point, bs.pointTag, bs.latitude, bs.longitude,
+                    bs.date, bs.observers, bs.startTime, bs.endTime, bs.weather, bs.water, bs.season,
+                    bs.statusOfVegy, bs.radiusOfArea, bs.descriptor,
+                    bo.species, bo.count, bo.maturity, bo.sex, bo.behaviour, bo.identification,
+                    bo.status, bo.remarks
+             FROM bird_survey bs
+             LEFT JOIN bird_observations bo ON bs.uniqueId = bo.uniqueId
+             ORDER BY bs.date DESC LIMIT 300`,
+            [],
+            (_: any, results: any) => {
+              const surveyMap: Record<string, any> = {};
+              for (let i = 0; i < results.rows.length; i++) {
+                const row = results.rows.item(i);
+                if (!surveyMap[row.uniqueId]) {
+                  surveyMap[row.uniqueId] = {
+                    _id: row.uniqueId,
+                    uniqueId: row.uniqueId,
+                    habitatType: row.habitatType,
+                    point: row.point,
+                    pointTag: row.pointTag,
+                    latitude: row.latitude,
+                    longitude: row.longitude,
+                    date: row.date,
+                    observers: row.observers,
+                    startTime: row.startTime,
+                    endTime: row.endTime,
+                    weather: row.weather,
+                    water: row.water,
+                    season: row.season,
+                    statusOfVegy: row.statusOfVegy,
+                    radiusOfArea: row.radiusOfArea,
+                    descriptor: row.descriptor,
+                    birdObservations: [],
+                  };
+                }
+                if (row.species) {
+                  surveyMap[row.uniqueId].birdObservations.push({
+                    species: row.species || '',
+                    count: row.count || '',
+                    maturity: row.maturity || '',
+                    sex: row.sex || '',
+                    behaviour: row.behaviour || '',
+                    identification: row.identification || '',
+                    status: row.status || '',
+                    remarks: row.remarks || '',
+                  });
+                }
+              }
+              const items = Object.values(surveyMap);
+              const filtered = items.filter((item: any) => {
+                const itemD = toLocalDate(item.date);
+                if (!itemD) return false;
+                const matchStart = !startD || itemD >= startD;
+                const matchEnd = !endD || itemD <= endD;
+                return matchStart && matchEnd;
+              });
+              setResults(filtered);
+              setIsOffline(true);
+              resolve();
+            },
+            () => {
+              setResults([]);
+              resolve();
+            },
+          );
+        });
+      } catch {
+        setResults([]);
+        resolve();
+      }
+    });
+  };
 
   const toggleBirdExpand = (surveyId: string, birdIdx: number) => {
     const key = `${surveyId}-${birdIdx}`;
@@ -38,33 +128,35 @@ const PureSearchPage = ({setShowDateFilter, onEditItem}: {setShowDateFilter: (v:
   };
 
   const handleSearch = async () => {
-    const toLocalDate = (dateStr: string) => {
-      if (!dateStr) return null;
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return null;
-      d.setHours(0, 0, 0, 0);
-      return d;
-    };
     const startD = toLocalDate(startText);
     const endD = toLocalDate(endText);
     if (endD) endD.setHours(23, 59, 59, 999);
 
     setLoading(true);
-    try {
-      const response = await axios.get(`${API_URL}/form-entries?page=1&limit=500`);
-      const data = response.data || [];
-      const filtered = data.filter((item: any) => {
-        const itemD = toLocalDate(item.date);
-        if (!itemD) return false;
-        const matchStart = !startD || itemD >= startD;
-        const matchEnd = !endD || itemD <= endD;
-        return matchStart && matchEnd;
-      });
+    setIsOffline(false);
 
-      setResults(filtered);
-    } catch {
-      setResults([]);
+    const netState = await NetInfo.fetch();
+    const isOnline = netState.isConnected && netState.isInternetReachable;
+
+    if (isOnline) {
+      try {
+        const response = await axios.get(`${API_URL}/form-entries?page=1&limit=500`);
+        const data = response.data || [];
+        const filtered = data.filter((item: any) => {
+          const itemD = toLocalDate(item.date);
+          if (!itemD) return false;
+          const matchStart = !startD || itemD >= startD;
+          const matchEnd = !endD || itemD <= endD;
+          return matchStart && matchEnd;
+        });
+        setResults(filtered);
+      } catch {
+        await loadOfflineData(startD, endD);
+      }
+    } else {
+      await loadOfflineData(startD, endD);
     }
+
     setShowResults(true);
     setLoading(false);
   };
@@ -269,6 +361,12 @@ const PureSearchPage = ({setShowDateFilter, onEditItem}: {setShowDateFilter: (v:
                 </TouchableOpacity>
               )}
             </View>
+            {isOffline && (
+              <View style={styles.offlineBanner}>
+                <Icon name="wifi-off" size={14} color="#E65100" />
+                <Text style={styles.offlineBannerText}>Offline — showing locally saved data</Text>
+              </View>
+            )}
 
             {results.length === 0 ? (
               <View style={styles.emptyCard}>
@@ -542,6 +640,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 13,
     fontWeight: '600',
+  },
+  offlineBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 10,
+    gap: 6,
+  },
+  offlineBannerText: {
+    fontSize: 12,
+    color: '#E65100',
+    fontWeight: '500',
   },
   emptyCard: {
     alignItems: 'center',

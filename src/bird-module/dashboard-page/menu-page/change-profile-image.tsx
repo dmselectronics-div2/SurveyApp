@@ -1,194 +1,62 @@
 import React, {useEffect, useState} from 'react';
 import {
-  Menu,
   Text,
   Avatar,
-  Divider,
-  Card,
-  Badge,
   IconButton,
-  Appbar,
   Button,
-  Dialog,
-  Portal,
 } from 'react-native-paper';
 import {
   StyleSheet,
   View,
-  TextInput,
   Alert,
-  Appearance,
+  TouchableOpacity,
   ImageBackground,
+  Platform,
 } from 'react-native';
-import * as Keychain from 'react-native-keychain';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
-import {Dropdown} from 'react-native-element-dropdown';
 import {useNavigation} from '@react-navigation/native';
 import { getDatabase } from '../../database/db';
 import {API_URL} from '../../../config';
 import axios from 'axios';
-
-const data = [
-  {label: 'Birds', value: 'Birds'},
-  {label: 'Bivalve', value: 'Bivalve'},
-  {label: 'Trees', value: 'Trees'},
-  {label: 'Soil', value: 'Soil'},
-];
+import {getLoginEmail} from '../../../assets/sql_lite/db_connection';
 
 const ProfileImageChange = () => {
-  const [theme, setTheme] = useState(Appearance.getColorScheme());
   const navigation = useNavigation();
   const [avatarUri, setAvatarUri] = useState('');
-
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [isEditingEmail, setIsEditingEmail] = useState(false);
-  const [isEditingArea, setIsEditingArea] = useState(false);
-  // const [name, setName] = useState('your name');
   const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [area, setArea] = useState('Birds');
+  const [uploading, setUploading] = useState(false);
+  const [imageSelected, setImageSelected] = useState(false);
 
-  const [value1, setValue1] = useState(null);
-  const [isFocus1, setIsFocus1] = useState(false);
+  useEffect(() => {
+    retrieveEmailFromSession();
+  }, []);
 
-  const [showDialog, setShowDialog] = useState(false);
-
-  const handleEditToggle = field => {
-    switch (field) {
-      case 'name':
-        setIsEditingName(!isEditingName);
-        break;
-      case 'email':
-        setIsEditingEmail(!isEditingEmail);
-        break;
-      case 'area':
-        setIsEditingArea(!isEditingArea);
-        break;
-      default:
-        break;
-    }
-  };
-
-  const _goBack = () => console.log('Went back');
-  const _handleSearch = () => console.log('Searching');
-  const _handleMore = () => console.log('Shown more');
-
-  const uploadImageToServer = async uri => {
-    console.log('uri is ', uri);
-    if (!uri) {
-      Alert.alert('No image selected', 'Please select an image before saving.');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('profileImage', {
-      uri,
-      name: 'profileImage.jpg', // Use the appropriate file name and extension
-      type: 'image/jpeg', // Ensure this matches the file type
-    });
-
-    formData.append('email', email);
-    console.log('Image page email is ', email);
-
+  const retrieveEmailFromSession = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/upload-profile-image`, {
-        // Updated endpoint
-        method: 'POST',
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        body: formData,
-      });
-
-      const responseText = await response.text(); // Log the response text for inspection
-      console.log('Server response:', responseText);
-
-      if (response.ok) {
-        const data = JSON.parse(responseText);
-        setAvatarUri(data.filePath);
-        uploadPathToServer(data.filePath, email);
-        // Alert.alert('Success', 'Image uploaded successfully!');
-        console.log('Image uploaded successfully:', data.filePath);
-      } else {
-        console.error('Upload failed:', responseText);
-        Alert.alert('Error', 'Failed to upload image.');
+      const sessionEmail = await getLoginEmail();
+      if (sessionEmail) {
+        setEmail(sessionEmail);
+        retrieveCurrentImageFromSQLite(sessionEmail);
       }
     } catch (error) {
-      console.error('Error uploading image:', error);
-      Alert.alert('Error', 'An error occurred while uploading the image.');
+      console.error('Failed to retrieve email from session', error);
     }
   };
 
-  const handleSaveImage = () => {
-    uploadImageToServer(avatarUri);
-  };
-
-  // update mongo db image path
-  const uploadPathToServer = async (uri, email) => {
-    console.log('uri is uploadPathToServer ', uri);
-
-    console.log('Image page email is uploadPathToServer ', email, ' ', uri );
-
-    try {
-      const response = await axios.post(`${API_URL}/post-image-path`, {
-        email,
-        uri,
-      });
-
-      if (response.data.status === 'ok') {
-        saveUserToSQLite(uri, email);
-      } else {
-        console.error('Upload failed:');
-        Alert.alert('Error', 'Failed to upload image.');
-      }
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      Alert.alert('Error', 'An error occurred while uploading the image.');
-    }
-  };
-
-  // Save data in SQLite
-  const saveUserToSQLite = async (url, email) => {
+  const retrieveCurrentImageFromSQLite = async (userEmail: string) => {
     const db = await getDatabase();
     db.transaction(tx => {
       tx.executeSql(
-        'SELECT * FROM Users LIMIT 1',
-        [],
-        (tx, results) => {
+        'SELECT userImageUrl FROM Users WHERE email = ?',
+        [userEmail],
+        (_tx, results) => {
           if (results.rows.length > 0) {
-            // If a row already exists, update it
-            tx.executeSql(
-              `UPDATE Users SET userImageUrl = ? WHERE email = ?`,
-              [url, email],
-              () => {
-                Alert.alert('Success', 'Image uploaded successfully!');
-                console.log('Image uploaded successfully: ');
-                // navigation.navigate('ProfileMenu');
-                navigation.goBack();
-              },
-              error => {
-                console.log('Error updating user in SQLite: ' + error.message);
-              },
-            );
-          } else {
-            // If no row exists, insert a new one
-            tx.executeSql(
-              `INSERT INTO Users (userImageUrl, email) VALUES(?, ?)`,
-              [url, email],
-              () => {
-                Alert.alert('Success', 'Image uploaded successfully!');
-                console.log('Image uploaded successfully: ');
-                // navigation.navigate('ProfileMenu');
-                navigation.goBack();
-              },
-              error => {
-                console.log('Error updating user in SQLite: ' + error.message);
-              },
-            );
+            const uri = results.rows.item(0).userImageUrl;
+            if (uri) setAvatarUri(uri);
           }
         },
         error => {
-          console.log('Error querying Users table: ' + error.message);
+          console.error('Error retrieving image from SQLite: ', error.message);
         },
       );
     });
@@ -196,11 +64,11 @@ const ProfileImageChange = () => {
 
   const handleAvatarChange = () => {
     Alert.alert(
-      'Change Profile Image',
+      'Change Profile Photo',
       'Choose an option',
       [
-        {text: 'Camera', onPress: () => openCamera()},
-        {text: 'Gallery', onPress: () => openGallery()},
+        {text: 'Take Photo', onPress: () => openCamera()},
+        {text: 'Choose from Gallery', onPress: () => openGallery()},
         {text: 'Cancel', style: 'cancel'},
       ],
       {cancelable: true},
@@ -209,17 +77,11 @@ const ProfileImageChange = () => {
 
   const openCamera = () => {
     launchCamera(
-      {
-        mediaType: 'photo',
-        quality: 1,
-      },
+      {mediaType: 'photo', quality: 0.8},
       response => {
-        if (response.didCancel) {
-          console.log('User cancelled image picker');
-        } else if (response.errorCode) {
-          console.log('ImagePicker Error: ', response.errorMessage);
-        } else if (response.assets && response.assets.length > 0) {
-          setAvatarUri(response.assets[0].uri);
+        if (!response.didCancel && !response.errorCode && response.assets?.length) {
+          setAvatarUri(response.assets[0].uri || '');
+          setImageSelected(true);
         }
       },
     );
@@ -227,122 +89,129 @@ const ProfileImageChange = () => {
 
   const openGallery = () => {
     launchImageLibrary(
-      {
-        mediaType: 'photo',
-        quality: 1,
-      },
+      {mediaType: 'photo', quality: 0.8},
       response => {
-        if (response.didCancel) {
-          console.log('User cancelled image picker');
-        } else if (response.errorCode) {
-          console.log('ImagePicker Error: ', response.errorMessage);
-        } else if (response.assets && response.assets.length > 0) {
-          setAvatarUri(response.assets[0].uri);
+        if (!response.didCancel && !response.errorCode && response.assets?.length) {
+          setAvatarUri(response.assets[0].uri || '');
+          setImageSelected(true);
         }
       },
     );
   };
 
-  const renderLabel = (label, value, isFocus) => {
-    if (value || isFocus) {
-      return label;
+  const uploadImageToServer = async (uri: string) => {
+    if (!uri) {
+      Alert.alert('No Image', 'Please select an image first.');
+      return;
     }
-    return `Select ${label.toLowerCase()}`;
-  };
+    if (!email) {
+      Alert.alert('Error', 'Could not retrieve your account. Please try again.');
+      return;
+    }
 
-  // Retrieving the email
-  const retrieveEmailSecurely = async () => {
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('profileImage', {
+      uri,
+      name: 'profileImage.jpg',
+      type: 'image/jpeg',
+    } as any);
+    formData.append('email', email);
+
     try {
-      const credentials = await Keychain.getGenericPassword();
+      const response = await fetch(`${API_URL}/api/upload-profile-image`, {
+        method: 'POST',
+        headers: {'Content-Type': 'multipart/form-data'},
+        body: formData,
+      });
 
-      if (credentials) {
-        const email = credentials.username; // This will give you the email
-        setEmail(email);
-        console.log('Retrieved email profile : ', email);
-        retrieveNameFromSQLite(email);
-        return {email}; // Return the email and password
+      const responseText = await response.text();
+      if (response.ok) {
+        const data = JSON.parse(responseText);
+        const filePath = data.filePath;
+        await uploadPathToServer(filePath);
       } else {
-        console.log('No email and password stored.');
-        return null;
+        console.error('Upload failed:', responseText);
+        Alert.alert('Error', 'Failed to upload image. Please try again.');
       }
     } catch (error) {
-      console.error('Failed to retrieve email and password', error);
+      console.error('Error uploading image:', error);
+      Alert.alert('Error', 'An error occurred while uploading the image.');
+    } finally {
+      setUploading(false);
     }
   };
 
-  useEffect(() => {
-    retrieveEmailSecurely();
-  }, []);
-
-  // Function to retrieve email from SQLite
-  const retrieveNameFromSQLite = async (userEmail) => {
-    const db = await getDatabase();
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT name, area, userImageUrl FROM Users WHERE email = ?',
-        [userEmail],
-        (tx, results) => {
-          if (results.rows.length > 0) {
-            const retrievedName = results.rows.item(0).name; // Fetching name
-            const retrievedArea = results.rows.item(0).area; // Fetching area
-            const retrieveImage = results.rows.item(0).userImageUrl;
-            if (retrievedName) {
-              setName(retrievedName); // Updating name state
-            }
-
-            if (retrievedArea) {
-              setArea(retrievedArea); // Updating area state
-            }
-
-            if (retrieveImage) {
-              setAvatarUri(retrieveImage); // Use the image from the database if it exists
-            } else {
-              setAvatarUri('../../../assets/image/prof.jpg'); // Default to a local placeholder if no image is found
-            }
-
-            console.log('Name retrieved from SQLite: ', retrievedName);
-            console.log('Area retrieved from SQLite: ', retrievedArea);
-          } else {
-            console.log('No user found in SQLite');
-          }
-        },
-        error => {
-          console.error('Error retrieving user from SQLite: ', error.message);
-        },
-      );
-    });
+  const uploadPathToServer = async (uri: string) => {
+    try {
+      const response = await axios.post(`${API_URL}/post-image-path`, {email, uri});
+      if (response.data.status === 'ok') {
+        await saveImageToSQLite(uri);
+      } else {
+        Alert.alert('Error', 'Failed to save image path.');
+      }
+    } catch (error) {
+      console.error('Error saving image path:', error);
+      Alert.alert('Error', 'An error occurred while saving the image.');
+    }
   };
 
-  // useEffect(() => {
-  //   retrieveNameFromSQLite();
-  // }, []);
+  const saveImageToSQLite = async (url: string) => {
+    try {
+      const db = await getDatabase();
+      db.transaction(tx => {
+        tx.executeSql(
+          'UPDATE Users SET userImageUrl = ? WHERE email = ?',
+          [url, email],
+          () => {
+            Alert.alert('Success', 'Profile photo updated successfully!');
+            navigation.goBack();
+          },
+          error => {
+            console.log('Error updating image in SQLite: ' + error.message);
+            Alert.alert('Success', 'Profile photo uploaded!');
+            navigation.goBack();
+          },
+        );
+      });
+    } catch (e) {
+      console.log('SQLite error:', e);
+      Alert.alert('Success', 'Profile photo uploaded!');
+      navigation.goBack();
+    }
+  };
 
-  useEffect(() => {
-    const subscription = Appearance.addChangeListener(({colorScheme}) => {
-      setTheme(colorScheme);
-    });
-    return () => subscription.remove();
-  }, []);
-
-  const isDarkMode = theme === 'dark';
+  const handleSaveImage = () => {
+    if (!imageSelected) {
+      Alert.alert('No Image Selected', 'Please select a photo first by tapping the camera icon.');
+      return;
+    }
+    uploadImageToServer(avatarUri);
+  };
 
   return (
     <ImageBackground
-      source={require('./../../../assets/image/Bird.jpeg')}
+      source={require('./../../../assets/image/Nature.jpg')}
       style={styles.backgroundImage}>
-      <Card style={styles.card}>
-        <View
-          style={[
-            styles.cardContent,
-            {
-              backgroundColor: isDarkMode
-                ? 'rgba(177, 177, 177, 0.2)'
-                : 'rgba(217, 217, 217, 0.7)',
-            },
-          ]}>
-          <View style={styles.avatarContainer}>
+      <View style={styles.overlay}>
+        {/* Back Button */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}>
+          <Text style={styles.backIcon}>←</Text>
+          <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
+
+        {/* Content Card */}
+        <View style={styles.card}>
+          <Text style={styles.title}>Change Profile Photo</Text>
+          <Text style={styles.subtitle}>Tap the photo to select a new image</Text>
+
+          {/* Avatar with camera badge */}
+          <View style={styles.avatarWrapper}>
             <Avatar.Image
-              size={300}
+              size={130}
               source={
                 avatarUri
                   ? {uri: avatarUri}
@@ -350,160 +219,124 @@ const ProfileImageChange = () => {
               }
               style={styles.avatar}
             />
-
-            <IconButton
-              style={[
-                styles.badge,
-                {
-                  backgroundColor: isDarkMode ? 'black' : 'white',
-                  borderColor: isDarkMode ? 'white' : 'black',
-                },
-              ]}
-              size={22}
-              icon="plus"
-              mode="contained"
-              iconColor={isDarkMode ? 'white' : 'black'}
-              rippleColor="#D0BBFF"
-              onPress={handleAvatarChange}></IconButton>
+            <TouchableOpacity
+              style={styles.cameraBadge}
+              onPress={handleAvatarChange}
+              activeOpacity={0.8}>
+              <IconButton
+                icon="camera"
+                size={20}
+                iconColor="#FFFFFF"
+                style={styles.cameraIcon}
+              />
+            </TouchableOpacity>
           </View>
-        </View>
-      </Card>
 
-      <Button
-        mode="contained"
-        onPress={handleSaveImage}
-        style={styles.saveButton}>
-        Save Image
-      </Button>
+          {imageSelected && (
+            <Text style={styles.selectedText}>New photo selected — tap Save to apply</Text>
+          )}
+
+          <TouchableOpacity
+            style={styles.selectButton}
+            onPress={handleAvatarChange}
+            activeOpacity={0.8}>
+            <Text style={styles.selectButtonText}>Select Photo</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.saveButton, uploading && styles.saveButtonDisabled]}
+            onPress={handleSaveImage}
+            disabled={uploading}
+            activeOpacity={0.8}>
+            <Text style={styles.saveButtonText}>
+              {uploading ? 'Uploading...' : 'Save Photo'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  backgroundImage: {
+  backgroundImage: {flex: 1, resizeMode: 'cover'},
+  overlay: {
     flex: 1,
-    resizeMode: 'cover',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
   },
-  card: {
-    marginTop: 10,
-    alignSelf: 'center',
-    alignItems: 'center',
-    borderRadius: 10,
-    // backgroundColor: 'rgba(217, 217, 217, 0.9)',
-  },
-  bottomCard: {
-    width: '95%',
+  backButton: {
     position: 'absolute',
-    bottom: '5%',
-    // marginTop: 10,
-    alignSelf: 'center',
-    alignItems: 'center',
-    borderRadius: 3,
-    padding: 5,
-    backgroundColor: 'rgba(255, 10, 10, 0.9)',
-  },
-  cardContent: {
-    width: '95%',
-    display: 'flex',
+    top: Platform.OS === 'ios' ? 50 : 40,
+    left: 20,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     padding: 10,
-    backgroundColor: 'rgba(217, 217, 217, 0.9)',
-    borderRadius: 10,
+    zIndex: 10,
   },
-  avatarContainer: {
-    position: 'relative',
+  backIcon: {fontSize: 22, color: '#FFFFFF', marginRight: 4, fontWeight: '600'},
+  backText: {fontSize: 15, color: '#FFFFFF', fontWeight: '600'},
+  card: {
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {shadowColor: 'black', shadowOffset: {width: 0, height: 5}, shadowOpacity: 0.35, shadowRadius: 10},
+      android: {elevation: 10},
+    }),
   },
-  avatar: {
-    marginRight: 10,
-  },
-  badge: {
+  title: {fontSize: 22, fontWeight: '700', color: '#4A7856', marginBottom: 6},
+  subtitle: {fontSize: 13, color: '#666', marginBottom: 28, textAlign: 'center'},
+  avatarWrapper: {position: 'relative', marginBottom: 16},
+  avatar: {backgroundColor: '#E0E0E0'},
+  cameraBadge: {
     position: 'absolute',
-    bottom: 6,
-    right: 6,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#000000',
-    width: 24,
-    height: 24,
-  },
-  textContainer: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    fontFamily: 'InriaSerif-Bold',
-    marginLeft: 20,
-  },
-  bottomTitle: {
-    fontSize: 20,
-    fontWeight: 600,
-    // fontFamily: 'InriaSerif-Bold',
-    // marginLeft: 20,
-    color: 'white',
-  },
-  titleEmail: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    fontFamily: 'InriaSerif-Bold',
-    marginLeft: 20,
-  },
-  subtitle: {
-    fontSize: 14,
-    marginLeft: 20,
-    fontFamily: 'Inter-regular',
-    color: '#000000',
-    textAlign: 'justify',
-  },
-  input: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    fontFamily: 'InriaSerif-Bold',
-    marginLeft: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#000',
-  },
-  pickerInput: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    fontFamily: 'InriaSerif-Bold',
-    marginLeft: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#000',
-  },
-  dropdown: {
-    height: 50,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    justifyContent: 'center',
-  },
-  dropdownFocused: {
-    borderColor: 'blue',
-  },
-  placeholderStyle: {
-    fontSize: 16,
-    color: 'gray',
-  },
-  selectedTextStyle: {
-    fontSize: 16,
-    color: 'black',
-  },
-  inputSearchStyle: {
+    bottom: 0,
+    right: -4,
+    backgroundColor: '#4A7856',
+    borderRadius: 20,
+    width: 40,
     height: 40,
-    fontSize: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    elevation: 4,
   },
-  iconStyle: {
-    width: 20,
-    height: 20,
+  cameraIcon: {margin: 0, padding: 0},
+  selectedText: {
+    fontSize: 12,
+    color: '#4A7856',
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
   },
+  selectButton: {
+    borderWidth: 2,
+    borderColor: '#4A7856',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    alignItems: 'center',
+    marginBottom: 12,
+    width: '100%',
+  },
+  selectButtonText: {fontSize: 14, fontWeight: '600', color: '#4A7856'},
   saveButton: {
-    marginTop: 10,
-    alignSelf: 'center',
-    backgroundColor: '#4CAF50', // Customize button color as needed
+    backgroundColor: '#4A7856',
+    paddingVertical: 13,
+    borderRadius: 25,
+    alignItems: 'center',
+    width: '100%',
+    ...Platform.select({
+      ios: {shadowColor: 'black', shadowOffset: {width: 0, height: 3}, shadowOpacity: 0.25, shadowRadius: 5},
+      android: {elevation: 6},
+    }),
   },
+  saveButtonDisabled: {opacity: 0.6},
+  saveButtonText: {fontSize: 15, fontWeight: '700', color: '#FFFFFF'},
 });
 
 export default ProfileImageChange;

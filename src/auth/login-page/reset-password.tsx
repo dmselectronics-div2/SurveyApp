@@ -14,6 +14,7 @@ import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import axios from 'axios';
 import {API_URL} from '../../config';
 import SQLite from 'react-native-sqlite-storage';
+import {hashPassword} from '../../utils/passwordUtils';
 
 const ResetPassword = ({navigation, route}: any) => {
   const [password, setPassword] = useState('');
@@ -72,10 +73,11 @@ const ResetPassword = ({navigation, route}: any) => {
   };
 
   const saveUserToSQLite = (userEmail: string, pwd: string) => {
+    const hashedPw = hashPassword(pwd);
     db.transaction((tx: any) => {
       tx.executeSql(
         'UPDATE Users SET password = ? WHERE email = ?',
-        [pwd, userEmail],
+        [hashedPw, userEmail],
         () => console.log('Password updated in SQLite'),
         (error: any) => console.log('Error updating password: ' + error.message),
       );
@@ -91,7 +93,7 @@ const ResetPassword = ({navigation, route}: any) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}>
-          <MaterialIcon name="arrow-back" size={28} color="#4A7856" />
+          <MaterialIcon name="arrow-back" size={28} color="#FFFFFF" />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
 
@@ -106,7 +108,7 @@ const ResetPassword = ({navigation, route}: any) => {
           <Text style={styles.subtitle}>Enter a new password for your account</Text>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>New Password:</Text>
+            <Text style={styles.label}>New Password</Text>
             <TextInput
               mode="outlined"
               placeholder="Enter new password"
@@ -116,6 +118,7 @@ const ResetPassword = ({navigation, route}: any) => {
               secureTextEntry={securePassword}
               outlineColor="rgba(74, 120, 86, 0.3)"
               activeOutlineColor="#4A7856"
+              textColor="#333333"
               style={styles.input}
               error={!!passwordError}
               right={
@@ -131,7 +134,7 @@ const ResetPassword = ({navigation, route}: any) => {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Confirm Password:</Text>
+            <Text style={styles.label}>Confirm Password</Text>
             <TextInput
               mode="outlined"
               placeholder="Confirm new password"
@@ -141,6 +144,7 @@ const ResetPassword = ({navigation, route}: any) => {
               secureTextEntry={secureConfirm}
               outlineColor="rgba(74, 120, 86, 0.3)"
               activeOutlineColor="#4A7856"
+              textColor="#333333"
               style={styles.input}
               error={!!confirmPasswordError}
               right={
@@ -168,7 +172,7 @@ const ResetPassword = ({navigation, route}: any) => {
 
           <View style={styles.loginContainer}>
             <Text style={styles.loginText}>Remember your password? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('LoginPage')} activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => navigation.navigate('SigninForm')} activeOpacity={0.7}>
               <Text style={styles.loginLink}>Sign in</Text>
             </TouchableOpacity>
           </View>

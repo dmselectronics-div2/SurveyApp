@@ -68,6 +68,7 @@ import BirdPieChartModel from './src/bird-module/dashboard-page/pie-charts/diver
 import BirdPieChartModel1 from './src/bird-module/dashboard-page/pie-charts/diversity-indices1';
 import BirdPieChartModel2 from './src/bird-module/dashboard-page/pie-charts/diversity-indices2';
 import BirdPieChartModel3 from './src/bird-module/dashboard-page/pie-charts/diversity indices3';
+import BirdMapPage from './src/bird-module/dashboard-page/area-map/area-map';
 
 // Citizen Module Components
 import CitizenStartPage from './src/citizen-module/start-pages/start-page';
@@ -93,11 +94,14 @@ import ByvalviBottomNav from './src/mangrove-module/bottom-navpage/bottom-navbar
 import {GOOGLE_WEB_CLIENT_ID} from './src/config';
 
 // Database
-import {initDatabase} from './src/assets/sql_lite/db_connection';
+import {initDatabase, getLoginSession, clearLoginSession, cleanupOldSyncedData} from './src/assets/sql_lite/db_connection';
 import {getDatabase as getUserDatabase} from './src/bird-module/database/db';
 
 // Network utilities
 import {runNetworkDiagnostics} from './src/utils/networkUtils';
+
+// Sync
+import {startAutoSync, stopAutoSync} from './src/assets/sql_lite/sync_service';
 
 // Configure Google Sign-In
 GoogleSignin.configure({
@@ -169,18 +173,38 @@ const App = () => {
     return () => listener.remove();
   }, []);
 
-  // Initialize SQLite Database
+  // Initialize SQLite Database and check login session
   useEffect(() => {
     const setupDatabase = async () => {
       try {
         await initDatabase();
         console.log('BluTally database initialized successfully');
-        
+
         // Initialize user_db database
         await getUserDatabase();
         console.log('User database initialized successfully');
+
+        // Cleanup old synced data (30-day retention)
+        await cleanupOldSyncedData();
+
+        // Start auto-sync (syncs when network becomes available)
+        startAutoSync();
+
+        // Check if user has a valid login session (90 days)
+        const session = await getLoginSession();
+        if (session.email && session.isValid) {
+          console.log('Valid session found for:', session.email);
+          setInitialRoute('Welcome');
+        } else if (session.email && !session.isValid) {
+          console.log('Session expired, clearing...');
+          await clearLoginSession();
+          setInitialRoute('CitizenStartPage');
+        } else {
+          setInitialRoute('CitizenStartPage');
+        }
       } catch (error) {
         console.error('Failed to initialize database:', error);
+        setInitialRoute('CitizenStartPage');
       }
     };
     setupDatabase();
@@ -202,10 +226,7 @@ const App = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Set the initial route
-  useEffect(() => {
-    setInitialRoute('CitizenStartPage');
-  }, []);
+  // Initial route is now set by the database setup effect above
 
   // Return null or a loader until the initial route is determined
   if (!initialRoute) {
@@ -277,6 +298,7 @@ const App = () => {
           <Stack.Screen name="PieChartModel1" component={BirdPieChartModel1} />
           <Stack.Screen name="PieChartModel2" component={BirdPieChartModel2} />
           <Stack.Screen name="PieChartModel3" component={BirdPieChartModel3} />
+          <Stack.Screen name="BirdMapPage" component={BirdMapPage} />
 
           {/* ============== CITIZEN MODULE SCREENS ============== */}
           <Stack.Screen name="CitizenStartPage" component={CitizenStartPage} />

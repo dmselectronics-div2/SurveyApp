@@ -17,6 +17,7 @@ const LoginWelcome = () => {
 
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      navigation.navigate('OptionSelection');
       return true;
     });
 
@@ -39,6 +40,15 @@ const LoginWelcome = () => {
       style={styles.backgroundImage}
     >
       <View style={styles.overlay}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.navigate('OptionSelection')}
+          activeOpacity={0.7}
+        >
+          <Icon name="arrow-back" size={28} color="#FFFFFF" />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+
         {/* Logo Container */}
         {/* <View style={styles.logoContainer}>
           <View style={styles.logo}>
@@ -51,7 +61,7 @@ const LoginWelcome = () => {
         <View style={styles.welcomeContainer}>
           <Text style={styles.welcomeTitle}>Welcome back</Text>
           <Text style={styles.welcomeSubtitle}>
-            Continue your environmental research journey
+            Continue your  research journey
           </Text>
         </View>
 
@@ -62,7 +72,7 @@ const LoginWelcome = () => {
             onPress={handleSignIn}
             activeOpacity={0.8}
           >
-            <Text style={styles.signInButtonText}>Sign - In</Text>
+            <Text style={styles.signInButtonText}>Sign In</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -70,7 +80,7 @@ const LoginWelcome = () => {
             onPress={handleSignUp}
             activeOpacity={0.8}
           >
-            <Text style={styles.signUpButtonText}>Sign up</Text>
+            <Text style={styles.signUpButtonText}>Sign Up</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -188,6 +198,21 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#4A7856',
     letterSpacing: 0.6,
+  },
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 40,
+    left: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    zIndex: 10,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    marginLeft: 5,
+    fontWeight: '600',
   },
 });
 

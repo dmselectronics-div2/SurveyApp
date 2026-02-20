@@ -606,12 +606,166 @@ exports.addCustomCategory = async (req, res) => {
   }
 };
 
+// Fingerprint login (validates user account status, no password needed)
+exports.fingerprintLogin = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      return res.status(404).json({ status: 'error', data: 'User not found' });
+    }
+
+    if (user.isDeleted) {
+      return res.json({ status: 'error', data: 'Account has been deleted' });
+    }
+
+    if (!user.emailConfirmed) {
+      return res.json({ status: 'notConfirmed', data: 'Email not confirmed' });
+    }
+
+    if (!user.isApproved) {
+      return res.json({ status: 'notApproved', data: 'Account not approved by admin' });
+    }
+
+    res.json({ status: 'ok', data: user });
+  } catch (error) {
+    console.error('Fingerprint login error:', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+// Enable fingerprint for user
+exports.enableFingerprint = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      { fingerPrintEnabled: true },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    res.json({ status: 'ok' });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
 // Get pending users for admin approval
 exports.getPendingUsers = async (req, res) => {
   try {
     const users = await User.find({ isApproved: false, emailConfirmed: true, isDeleted: false })
       .select('email name role firstName lastName institute createdAt');
     res.json({ status: 'ok', data: users });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+// Get all users (for admin panel)
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({ isDeleted: false })
+      .select('email name role firstName lastName institute isApproved emailConfirmed allowedModules createdAt');
+    res.json({ status: 'ok', data: users });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+// Update user role (admin action)
+exports.updateUserRole = async (req, res) => {
+  try {
+    const { email, role } = req.body;
+
+    const user = await User.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      { role },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    res.json({ status: 'ok', data: user });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+// Update user allowed modules (admin action)
+exports.updateUserModules = async (req, res) => {
+  try {
+    const { email, allowedModules } = req.body;
+
+    const user = await User.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      { allowedModules },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    res.json({ status: 'ok', data: user });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+// Remove user (admin action)
+exports.removeUser = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      { isDeleted: true, deleteRequestDate: new Date() },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    res.json({ status: 'ok', message: 'User removed successfully' });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+// Get user modules (role-based + admin override)
+const ALL_MODULES = ['bird', 'byvalvi', 'phenology', 'butterfly', 'water'];
+
+exports.getUserModules = async (req, res) => {
+  try {
+    const { email } = req.query;
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    // If admin has set custom modules, use those
+    if (user.allowedModules && user.allowedModules.length > 0) {
+      return res.json({ status: 'ok', modules: user.allowedModules });
+    }
+
+    // Role-based defaults
+    if (user.role === 'Postgraduate') {
+      return res.json({ status: 'ok', modules: ['byvalvi'] });
+    }
+
+    // All other roles get all modules
+    res.json({ status: 'ok', modules: ALL_MODULES });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
   }

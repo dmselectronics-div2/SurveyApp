@@ -6,8 +6,10 @@ import { useNavigation } from '@react-navigation/native';
 import { API_URL } from '../../config';
 import { getDatabase } from '../database/db';
 import RNFS from 'react-native-fs';
-// import { PermissionsAndroid, Platform } from 'react-native';
 import { PermissionsAndroid, Platform } from 'react-native';
+import SyncStatusIndicator, { SyncStatusLegend } from '../../components/SyncStatusIndicator';
+import { checkNetworkStatus } from '../../assets/sql_lite/sync_service';
+import NetworkStatusBanner from '../../components/NetworkStatusBanner';
 
 
 const formatValue = (value) => {
@@ -113,11 +115,53 @@ const MyDataTable = ({ point, startDate, endDate }) => {
    useEffect(() => {
         const fetchData = async () => {
           try {
-            const response = await fetch(`${API_URL}/form-entries`);
-            const result = await response.json();
-
-            setData(Array.isArray(result) ? result : []);
-            console.log("Fetched Data:", result.length || 0, "entries");
+            const online = await checkNetworkStatus();
+            if (online) {
+              // ONLINE: fetch from cloud
+              const response = await fetch(`${API_URL}/form-entries`);
+              const result = await response.json();
+              const cloudData = (Array.isArray(result) ? result : []).map((item: any) => ({
+                ...item,
+                sync_status: 'synced',
+              }));
+              setData(cloudData);
+              console.log("Fetched cloud data:", cloudData.length, "entries");
+            } else {
+              // OFFLINE: fetch from local SQLite
+              const db = await getDatabase();
+              const localData: any[] = await new Promise((resolve) => {
+                db.transaction((tx: any) => {
+                  tx.executeSql(
+                    'SELECT bs.*, bo.species, bo.count, bo.maturity, bo.sex, bo.behaviour, bo.identification, bo.status as obs_status, bo.remarks, bo.imageUri as obs_imageUri FROM bird_survey bs LEFT JOIN bird_observations bo ON bs.uniqueId = bo.uniqueId ORDER BY bs.created_at DESC LIMIT 100',
+                    [],
+                    (_: any, results: any) => {
+                      const rows: any[] = [];
+                      for (let i = 0; i < results.rows.length; i++) {
+                        const row = results.rows.item(i);
+                        rows.push({
+                          ...row,
+                          birdObservations: [{
+                            species: row.species,
+                            count: row.count,
+                            maturity: row.maturity,
+                            sex: row.sex,
+                            behaviour: row.behaviour,
+                            identification: row.identification,
+                            status: row.obs_status,
+                            remarks: row.remarks,
+                            imageUri: row.obs_imageUri,
+                          }],
+                        });
+                      }
+                      resolve(rows);
+                    },
+                    () => { resolve([]); return false; },
+                  );
+                });
+              });
+              setData(localData);
+              console.log("Fetched local data:", localData.length, "entries");
+            }
           } catch (error) {
             console.error('Error fetching data', error);
           }
@@ -355,6 +399,8 @@ const MyDataTable = ({ point, startDate, endDate }) => {
   return (
     <View
       style={[styles.container, isDarkTheme ? styles.darkContainer : styles.lightContainer]}>
+            <NetworkStatusBanner showSyncButton={true} includeBirdSurveys={true} />
+            <SyncStatusLegend />
             <TouchableOpacity onPress={downloadCSV} style={styles.downloadButton}>
   <Text style={styles.buttonText}>Download CSV</Text>
 </TouchableOpacity>
@@ -362,6 +408,11 @@ const MyDataTable = ({ point, startDate, endDate }) => {
         <View style={styles.table}>
           <View
             style={[styles.headerRow, isDarkTheme ? styles.darkHeaderRow : styles.lightHeaderRow]}>
+            <View style={[styles.headerCell, { width: 50 }]}>
+              <Text style={[styles.headerText, isDarkTheme ? styles.darkText : styles.lightText]}>
+                Sync
+              </Text>
+            </View>
             {columns.map((col, index) => (
               <View key={index} style={[styles.headerCell, { width: columnWidth }]}>
                 <Text style={[styles.headerText, isDarkTheme ? styles.darkText : styles.lightText]}>
@@ -380,10 +431,13 @@ const MyDataTable = ({ point, startDate, endDate }) => {
     return (
         <React.Fragment key={rowIndex}>
             {birdObservations.map((bird, birdIndex) => (
-                <View 
-                    key={birdIndex} 
+                <View
+                    key={birdIndex}
                     style={[styles.row, isDarkTheme ? styles.darkRow : styles.lightRow]}
                 >
+                    <View style={[styles.cell, { width: 50, alignItems: 'center' }]}>
+                      <SyncStatusIndicator status={item.sync_status || 'synced'} />
+                    </View>
                     {columns.map((col, colIndex) => (
                         <View 
                             key={colIndex} 

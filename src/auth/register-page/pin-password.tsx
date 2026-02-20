@@ -81,10 +81,7 @@ const SetPin = ({ navigation, route }: any) => {
 
     setLoading(true);
     try {
-      // Save to server
-      await axios.post(`${API_URL}/save-pin`, { email, pin: completePin });
-
-      // Save locally
+      // Save locally FIRST (works offline)
       await Keychain.setGenericPassword(email, completePin);
       updatePinInSQLite(completePin);
 
@@ -92,8 +89,26 @@ const SetPin = ({ navigation, route }: any) => {
         updateFingerPrintInSQLite();
       }
 
-      Alert.alert('Success', 'PIN set successfully!');
-      getResearchAreaDataFromMongo(email, gName);
+      // Try server sync in background (non-blocking)
+      try {
+        const NetInfo = require('@react-native-community/netinfo').default;
+        const netState = await NetInfo.fetch();
+        if (netState.isConnected && netState.isInternetReachable) {
+          await axios.post(`${API_URL}/save-pin`, { email, pin: completePin });
+          if (biometricEnabled) {
+            await axios.post(`${API_URL}/enable-fingerprint`, { email });
+          }
+        }
+      } catch (serverError) {
+        console.log('Server PIN sync deferred (offline):', serverError);
+      }
+
+      Alert.alert('Success', 'PIN set successfully! Please sign in to continue.', [
+        {
+          text: 'OK',
+          onPress: () => navigation.replace('SigninForm'),
+        },
+      ]);
     } catch (error) {
       console.error('Error storing PIN:', error);
       Alert.alert('Error', 'Failed to set PIN. Please try again.');

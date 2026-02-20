@@ -43,7 +43,7 @@ const SignupSuccess = () => {
               </View>
             </View>
 
-            <Text style={styles.title}>Registration successfull</Text>
+            <Text style={styles.title}>Registration Successful</Text>
             <Text style={styles.message}>
               Your account has been created and your research preferences have been saved.
             </Text>

@@ -11,7 +11,6 @@ import {
   PermissionsAndroid,
 } from 'react-native';
 import {IconButton, TextInput} from 'react-native-paper';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import axios from 'axios';
 import RNFS from 'react-native-fs';
@@ -27,28 +26,12 @@ interface GroupedSpecies {
 
 const SearchCount = ({setShowBirdCount}: {setShowBirdCount: (v: boolean) => void}) => {
   const [species, setSpecies] = useState('');
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date());
-  const [startText, setStartText] = useState('');
-  const [endText, setEndText] = useState('');
-  const [showStart, setShowStart] = useState(false);
-  const [showEnd, setShowEnd] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [results, setResults] = useState<GroupedSpecies[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
   const handleSearch = async () => {
-    const toLocalDate = (dateStr: string) => {
-      if (!dateStr) return null;
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return null;
-      d.setHours(0, 0, 0, 0);
-      return d;
-    };
-    const startD = toLocalDate(startText);
-    const endD = toLocalDate(endText);
-    if (endD) endD.setHours(23, 59, 59, 999);
     const normalizedSpecies = species.trim().toLowerCase();
 
     setLoading(true);
@@ -56,18 +39,10 @@ const SearchCount = ({setShowBirdCount}: {setShowBirdCount: (v: boolean) => void
       const response = await axios.get(`${API_URL}/form-entries?page=1&limit=500`);
       const data = response.data || [];
 
-      const filtered = data.filter((item: any) => {
-        const itemD = toLocalDate(item.date);
-        if (!itemD) return false;
-        const matchStart = !startD || itemD >= startD;
-        const matchEnd = !endD || itemD <= endD;
-        return matchStart && matchEnd;
-      });
-
       const grouped: Record<string, GroupedSpecies> = {};
       let total = 0;
 
-      filtered.forEach((item: any) => {
+      data.forEach((item: any) => {
         (item.birdObservations || []).forEach((bird: any) => {
           const key = bird.species.toLowerCase();
           if (normalizedSpecies && !key.includes(normalizedSpecies)) return;
@@ -104,20 +79,6 @@ const SearchCount = ({setShowBirdCount}: {setShowBirdCount: (v: boolean) => void
         },
       },
     ]);
-  };
-
-  const onChangeStart = (_event: any, selectedDate: any) => {
-    const currentDate = selectedDate || startDate;
-    setShowStart(Platform.OS === 'ios');
-    setStartDate(currentDate);
-    setStartText(currentDate.toDateString());
-  };
-
-  const onChangeEnd = (_event: any, selectedDate: any) => {
-    const currentDate = selectedDate || endDate;
-    setShowEnd(Platform.OS === 'ios');
-    setEndDate(currentDate);
-    setEndText(currentDate.toDateString());
   };
 
   const requestStoragePermission = async () => {
@@ -181,7 +142,7 @@ const SearchCount = ({setShowBirdCount}: {setShowBirdCount: (v: boolean) => void
         </TouchableOpacity>
         <View>
           <Text style={styles.headerTitle}>Count Filter</Text>
-          <Text style={styles.headerSubtitle}>Search by bird observation count</Text>
+          <Text style={styles.headerSubtitle}>Search observed species count</Text>
         </View>
       </View>
 
@@ -207,40 +168,6 @@ const SearchCount = ({setShowBirdCount}: {setShowBirdCount: (v: boolean) => void
             textColor="#333"
             placeholderTextColor="#bbb"
           />
-
-          <Text style={[styles.fieldLabel, {marginTop: 16}]}>Date Range (Optional)</Text>
-          <View style={styles.dateRow}>
-            <TouchableOpacity
-              onPress={() => setShowStart(true)}
-              style={[styles.dateInput, startText ? styles.dateInputFilled : null]}>
-              <View>
-                <Text style={styles.dateLabel}>Start Date</Text>
-                <Text style={[styles.dateValue, !startText && styles.datePlaceholder]}>
-                  {startText || 'Select date'}
-                </Text>
-              </View>
-              <Icon name="calendar" size={20} color={startText ? GREEN : '#bbb'} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setShowEnd(true)}
-              style={[styles.dateInput, endText ? styles.dateInputFilled : null]}>
-              <View>
-                <Text style={styles.dateLabel}>End Date</Text>
-                <Text style={[styles.dateValue, !endText && styles.datePlaceholder]}>
-                  {endText || 'Select date'}
-                </Text>
-              </View>
-              <Icon name="calendar" size={20} color={endText ? GREEN : '#bbb'} />
-            </TouchableOpacity>
-          </View>
-
-          {showStart && (
-            <DateTimePicker value={startDate} mode="date" is24Hour display="default" onChange={onChangeStart} />
-          )}
-          {showEnd && (
-            <DateTimePicker value={endDate} mode="date" is24Hour display="default" onChange={onChangeEnd} />
-          )}
 
           <TouchableOpacity style={styles.searchBtn} activeOpacity={0.8} onPress={handleSearch}>
             <Icon name="magnify" size={20} color="#fff" />
@@ -281,7 +208,7 @@ const SearchCount = ({setShowBirdCount}: {setShowBirdCount: (v: boolean) => void
               <View style={styles.emptyCard}>
                 <Icon name="bird" size={48} color="#ccc" />
                 <Text style={styles.emptyText}>No species found</Text>
-                <Text style={styles.emptySubtext}>Try a different species or date range</Text>
+                <Text style={styles.emptySubtext}>Try a different species name</Text>
               </View>
             ) : (
               results.map((item, index) => (
@@ -330,16 +257,6 @@ const styles = StyleSheet.create({
   cardTitle: {fontSize: 16, fontWeight: '600', color: '#1a1a1a'},
   fieldLabel: {fontSize: 12, fontWeight: '600', color: '#666', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5},
   textInput: {backgroundColor: '#fafafa', height: 50},
-  dateRow: {flexDirection: 'row', gap: 12},
-  dateInput: {
-    flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#fafafa', borderRadius: 12, borderWidth: 1.5, borderColor: '#e0e0e0',
-    paddingHorizontal: 14, paddingVertical: 12,
-  },
-  dateInputFilled: {borderColor: GREEN, backgroundColor: GREEN_LIGHT},
-  dateLabel: {fontSize: 11, fontWeight: '600', color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2},
-  dateValue: {fontSize: 14, fontWeight: '500', color: '#333'},
-  datePlaceholder: {color: '#bbb'},
   searchBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     backgroundColor: GREEN, borderRadius: 12, paddingVertical: 14, marginTop: 20, gap: 8,

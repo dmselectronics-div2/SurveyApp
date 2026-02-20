@@ -33,6 +33,12 @@ router.use('/', mangroveRoutes);
 router.use('/', uploadRoutes);
 router.use('/api', uploadRoutes);
 
+// Citizen routes accessible at /api/citizen/... (used by sync_service via axios baseURL /api)
+router.use('/api/citizen', citizenRoutes);
+
+// Citizen routes accessible at /api/... (used by CitizenDataTable with API_URL + /api/plants)
+router.use('/api', citizenRoutes);
+
 // Health check endpoint
 router.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'SurveyApp Backend is running' });

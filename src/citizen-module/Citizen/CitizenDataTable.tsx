@@ -15,6 +15,11 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../../config';
+import SyncStatusIndicator, { SyncStatusLegend } from '../../components/SyncStatusIndicator';
+import type { SyncStatus } from '../../components/SyncStatusIndicator';
+import { checkNetworkStatus } from '../../assets/sql_lite/sync_service';
+import { getPendingRecords } from '../../assets/sql_lite/db_connection';
+import NetworkStatusBanner from '../../components/NetworkStatusBanner';
 
 const { width } = Dimensions.get('window');
 
@@ -126,6 +131,8 @@ const CitizenDataTable = () => {
   const [totalEntries, setTotalEntries] = useState(0);
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(true);
+  const [dataSource, setDataSource] = useState<'cloud' | 'local'>('cloud');
 
   const translations = {
     en: {
@@ -211,27 +218,74 @@ const CitizenDataTable = () => {
       setIsLoading(true);
       setError(null);
 
-      const categoryConfig = getCategoryConfig();
-      const response = await fetch(
-        `${API_URL}${categoryConfig.endpoint}?page=${currentPage}&limit=20`
-      );
+      const online = await checkNetworkStatus();
+      setIsOnline(online);
 
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
-      }
+      if (online) {
+        // ONLINE: fetch from cloud
+        const categoryConfig = getCategoryConfig();
+        const response = await fetch(
+          `${API_URL}${categoryConfig.endpoint}?page=${currentPage}&limit=20`
+        );
 
-      const result = await response.json();
-
-      if (result.data && Array.isArray(result.data)) {
-        setData(result.data);
-        if (result.pagination) {
-          setTotalPages(result.pagination.pages);
-          setTotalEntries(result.pagination.total);
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
         }
-      } else if (Array.isArray(result)) {
-        setData(result);
+
+        const result = await response.json();
+
+        if (result.data && Array.isArray(result.data)) {
+          // Add sync_status to cloud data
+          setData(result.data.map((item: any) => ({ ...item, sync_status: 'synced' })));
+          if (result.pagination) {
+            setTotalPages(result.pagination.pages);
+            setTotalEntries(result.pagination.total);
+          }
+        } else if (Array.isArray(result)) {
+          setData(result.map((item: any) => ({ ...item, sync_status: 'synced' })));
+        } else {
+          setData([]);
+        }
+        setDataSource('cloud');
       } else {
-        setData([]);
+        // OFFLINE: load from local SQLite
+        const tableMap: Record<CategoryType, string> = {
+          'plants': 'plants',
+          'animals': 'animals',
+          'nature': 'nature',
+          'human-activity': 'human_activities',
+        };
+        const tableName = tableMap[selectedCategory];
+        try {
+          const localRecords = await getPendingRecords(tableName);
+          // getPendingRecords only gets 'pending' - we need all records for display
+          // Use a broader query from db_connection
+          const { default: SQLite } = await import('react-native-sqlite-storage');
+          const db = SQLite.openDatabase({ name: 'BluTally.db', location: 'default' }, () => {}, () => {});
+          const allRecords: any[] = await new Promise((resolve) => {
+            db.transaction((tx: any) => {
+              tx.executeSql(
+                `SELECT * FROM ${tableName} ORDER BY created_at DESC LIMIT 50`,
+                [],
+                (_: any, results: any) => {
+                  const rows = [];
+                  for (let i = 0; i < results.rows.length; i++) {
+                    rows.push(results.rows.item(i));
+                  }
+                  resolve(rows);
+                },
+                () => { resolve([]); return false; },
+              );
+            });
+          });
+          setData(allRecords);
+          setTotalEntries(allRecords.length);
+          setTotalPages(1);
+        } catch (localErr) {
+          console.log('Error loading local data:', localErr);
+          setData([]);
+        }
+        setDataSource('local');
       }
 
       setIsLoading(false);
@@ -297,6 +351,9 @@ const CitizenDataTable = () => {
     const categoryConfig = getCategoryConfig();
     return (
       <View style={styles.tableHeader}>
+        <View style={[styles.headerCell, { width: 40 }]}>
+          <Text style={styles.headerText}>Sync</Text>
+        </View>
         <View style={[styles.headerCell, { width: 50 }]}>
           <Text style={styles.headerText}>#</Text>
         </View>
@@ -314,8 +371,12 @@ const CitizenDataTable = () => {
 
   const renderTableRow = (item: any, index: number) => {
     const categoryConfig = getCategoryConfig();
+    const syncStatus: SyncStatus = item.sync_status || 'synced';
     return (
-      <View key={item._id || index} style={styles.tableRow}>
+      <View key={item._id || item.id || index} style={styles.tableRow}>
+        <View style={[styles.cell, { width: 40, alignItems: 'center' }]}>
+          <SyncStatusIndicator status={syncStatus} />
+        </View>
         <View style={[styles.cell, { width: 50 }]}>
           <Text style={styles.cellText}>{(currentPage - 1) * 20 + index + 1}</Text>
         </View>
@@ -402,6 +463,9 @@ const CitizenDataTable = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
+        {/* Network Status */}
+        <NetworkStatusBanner showSyncButton={true} />
+
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
@@ -411,10 +475,19 @@ const CitizenDataTable = () => {
             <Icon name="arrow-back" size={28} color="#4A7856" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t.title}</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+            <View style={{width: 8, height: 8, borderRadius: 4, backgroundColor: dataSource === 'cloud' ? '#10B981' : '#F59E0B'}} />
+            <Text style={{fontSize: 10, color: dataSource === 'cloud' ? '#10B981' : '#F59E0B', fontWeight: '600'}}>
+              {dataSource === 'cloud' ? 'Cloud' : 'Local'}
+            </Text>
+          </View>
           <TouchableOpacity style={styles.refreshButton} onPress={fetchData}>
             <Icon name="refresh" size={24} color="#4A7856" />
           </TouchableOpacity>
         </View>
+
+        {/* Sync Status Legend */}
+        <SyncStatusLegend />
 
         {/* Category Tabs */}
         {renderCategoryTabs()}

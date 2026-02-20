@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
+
+const { width } = Dimensions.get('window');
 import axios from 'axios';
 import { API_URL } from '../../../config';
 
@@ -80,39 +82,55 @@ const LineChartModel = () => {
   const hasRealData = chartData && chartData.datasets && chartData.datasets[0] &&
     chartData.datasets[0].data.some((v: number) => v > 0);
 
+  const chartWidth = Math.max(width - 64, chartData.labels.length * 70);
+
   return (
     <View>
       <View>
         {hasRealData ? (
-          <LineChart
-            data={chartData}
-            width={400}
-            height={200}
-            yAxisLabel=""
-            yAxisSuffix=" birds"
-            yAxisInterval={1}
-            chartConfig={{
-              backgroundColor: '#ffffff',
-              backgroundGradientFrom: '#ffffff',
-              backgroundGradientTo: '#ffffff',
-              decimalPlaces: 0,
-              color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-              labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-              style: {
-                borderRadius: 16,
-              },
-              propsForDots: {
-                r: '6',
-                strokeWidth: '2',
-                stroke: '#ffa726',
-              },
-            }}
-            bezier
-            style={{
-              marginVertical: 8,
-              borderRadius: 1,
-            }}
-          />
+          <ScrollView
+            style={{maxHeight: 280}}
+            showsVerticalScrollIndicator={true}
+            nestedScrollEnabled={true}
+          >
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={true}
+            >
+              <LineChart
+                data={chartData}
+                width={chartWidth}
+                height={270}
+                yAxisLabel=""
+                yAxisSuffix=" birds"
+                yAxisInterval={1}
+                chartConfig={{
+                  backgroundColor: '#ffffff',
+                  backgroundGradientFrom: '#ffffff',
+                  backgroundGradientTo: '#ffffff',
+                  decimalPlaces: 0,
+                  color: (opacity = 1) => `rgba(46, 125, 50, ${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(75, 75, 75, ${opacity})`,
+                  style: {
+                    borderRadius: 16,
+                  },
+                  propsForDots: {
+                    r: '6',
+                    strokeWidth: '2',
+                    stroke: '#ffa726',
+                  },
+                  propsForLabels: {
+                    fontSize: 11,
+                  },
+                }}
+                bezier
+                style={{
+                  marginVertical: 8,
+                  borderRadius: 12,
+                }}
+              />
+            </ScrollView>
+          </ScrollView>
         ) : (
           <Text style={{fontSize: 14, color: '#888', marginTop: 20}}>No observation data available</Text>
         )}
