@@ -16,12 +16,13 @@ import { TextInput } from 'react-native-paper';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import axios from 'axios';
 import { API_URL } from '../../config';
-import { setLoginEmail } from '../../assets/sql_lite/db_connection';
+import { setLoginEmail, getLoginSession } from '../../assets/sql_lite/db_connection';
 import ReactNativeBiometrics from 'react-native-biometrics';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as Keychain from 'react-native-keychain';
 import NetInfo from '@react-native-community/netinfo';
 import { getDatabase } from '../../bird-module/database/db';
+import { hashPassword, verifyPassword } from '../../utils/passwordUtils';
 
 const SigninForm = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
@@ -81,8 +82,12 @@ const SigninForm = ({ navigation }: any) => {
   const DEV_DUMMY_PASSWORD = 'dev123';
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(email.trim())) {
+      Alert.alert('Error', 'Please enter a valid email address');
       return;
     }
 
@@ -96,6 +101,8 @@ const SigninForm = ({ navigation }: any) => {
 
     setLoading(true);
 
+    const trimmedEmail = email.trim().toLowerCase();
+
     // Check network connectivity
     const netState = await NetInfo.fetch();
     const isOnline = netState.isConnected && netState.isInternetReachable;
@@ -103,29 +110,35 @@ const SigninForm = ({ navigation }: any) => {
     if (isOnline) {
       // ONLINE: try server login
       try {
-        const response = await axios.post(`${API_URL}/login`, { email, password });
+        const response = await axios.post(`${API_URL}/login`, { email: trimmedEmail, password });
 
         if (response.data.status === 'ok') {
-          await setLoginEmail(email);
-          // Save credentials locally for offline login
+          await setLoginEmail(trimmedEmail);
+          // Save credentials and name locally for offline login
           try {
             const db = await getDatabase();
+            const hashedPw = hashPassword(password);
+            const serverName = response.data.data?.name || '';
+            const serverImage = response.data.data?.profileImage || '';
             db.transaction((tx: any) => {
               tx.executeSql(
-                'INSERT OR REPLACE INTO Users (email, password) VALUES (?, ?)',
-                [email, password],
+                'INSERT OR REPLACE INTO Users (email, password, isGoogleLogin, name, userImageUrl) VALUES (?, ?, ?, ?, ?)',
+                [trimmedEmail, hashedPw, 0, serverName, serverImage],
               );
             });
           } catch (e) { console.log('Local credential save error:', e); }
           Alert.alert('Success', 'Logged in successfully');
-          navigation.replace('Welcome', { email });
+          navigation.replace('Welcome', { email: trimmedEmail });
         } else if (response.data.status === 'notConfirmed') {
           handleSendVerificationCode();
         } else if (response.data.status === 'google') {
-          Alert.alert('Error', 'This account uses Google Sign-In. Please use the Google button.');
+          Alert.alert(
+            'Sign-In Method Mismatch',
+            'This account uses Google Sign-In. Please use the Google button to sign in.',
+          );
         } else if (response.data.status === 'notApproved') {
           Alert.alert('Pending', 'Your account is awaiting admin approval.');
-          navigation.navigate('GetAdminApprove', { email });
+          navigation.navigate('GetAdminApprove', { email: trimmedEmail });
         } else {
           Alert.alert('Error', response.data.data || 'Login failed');
         }
@@ -139,15 +152,43 @@ const SigninForm = ({ navigation }: any) => {
         const db = await getDatabase();
         db.transaction((tx: any) => {
           tx.executeSql(
-            'SELECT * FROM Users WHERE email = ?', [email],
+            'SELECT * FROM Users WHERE email = ?', [trimmedEmail],
             async (_: any, results: any) => {
               if (results.rows.length > 0) {
                 const user = results.rows.item(0);
-                if (user.password === password) {
-                  await setLoginEmail(email);
+                // Block email/password login for Google-only accounts
+                if (user.isGoogleLogin === 1) {
+                  setLoading(false);
+                  Alert.alert(
+                    'Sign-In Method Mismatch',
+                    'This account uses Google Sign-In. Please use the Google button to sign in.',
+                  );
+                  return;
+                }
+                // Support both hashed and legacy plain-text passwords
+                const passwordMatch = verifyPassword(password, user.password) || user.password === password;
+                if (passwordMatch) {
+                  // Check session validity BEFORE resetting the timestamp
+                  const session = await getLoginSession();
+                  if (session.email !== trimmedEmail || !session.isValid) {
+                    setLoading(false);
+                    Alert.alert('Session Expired', 'Your session has expired. Please connect to the internet to log in again.');
+                    return;
+                  }
+                  // If password was stored as plain text, re-hash it
+                  if (user.password === password) {
+                    try {
+                      const db2 = await getDatabase();
+                      const hashedPw = hashPassword(password);
+                      db2.transaction((tx2: any) => {
+                        tx2.executeSql('UPDATE Users SET password = ? WHERE email = ?', [hashedPw, email]);
+                      });
+                    } catch (e) { /* ignore migration error */ }
+                  }
+                  await setLoginEmail(trimmedEmail);
                   setLoading(false);
                   Alert.alert('Offline Login', 'Logged in with saved credentials.');
-                  navigation.replace('Welcome', { email });
+                  navigation.replace('Welcome', { email: trimmedEmail });
                 } else {
                   setLoading(false);
                   Alert.alert('Error', 'Invalid password. Please check your credentials or connect to internet.');
@@ -186,42 +227,93 @@ const SigninForm = ({ navigation }: any) => {
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
-      await GoogleSignin.signOut();
-      const userInfo = await GoogleSignin.signIn();
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const result = await GoogleSignin.signIn();
 
-      if (userInfo && userInfo.data && userInfo.data.user) {
-        const { email: gEmail, name, photo } = userInfo.data.user;
-        handleGoogleSignUp(gEmail!, name!, photo || '');
-      } else {
-        Alert.alert('Error', 'Google Sign-In returned invalid data');
+      // Handle cancelled sign-in gracefully
+      if (!result || (result as any).type === 'cancelled') {
+        setLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error('Google Sign-In failed', error);
-      Alert.alert('Error', 'Google Sign-In failed.');
+
+      const userData = (result as any).data?.user ?? (result as any).user;
+      if (userData && userData.email) {
+        const gEmail: string = userData.email;
+        const gName: string = userData.name || userData.givenName || userData.familyName || 'User';
+        const gPhoto: string = userData.photo || '';
+        await handleGoogleSignUp(gEmail, gName, gPhoto);
+      } else {
+        Alert.alert('Error', 'Google Sign-In returned no account data. Please try again.');
+      }
+    } catch (error: any) {
+      console.error('Google Sign-In failed', error?.code, error?.message, error);
+      // Don't show error for user-cancelled flow
+      if (error?.code === 'SIGN_IN_CANCELLED' || error?.code === -5) {
+        // User cancelled, do nothing
+      } else if (error?.code === 'PLAY_SERVICES_NOT_AVAILABLE') {
+        Alert.alert('Error', 'Google Play Services is not available on this device.');
+      } else if (error?.code === 'DEVELOPER_ERROR' || error?.code === 10) {
+        Alert.alert('Configuration Error', 'Google Sign-In is not properly configured. Please contact support.');
+      } else {
+        Alert.alert('Error', `Google Sign-In failed: ${error?.message || 'Please try again.'}`);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSignUp = (gEmail: string, name: string, photo: string) => {
-    axios
-      .post(`${API_URL}/google-register`, { email: gEmail, name, photo })
-      .then(async res => {
-        if (res.data.status === 'ok') {
-          Alert.alert('Success', 'Account registered successfully');
-          navigation.navigate('PrivacyPolicy', { email: gEmail, name });
-        } else if (res.data.status === 'google') {
-          await setLoginEmail(gEmail);
-          Alert.alert('Success', 'Logged in successfully');
-          navigation.replace('Welcome', { email: gEmail });
-        } else if (res.data.status === 'notgoogle') {
-          Alert.alert('Error', 'This email is registered with email/password. Please use that method.');
+  const handleGoogleSignUp = async (gEmail: string, name: string, photo: string): Promise<void> => {
+    try {
+      const res = await axios.post(`${API_URL}/google-register`, { email: gEmail, name, photo });
+
+      if (res.data.status === 'ok') {
+        // New Google user — save to local SQLite with photo
+        try {
+          const db = await getDatabase();
+          db.transaction((tx: any) => {
+            tx.executeSql(
+              'INSERT OR REPLACE INTO Users (email, password, isGoogleLogin, name, userImageUrl) VALUES (?, ?, ?, ?, ?)',
+              [gEmail, '', 1, name, photo || ''],
+            );
+          });
+        } catch (e) { console.log('Google user local save error:', e); }
+        await setLoginEmail(gEmail);
+        Alert.alert('Success', 'Account registered successfully');
+        navigation.navigate('PrivacyPolicy', { email: gEmail, name });
+
+      } else if (res.data.status === 'google') {
+        // Existing Google account — update local record with latest photo/name
+        try {
+          const db = await getDatabase();
+          db.transaction((tx: any) => {
+            tx.executeSql(
+              'INSERT OR REPLACE INTO Users (email, password, isGoogleLogin, name, userImageUrl) VALUES (?, ?, ?, ?, ?)',
+              [gEmail, '', 1, name, photo || ''],
+            );
+          });
+        } catch (e) { console.log('Google user local update error:', e); }
+
+        // Check admin approval before granting access
+        const userData = res.data.data;
+        if (!userData || !userData.isApproved) {
+          navigation.navigate('GetAdminApprove', { email: gEmail, name });
+          return;
         }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        Alert.alert('Error', 'Failed to sign in with Google.');
-      });
+
+        await setLoginEmail(gEmail);
+        Alert.alert('Success', 'Logged in successfully');
+        navigation.replace('Welcome', { email: gEmail });
+
+      } else if (res.data.status === 'notgoogle') {
+        Alert.alert(
+          'Sign-In Method Mismatch',
+          'This email is already registered with email & password. Please use email/password to sign in instead.',
+        );
+      }
+    } catch (error) {
+      console.error('Google sign-up error:', error);
+      Alert.alert('Error', 'Failed to sign in with Google. Please check your connection and try again.');
+    }
   };
 
   const handleFingerprintLogin = async () => {
@@ -410,14 +502,14 @@ const SigninForm = ({ navigation }: any) => {
             ) : (
               <View style={styles.formContainer}>
                 <View style={styles.header}>
-                  <Text style={styles.title}>Sign-in</Text>
+                  <Text style={styles.title}>Sign In</Text>
                   <Text style={styles.subtitle}>
                     If you already have an account. Please sign in
                   </Text>
                 </View>
 
                 <View style={styles.inputContainer}>
-                  <Text style={styles.label}>E-mail address:</Text>
+                  <Text style={styles.label}>Email Address</Text>
                   <TextInput
                     mode="outlined"
                     placeholder="Enter your email"
@@ -428,6 +520,7 @@ const SigninForm = ({ navigation }: any) => {
                     autoCapitalize="none"
                     outlineColor="rgba(74, 120, 86, 0.3)"
                     activeOutlineColor="#4A7856"
+                    textColor="#333333"
                     style={styles.input}
                     theme={{ colors: { primary: '#4A7856', background: 'rgba(255, 255, 255, 0.95)' } }}
                   />
@@ -444,6 +537,7 @@ const SigninForm = ({ navigation }: any) => {
                     secureTextEntry={secureTextEntry}
                     outlineColor="rgba(74, 120, 86, 0.3)"
                     activeOutlineColor="#4A7856"
+                    textColor="#333333"
                     style={styles.input}
                     right={
                       <TextInput.Icon
@@ -478,7 +572,7 @@ const SigninForm = ({ navigation }: any) => {
                   activeOpacity={0.8}
                   disabled={loading}>
                   <Text style={styles.loginButtonText}>
-                    {loading ? 'Logging in...' : 'Login'}
+                    {loading ? 'Signing in...' : 'Sign In'}
                   </Text>
                 </TouchableOpacity>
 

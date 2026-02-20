@@ -1077,10 +1077,27 @@ const [longitude, setLongitude] = useState(
     if (!email) formErrors.email = 'User email not found. Please log in again.';
     if (!value1) formErrors.value1 = 'Please select a habitat type';
 
+    if (latitude) {
+      const lat = parseFloat(latitude);
+      if (isNaN(lat) || lat < -90 || lat > 90) {
+        formErrors.latitude = 'Latitude must be a number between -90 and 90';
+      }
+    }
+    if (longitude) {
+      const lon = parseFloat(longitude);
+      if (isNaN(lon) || lon < -180 || lon > 180) {
+        formErrors.longitude = 'Longitude must be a number between -180 and 180';
+      }
+    }
 
     setErrors(formErrors);
 
-    return Object.keys(formErrors).length === 0;
+    if (Object.keys(formErrors).length > 0) {
+      const messages = Object.values(formErrors).join('\n');
+      Alert.alert('Validation Error', messages, [{text: 'OK'}]);
+      return false;
+    }
+    return true;
   };
 
   const resetForm = () => {
@@ -1192,7 +1209,6 @@ const [longitude, setLongitude] = useState(
 
   const handleUpdate = async () => {
     if (!isFormValid()) {
-      Alert.alert('Error', 'Please fill required fields', [{ text: 'OK' }]);
       return;
     }
   
@@ -1260,8 +1276,6 @@ const [longitude, setLongitude] = useState(
   
   const handleSignUp = async () => {
     if (!isFormValid()) {
-
-      Alert.alert('Error', 'Please fill required fields', [{ text: 'OK' }]);
       return;
     }
 

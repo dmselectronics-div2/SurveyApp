@@ -157,6 +157,67 @@ const initializeUserDb = async (database: SQLite.SQLiteDatabase) => {
       console.error('Error setting up bird_drafts table:', error.message);
     }
 
+    // Add missing userConfirm column to Users table (migration for existing installs)
+    try {
+      await executeSqlAsync(database, "ALTER TABLE Users ADD COLUMN userConfirm INTEGER DEFAULT 0");
+    } catch (e) {
+      // Column already exists, ignore
+    }
+
+    // Add sync-related columns to bird_survey (migration for existing installs)
+    const birdMigrationColumns = [
+      { name: 'sync_status', def: "TEXT DEFAULT 'pending'" },
+      { name: 'server_id', def: 'TEXT' },
+      { name: 'updated_at', def: 'TEXT' },
+      { name: 'created_at', def: "TEXT DEFAULT (datetime('now'))" },
+      { name: 'dominantVegetation', def: 'TEXT' },
+      { name: 'descriptor', def: 'TEXT' },
+    ];
+    for (const col of birdMigrationColumns) {
+      try {
+        await executeSqlAsync(database, `ALTER TABLE bird_survey ADD COLUMN ${col.name} ${col.def}`);
+      } catch (e) {
+        // Column already exists, ignore
+      }
+    }
+
+    // Create bird_observations table if not exists
+    try {
+      await executeSqlAsync(database, `
+        CREATE TABLE IF NOT EXISTS bird_observations (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          uniqueId TEXT,
+          species TEXT,
+          count TEXT,
+          maturity TEXT,
+          sex TEXT,
+          behaviour TEXT,
+          identification TEXT,
+          status TEXT,
+          remarks TEXT,
+          imageUri TEXT
+        )
+      `);
+      console.log('bird_observations table ready');
+    } catch (error: any) {
+      console.error('Error setting up bird_observations table:', error.message);
+    }
+
+    // Create dashboard_cache table for offline dashboard data
+    try {
+      await executeSqlAsync(database, `
+        CREATE TABLE IF NOT EXISTS dashboard_cache (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          cache_key TEXT UNIQUE,
+          data TEXT,
+          updated_at TEXT DEFAULT (datetime('now'))
+        )
+      `);
+      console.log('dashboard_cache table ready');
+    } catch (error: any) {
+      console.error('Error setting up dashboard_cache table:', error.message);
+    }
+
     initialized = true;
   } catch (error) {
     console.error('Error initializing user_db:', error);

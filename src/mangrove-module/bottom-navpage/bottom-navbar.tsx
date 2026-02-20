@@ -58,7 +58,7 @@ const ByvalviBottomNavbar = () => {
   return (
     <PaperProvider>
       <View style={{flex: 1}}>
-        <NetworkStatusBanner />
+        <NetworkStatusBanner showSyncButton={true} />
         <View style={{flex: 1}}>
           <CurrentScene />
         </View>

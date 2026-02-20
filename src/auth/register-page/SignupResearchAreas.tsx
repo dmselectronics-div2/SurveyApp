@@ -90,7 +90,7 @@ const SignupResearchAreas = () => {
 
         <View style={styles.contentWrapper}>
           <View style={styles.headerArea}>
-            <Text style={styles.title}>Signup</Text>
+            <Text style={styles.title}>Sign Up</Text>
             <Text style={styles.subtitle}>
               Register to contribute to environmental research data collection
             </Text>
@@ -212,9 +212,9 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center',
-    backgroundColor: '#4A7856',
+    borderWidth: 1, borderColor: '#4A7856',
   },
-  backBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  backBtnText: { fontSize: 14, fontWeight: '600', color: '#4A7856' },
   nextBtn: {
     flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center',
     backgroundColor: '#4A7856',

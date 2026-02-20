@@ -1,5 +1,5 @@
 
-export const API_URL = 'http://172.20.8.77:5001';
+export const API_URL = 'http://172.20.8.62:5001';
 
 // For development/testing, you can also use:
 // export const API_URL = 'http://localhost:5000'; // If running on same machine

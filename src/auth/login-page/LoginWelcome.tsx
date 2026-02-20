@@ -72,7 +72,7 @@ const LoginWelcome = () => {
             onPress={handleSignIn}
             activeOpacity={0.8}
           >
-            <Text style={styles.signInButtonText}>Sign - In</Text>
+            <Text style={styles.signInButtonText}>Sign In</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -80,7 +80,7 @@ const LoginWelcome = () => {
             onPress={handleSignUp}
             activeOpacity={0.8}
           >
-            <Text style={styles.signUpButtonText}>Sign up</Text>
+            <Text style={styles.signUpButtonText}>Sign Up</Text>
           </TouchableOpacity>
         </View>
       </View>

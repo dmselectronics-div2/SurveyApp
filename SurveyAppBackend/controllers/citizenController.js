@@ -18,9 +18,10 @@ exports.createPlant = async (req, res) => {
 
 exports.getAllPlants = async (req, res) => {
   try {
-    const { userId, page = 1, limit = 50 } = req.query;
+    const { userId, page = 1, limit = 50, since } = req.query;
     let query = {};
     if (userId) query.userId = userId;
+    if (since) query.updatedAt = { $gte: new Date(since) };
 
     const plants = await PlantObservation.find(query)
       .sort({ createdAt: -1 })

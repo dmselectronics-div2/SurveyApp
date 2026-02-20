@@ -163,6 +163,16 @@ export const initDatabase = async (): Promise<void> => {
     `);
   }
 
+  // Add updated_at column to survey tables (migration for existing installs)
+  const surveyTables = ['plants', 'animals', 'nature', 'human_activities'];
+  for (const table of surveyTables) {
+    try {
+      await executeSqlAsync(database, `ALTER TABLE ${table} ADD COLUMN updated_at TEXT`);
+    } catch (e) {
+      // Column already exists, ignore
+    }
+  }
+
   // Create Users table if it doesn't exist
   const usersExists = await tableExists('Users');
   if (!usersExists) {
@@ -189,17 +199,37 @@ export const initDatabase = async (): Promise<void> => {
     await executeSqlAsync(database, `
       CREATE TABLE LoginData (
         id INTEGER PRIMARY KEY,
-        email TEXT
+        email TEXT,
+        login_timestamp TEXT
       )
     `);
     // Initialize LoginData with default values
-    await executeSqlAsync(database, 'INSERT INTO LoginData (id, email) VALUES (?, ?)', [1, '']);
+    await executeSqlAsync(database, 'INSERT INTO LoginData (id, email, login_timestamp) VALUES (?, ?, ?)', [1, '', '']);
   } else {
     // If table exists but is empty, initialize it
     const [result] = await executeSqlAsync(database, 'SELECT COUNT(*) as count FROM LoginData');
     if (result.rows.item(0).count === 0) {
-      await executeSqlAsync(database, 'INSERT INTO LoginData (id, email) VALUES (?, ?)', [1, '']);
+      await executeSqlAsync(database, 'INSERT INTO LoginData (id, email, login_timestamp) VALUES (?, ?, ?)', [1, '', '']);
     }
+    // Add login_timestamp column if it doesn't exist (migration)
+    try {
+      await executeSqlAsync(database, `ALTER TABLE LoginData ADD COLUMN login_timestamp TEXT`);
+    } catch (e) {
+      // Column already exists, ignore
+    }
+  }
+
+  // Create dashboard_cache table for offline dashboard data
+  const dashboardCacheExists = await tableExists('dashboard_cache');
+  if (!dashboardCacheExists) {
+    await executeSqlAsync(database, `
+      CREATE TABLE dashboard_cache (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cache_key TEXT UNIQUE,
+        data TEXT,
+        updated_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
   }
 };
 
@@ -312,11 +342,115 @@ export const getLoginEmail = async (): Promise<string | null> => {
 export const setLoginEmail = async (email: string): Promise<void> => {
   const database = await getDatabase();
   try {
-    await executeSqlAsync(database, 'UPDATE LoginData SET email = ? WHERE id = 1', [email]);
+    const timestamp = new Date().toISOString();
+    await executeSqlAsync(database, 'UPDATE LoginData SET email = ?, login_timestamp = ? WHERE id = 1', [email, timestamp]);
   } catch (error) {
     console.error('Error setting login email:', error);
     throw error;
   }
+};
+
+export const getLoginSession = async (): Promise<{ email: string | null; isValid: boolean }> => {
+  const database = await getDatabase();
+  try {
+    const [results] = await executeSqlAsync(database, 'SELECT email, login_timestamp FROM LoginData WHERE id = 1');
+    if (results.rows.length > 0) {
+      const row = results.rows.item(0);
+      const email = row.email || null;
+      const loginTimestamp = row.login_timestamp;
+      if (!email || !loginTimestamp) {
+        return { email: null, isValid: false };
+      }
+      const loginDate = new Date(loginTimestamp);
+      const now = new Date();
+      const daysSinceLogin = (now.getTime() - loginDate.getTime()) / (1000 * 60 * 60 * 24);
+      const SESSION_EXPIRY_DAYS = 90;
+      return { email, isValid: daysSinceLogin < SESSION_EXPIRY_DAYS };
+    }
+    return { email: null, isValid: false };
+  } catch (error) {
+    console.error('Error getting login session:', error);
+    return { email: null, isValid: false };
+  }
+};
+
+export const clearLoginSession = async (): Promise<void> => {
+  const database = await getDatabase();
+  try {
+    await executeSqlAsync(database, 'UPDATE LoginData SET email = ?, login_timestamp = ? WHERE id = 1', ['', '']);
+  } catch (error) {
+    console.error('Error clearing login session:', error);
+  }
+};
+
+// ============================================
+// DASHBOARD CACHE FUNCTIONS
+// ============================================
+
+export const setDashboardCache = async (cacheKey: string, data: any): Promise<void> => {
+  const database = await getDatabase();
+  try {
+    const jsonData = JSON.stringify(data);
+    const updatedAt = new Date().toISOString();
+    await executeSqlAsync(database,
+      `INSERT OR REPLACE INTO dashboard_cache (cache_key, data, updated_at) VALUES (?, ?, ?)`,
+      [cacheKey, jsonData, updatedAt]
+    );
+  } catch (error) {
+    console.error('Error setting dashboard cache:', error);
+  }
+};
+
+export const getDashboardCache = async (cacheKey: string): Promise<{ data: any; updatedAt: string } | null> => {
+  const database = await getDatabase();
+  try {
+    const [results] = await executeSqlAsync(database,
+      'SELECT data, updated_at FROM dashboard_cache WHERE cache_key = ?', [cacheKey]
+    );
+    if (results.rows.length > 0) {
+      const row = results.rows.item(0);
+      return { data: JSON.parse(row.data), updatedAt: row.updated_at };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting dashboard cache:', error);
+    return null;
+  }
+};
+
+// ============================================
+// DATA CLEANUP - 30 DAY RETENTION
+// ============================================
+
+export const cleanupOldSyncedData = async (): Promise<void> => {
+  const database = await getDatabase();
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const cutoffDate = thirtyDaysAgo.toISOString();
+
+  const tables = ['plants', 'animals', 'nature', 'human_activities'];
+  for (const table of tables) {
+    try {
+      await executeSqlAsync(database,
+        `DELETE FROM ${table} WHERE sync_status = 'synced' AND created_at < ?`,
+        [cutoffDate]
+      );
+    } catch (error) {
+      console.error(`Error cleaning up ${table}:`, error);
+    }
+  }
+
+  // Clean old dashboard cache (older than 30 days)
+  try {
+    await executeSqlAsync(database,
+      `DELETE FROM dashboard_cache WHERE updated_at < ?`,
+      [cutoffDate]
+    );
+  } catch (error) {
+    console.error('Error cleaning up dashboard cache:', error);
+  }
+
+  console.log('Old synced data cleanup complete');
 };
 
 // ============================================

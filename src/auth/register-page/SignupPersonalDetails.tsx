@@ -102,7 +102,7 @@ const SignupPersonalDetails = () => {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.headerArea}>
-            <Text style={styles.title}>Signup</Text>
+            <Text style={styles.title}>Sign Up</Text>
             <Text style={styles.subtitle}>
               Register to contribute to environmental research data collection
             </Text>
@@ -120,6 +120,7 @@ const SignupPersonalDetails = () => {
                 activeOutlineColor="#4A7856"
                 style={styles.input}
                 editable={!loading}
+                textColor="#333333"
                 theme={inputTheme}
               />
             </View>
@@ -163,6 +164,7 @@ const SignupPersonalDetails = () => {
                 editable={false}
                 outlineColor="rgba(74, 120, 86, 0.3)"
                 style={[styles.input, styles.disabledInput]}
+                textColor="#666666"
                 theme={inputTheme}
               />
             </View>
@@ -179,6 +181,7 @@ const SignupPersonalDetails = () => {
                 activeOutlineColor="#4A7856"
                 style={styles.input}
                 editable={!loading}
+                textColor="#333333"
                 theme={inputTheme}
               />
             </View>
@@ -194,6 +197,7 @@ const SignupPersonalDetails = () => {
                 activeOutlineColor="#4A7856"
                 style={styles.input}
                 editable={!loading}
+                textColor="#333333"
                 theme={inputTheme}
               />
             </View>
@@ -209,6 +213,7 @@ const SignupPersonalDetails = () => {
                 activeOutlineColor="#4A7856"
                 style={styles.input}
                 editable={!loading}
+                textColor="#333333"
                 theme={inputTheme}
               />
             </View>
@@ -226,6 +231,7 @@ const SignupPersonalDetails = () => {
                 activeOutlineColor="#4A7856"
                 style={[styles.input, styles.multilineInput]}
                 editable={!loading}
+                textColor="#333333"
                 theme={inputTheme}
               />
             </View>

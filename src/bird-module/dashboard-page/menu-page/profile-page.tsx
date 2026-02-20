@@ -20,6 +20,8 @@ import * as Keychain from 'react-native-keychain';
 import {useNavigation} from '@react-navigation/native';
 import {getDatabase} from '../../database/db';
 import {API_URL} from '../../../config';
+import {clearLoginSession, getLoginEmail} from '../../../assets/sql_lite/db_connection';
+import axios from 'axios';
 
 const ProfileMenu = () => {
   const [theme, setTheme] = useState(Appearance.getColorScheme());
@@ -41,49 +43,63 @@ const ProfileMenu = () => {
     navigation.navigate('ProfileImageChange', {email});
   };
 
-  const handleDeleteAccount = async () => {
-    try {
-      const response = await fetch(`${API_URL}/delete-account`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({email}),
-      });
-
-      if (response.ok) {
-        Alert.alert(
-          'Request Sent',
-          "Account delete request sent to admin. We'll inform you when it's accepted.",
-        );
-      } else {
-        Alert.alert(
-          'Error',
-          'Failed to send account delete request. Please try again.',
-        );
-      }
-    } catch (error) {
-      console.error('Error sending delete request:', error);
-      Alert.alert('Error', 'An error occurred while sending the request.');
-    }
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account? This will immediately disable your access and cannot be undone.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await fetch(`${API_URL}/delete-account`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email}),
+              });
+              if (response.ok) {
+                Alert.alert(
+                  'Account Deleted',
+                  'Your account has been deleted. You will now be signed out.',
+                  [
+                    {
+                      text: 'OK',
+                      onPress: async () => {
+                        try { await clearLoginSession(); } catch (e) {}
+                        try { await Keychain.resetGenericPassword(); } catch (e) {}
+                        (navigation as any).reset({
+                          index: 0,
+                          routes: [{name: 'LoginWelcome'}],
+                        });
+                      },
+                    },
+                  ],
+                );
+              } else {
+                Alert.alert('Error', 'Failed to send account delete request. Please try again.');
+              }
+            } catch (error) {
+              console.error('Error sending delete request:', error);
+              Alert.alert('Error', 'An error occurred while sending the request.');
+            }
+          },
+        },
+      ],
+    );
   };
 
   const retriveEmailFromSQLite = async () => {
-    const db = await getDatabase();
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT email FROM LoginData LIMIT 1',
-        [],
-        (tx, results) => {
-          if (results.rows.length > 0) {
-            const userEmail = results.rows.item(0).email;
-            setEmail(userEmail);
-            retrieveNameFromSQLite(userEmail);
-          }
-        },
-        error => {
-          console.log('Error querying Users table: ' + error.message);
-        },
-      );
-    });
+    try {
+      const userEmail = await getLoginEmail();
+      if (userEmail) {
+        setEmail(userEmail);
+        retrieveNameFromSQLite(userEmail);
+      }
+    } catch (error: any) {
+      console.log('Error retrieving login email:', error?.message);
+    }
   };
 
   const retrieveNameFromSQLite = async (userEmail: string) => {
@@ -92,19 +108,50 @@ const ProfileMenu = () => {
       tx.executeSql(
         'SELECT name, area, userImageUrl FROM Users WHERE email = ?',
         [userEmail],
-        (tx, results) => {
+        async (_tx, results) => {
           if (results.rows.length > 0) {
             const row = results.rows.item(0);
             if (row.name) setName(row.name);
             if (row.area) setArea(row.area);
             if (row.userImageUrl) setAvatarUri(row.userImageUrl);
+            // If name is missing, fetch from server
+            if (!row.name) {
+              fetchNameFromServer(userEmail);
+            }
+          } else {
+            fetchNameFromServer(userEmail);
           }
         },
         error => {
           console.error('Error retrieving user from SQLite: ', error.message);
+          fetchNameFromServer(userEmail);
         },
       );
     });
+  };
+
+  const fetchNameFromServer = async (userEmail: string) => {
+    try {
+      const res = await axios.post(`${API_URL}/get-name`, { email: userEmail });
+      if (res.data && res.data.name) {
+        setName(res.data.name);
+        // Save to SQLite for next time
+        try {
+          const db = await getDatabase();
+          db.transaction(tx => {
+            tx.executeSql(
+              'UPDATE Users SET name = ?, userImageUrl = ? WHERE email = ?',
+              [res.data.name, res.data.profileImagePath || '', userEmail],
+            );
+          });
+        } catch (e) {}
+      }
+      if (res.data && res.data.profileImagePath) {
+        setAvatarUri(res.data.profileImagePath);
+      }
+    } catch (e) {
+      console.log('Failed to fetch name from server:', e);
+    }
   };
 
   useEffect(() => {
@@ -120,9 +167,22 @@ const ProfileMenu = () => {
 
   const isDarkMode = theme === 'dark';
 
-  const handleLogoutClick = () => {
-    navigation.navigate('LoginPage', {email});
+  const handleLogoutClick = async () => {
+    try {
+      await clearLoginSession();
+    } catch (e) {
+      console.log('Error clearing session:', e);
+    }
+    try {
+      await Keychain.resetGenericPassword();
+    } catch (e) {
+      console.log('Error clearing keychain:', e);
+    }
     setShowDialog(false);
+    (navigation as any).reset({
+      index: 0,
+      routes: [{name: 'LoginWelcome'}],
+    });
   };
 
   const handleShowLogoutConfirmation = () => {

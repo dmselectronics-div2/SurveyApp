@@ -14,6 +14,7 @@ import {useRoute} from '@react-navigation/native';
 import EditCount from './Edit-count';
 import SurveyFormPage from './Edit-survey';
 import { getDatabase } from '../database/db';
+import SyncStatusIndicator from '../../components/SyncStatusIndicator';
 // import { useNavigation } from '@react-navigation/native'; 
 
 // Define the custom theme
@@ -148,6 +149,11 @@ const SelectEditMode = ({rowData, setIsEditMode}) => {
                  </TouchableOpacity>
       <ScrollView style={styles.title_container}>
         <View style={styles.whiteBox}>
+          {selectedItemData?.sync_status && (
+            <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 8}}>
+              <SyncStatusIndicator status={selectedItemData.sync_status} size={12} showLabel={true} />
+            </View>
+          )}
           <View style={styles.text_container}>
             <Text style={styles.sub_text_bold}>
               Do You Want to Edit Full Survey Or Bird{' '}

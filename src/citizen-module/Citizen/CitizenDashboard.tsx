@@ -5,6 +5,8 @@ import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BarChart } from 'react-native-chart-kit';
+import NetworkStatusBanner from '../../components/NetworkStatusBanner';
+import {getTotalPendingCount} from '../../assets/sql_lite/db_connection';
 
 // component
 const CitizenDashboard = () => {
@@ -103,6 +105,9 @@ const CitizenDashboard = () => {
     return (
         <SafeAreaView style={styles.safeArea}>
             <ScrollView style={styles.container}>
+                {/* Network & Sync Status */}
+                <NetworkStatusBanner showSyncButton={true} />
+
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity 

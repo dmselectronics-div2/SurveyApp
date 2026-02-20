@@ -142,7 +142,7 @@ const SignupRoleSelection = () => {
         <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Signup</Text>
+            <Text style={styles.title}>Sign Up</Text>
             <Text style={styles.subtitle}>
               Select your role
             </Text>

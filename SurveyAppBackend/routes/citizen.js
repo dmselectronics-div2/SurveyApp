@@ -30,4 +30,11 @@ router.get('/human-activity/:id', citizenController.getHumanActivityById);
 router.put('/human-activity/:id', citizenController.updateHumanActivity);
 router.delete('/human-activity/:id', citizenController.deleteHumanActivity);
 
+// Alias: sync_service calls /human-activities (plural)
+router.post('/human-activities', citizenController.createHumanActivity);
+router.get('/human-activities', citizenController.getAllHumanActivity);
+router.get('/human-activities/:id', citizenController.getHumanActivityById);
+router.put('/human-activities/:id', citizenController.updateHumanActivity);
+router.delete('/human-activities/:id', citizenController.deleteHumanActivity);
+
 module.exports = router;

@@ -15,7 +15,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import axios from 'axios';
 import { API_URL } from '../../config';
-import SQLite from 'react-native-sqlite-storage';
+import { hashPassword } from '../../utils/passwordUtils';
+import { getDatabase } from '../../bird-module/database/db';
 
 const SignupForm = () => {
   const navigation = useNavigation<any>();
@@ -33,12 +34,6 @@ const SignupForm = () => {
   const [secureConfirmPassword, setSecureConfirmPassword] = useState(true);
   const [loading, setLoading] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
-
-  const db = SQLite.openDatabase(
-    { name: 'user_db.db', location: 'default' },
-    () => console.log('Database opened'),
-    (err: any) => console.error('Database error: ', err),
-  );
 
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -80,16 +75,22 @@ const SignupForm = () => {
     return true;
   };
 
-  const saveUserToSQLite = (userEmail: string, userPassword: string, userName: string) => {
-    db.transaction((tx: any) => {
-      tx.executeSql(
-        `INSERT OR REPLACE INTO Users (email, password, pin, isGoogleLogin, emailConfirm, name, area, fingerPrint, userImageUrl)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [userEmail, userPassword, null, 0, 0, userName, null, 0, null],
-        () => console.log('User saved to SQLite'),
-        (error: any) => console.log('Error saving user to SQLite: ' + error.message),
-      );
-    });
+  const saveUserToSQLite = async (userEmail: string, userPassword: string, userName: string) => {
+    try {
+      const db = await getDatabase();
+      const hashedPw = hashPassword(userPassword);
+      db.transaction((tx: any) => {
+        tx.executeSql(
+          `INSERT OR REPLACE INTO Users (email, password, pin, isGoogleLogin, emailConfirm, name, area, fingerPrint, userImageUrl)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [userEmail, hashedPw, null, 0, 0, userName, null, 0, null],
+          () => console.log('User saved to SQLite'),
+          (error: any) => console.log('Error saving user to SQLite: ' + error.message),
+        );
+      });
+    } catch (e) {
+      console.log('SQLite save error:', e);
+    }
   };
 
   const handleSendCode = async () => {
@@ -128,7 +129,7 @@ const SignupForm = () => {
           return;
         }
 
-        saveUserToSQLite(email, password, fullName);
+        await saveUserToSQLite(email, password, fullName);
 
         // Save additional user details
         await axios.post(`${API_URL}/add-username`, { email, name: fullName });
@@ -176,7 +177,7 @@ const SignupForm = () => {
         >
           <View style={styles.container}>
             <View style={styles.header}>
-              <Text style={styles.title}>Signup</Text>
+              <Text style={styles.title}>Sign Up</Text>
               <Text style={styles.subtitle}>
                 Register to contribute to environmental research data collection
               </Text>
@@ -200,7 +201,7 @@ const SignupForm = () => {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Full Name:</Text>
+              <Text style={styles.label}>Full Name</Text>
               <TextInput
                 mode="outlined"
                 placeholder="Enter your full name"
@@ -211,12 +212,13 @@ const SignupForm = () => {
                 activeOutlineColor="#4A7856"
                 style={styles.input}
                 editable={!loading}
+                textColor="#333333"
                 theme={{ colors: { primary: '#4A7856', background: 'rgba(255, 255, 255, 0.95)' } }}
               />
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>E-mail address:</Text>
+              <Text style={styles.label}>Email Address</Text>
               <TextInput
                 mode="outlined"
                 placeholder="Enter your email"
@@ -229,12 +231,13 @@ const SignupForm = () => {
                 activeOutlineColor="#4A7856"
                 style={styles.input}
                 editable={!loading}
+                textColor="#333333"
                 theme={{ colors: { primary: '#4A7856', background: 'rgba(255, 255, 255, 0.95)' } }}
               />
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Password:</Text>
+              <Text style={styles.label}>Password</Text>
               <TextInput
                 mode="outlined"
                 placeholder="Enter your password"
@@ -246,6 +249,7 @@ const SignupForm = () => {
                 activeOutlineColor="#4A7856"
                 style={styles.input}
                 editable={!loading}
+                textColor="#333333"
                 right={
                   <TextInput.Icon
                     icon={securePassword ? 'eye-off' : 'eye'}
@@ -258,7 +262,7 @@ const SignupForm = () => {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Confirm Password:</Text>
+              <Text style={styles.label}>Confirm Password</Text>
               <TextInput
                 mode="outlined"
                 placeholder="Confirm your password"
@@ -270,6 +274,7 @@ const SignupForm = () => {
                 activeOutlineColor="#4A7856"
                 style={styles.input}
                 editable={!loading}
+                textColor="#333333"
                 right={
                   <TextInput.Icon
                     icon={secureConfirmPassword ? 'eye-off' : 'eye'}

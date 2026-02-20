@@ -1,5 +1,5 @@
-import React, {useState} from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity, BackHandler} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import PureSearchPage from './search-by-date';
 import SearchPage from './search-page';
@@ -46,6 +46,22 @@ const SearchOption = () => {
   const [showHabitatFilter, setShowHabitatFilter] = useState(false);
   const [editSurveyData, setEditSurveyData] = useState<any>(null);
   const [editSource, setEditSource] = useState<string | null>(null);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (editSurveyData) {
+        setEditSurveyData(null);
+        return true;
+      }
+      if (showDateFilter) { setShowDateFilter(false); return true; }
+      if (showPointFilter) { setShowPointFilter(false); return true; }
+      if (showAllSpeciesCount) { setShowAllSpeciesCount(false); return true; }
+      if (showCitizen) { setShowCitizen(false); return true; }
+      if (showHabitatFilter) { setShowHabitatFilter(false); return true; }
+      return false;
+    });
+    return () => backHandler.remove();
+  }, [showDateFilter, showPointFilter, showAllSpeciesCount, showCitizen, showHabitatFilter, editSurveyData]);
 
   const handlePress = (key: string) => {
     switch (key) {

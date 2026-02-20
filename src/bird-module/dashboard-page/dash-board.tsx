@@ -21,6 +21,9 @@ import {API_URL, API_KEY} from '../../config';
 import {getDatabase} from '../database/db';
 import BarChartModel from './bar-charts/bar-chart';
 import HabitatBarChart from './bar-charts/habitat-bar-chart';
+import {checkNetworkStatus} from '../../assets/sql_lite/sync_service';
+import {getDashboardCache, setDashboardCache} from '../../assets/sql_lite/db_connection';
+import NetworkStatusBanner from '../../components/NetworkStatusBanner';
 
 const GREEN = '#2e7d32';
 
@@ -36,6 +39,8 @@ const MainDashboardPage = () => {
   const [location, setLocation] = useState<{lat: number; lon: number} | null>(null);
   const [weather, setWeather] = useState<any>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState(true);
+  const [dataSource, setDataSource] = useState<'cloud' | 'cache'>('cloud');
   const navigation = useNavigation<any>();
 
   useEffect(() => {
@@ -112,22 +117,57 @@ const MainDashboardPage = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [speciesRes, statsRes] = await Promise.all([
-          axios.get(`${API_URL}/bird-species`),
-          axios.get(`${API_URL}/bird-stats`),
-        ]);
+        const online = await checkNetworkStatus();
+        setIsOnline(online);
 
-        const speciesCount = Array.isArray(speciesRes.data) ? speciesRes.data.length : 0;
-        const totalSurveys = statsRes.data?.total || 0;
-        const totalBirdCount = statsRes.data?.totalBirdCount || 0;
+        if (online) {
+          // ONLINE: fetch from cloud and cache
+          const [speciesRes, statsRes] = await Promise.all([
+            axios.get(`${API_URL}/bird-species`),
+            axios.get(`${API_URL}/bird-stats`),
+          ]);
 
-        setStats({
-          totalSurveys,
-          totalSpecies: speciesCount,
-          totalBirdCount,
-        });
+          const speciesCount = Array.isArray(speciesRes.data) ? speciesRes.data.length : 0;
+          const totalSurveys = statsRes.data?.total || 0;
+          const totalBirdCount = statsRes.data?.totalBirdCount || 0;
+
+          setStats({ totalSurveys, totalSpecies: speciesCount, totalBirdCount });
+          setDataSource('cloud');
+
+          // Cache for offline use
+          await setDashboardCache('bird_species', speciesRes.data);
+          await setDashboardCache('bird_stats', statsRes.data);
+        } else {
+          // OFFLINE: load from cache
+          const cachedSpecies = await getDashboardCache('bird_species');
+          const cachedStats = await getDashboardCache('bird_stats');
+
+          if (cachedSpecies && cachedStats) {
+            const speciesCount = Array.isArray(cachedSpecies.data) ? cachedSpecies.data.length : 0;
+            const totalSurveys = cachedStats.data?.total || 0;
+            const totalBirdCount = cachedStats.data?.totalBirdCount || 0;
+            setStats({ totalSurveys, totalSpecies: speciesCount, totalBirdCount });
+            setDataSource('cache');
+          }
+        }
       } catch (error) {
         console.log('Error fetching stats:', error);
+        // Fallback to cache on error
+        try {
+          const cachedSpecies = await getDashboardCache('bird_species');
+          const cachedStats = await getDashboardCache('bird_stats');
+          if (cachedSpecies && cachedStats) {
+            const speciesCount = Array.isArray(cachedSpecies.data) ? cachedSpecies.data.length : 0;
+            setStats({
+              totalSurveys: cachedStats.data?.total || 0,
+              totalSpecies: speciesCount,
+              totalBirdCount: cachedStats.data?.totalBirdCount || 0,
+            });
+            setDataSource('cache');
+          }
+        } catch (cacheError) {
+          console.log('Cache fallback also failed:', cacheError);
+        }
       } finally {
         setStatsLoading(false);
       }
@@ -137,6 +177,8 @@ const MainDashboardPage = () => {
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.container}>
+      {/* Note: NetworkStatusBanner is rendered by parent BottomNavbar */}
+
       {/* Header */}
       <View style={styles.header}>
         <View style={{flexDirection: 'row', alignItems: 'center'}}>
@@ -248,7 +290,15 @@ const MainDashboardPage = () => {
       </TouchableOpacity>
 
       {/* Summary Statistics */}
-      <Text style={styles.sectionTitle}>Summary</Text>
+      <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
+        <Text style={styles.sectionTitle}>Summary</Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 12}}>
+          <View style={{width: 8, height: 8, borderRadius: 4, backgroundColor: dataSource === 'cloud' ? '#10B981' : '#F59E0B'}} />
+          <Text style={{fontSize: 10, color: dataSource === 'cloud' ? '#10B981' : '#F59E0B', fontWeight: '600'}}>
+            {dataSource === 'cloud' ? 'Live Data' : 'Cached Data'}
+          </Text>
+        </View>
+      </View>
       <View style={styles.summaryRow}>
         <View style={styles.statCard}>
           <MCIcon name="clipboard-text-outline" size={24} color={GREEN} />
