@@ -19,6 +19,7 @@ import {useNavigation} from '@react-navigation/native';
 import axios from 'axios';
 import {API_URL, GOOGLE_WEB_CLIENT_ID} from '../../config';
 import {setLoginEmail} from '../../assets/sql_lite/db_connection';
+import {getDatabase} from '../../bird-module/database/db';
 import ReactNativeBiometrics from 'react-native-biometrics';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 
@@ -76,6 +77,34 @@ const LoginPage = ({route}: any) => {
     }
   };
 
+  const checkPinSetup = async (userEmail: string, userName: string) => {
+    try {
+      const database = await getDatabase();
+      database.transaction((tx: any) => {
+        tx.executeSql(
+          'SELECT pin FROM Users WHERE email = ?',
+          [userEmail],
+          (_tx: any, results: any) => {
+            const hasPinRow = results.rows.length > 0 && results.rows.item(0).pin;
+            if (hasPinRow) {
+              Alert.alert('Success', 'Logged in successfully');
+              navigation.navigate('Welcome', {email: userEmail});
+            } else {
+              navigation.navigate('SetPin', {email: userEmail, name: userName});
+            }
+          },
+          () => {
+            Alert.alert('Success', 'Logged in successfully');
+            navigation.navigate('Welcome', {email: userEmail});
+          },
+        );
+      });
+    } catch {
+      Alert.alert('Success', 'Logged in successfully');
+      navigation.navigate('Welcome', {email: userEmail});
+    }
+  };
+
   //google signing detail registeration
   const handleSignUp = (email: string, name: string, photo: string) => {
     const userData = {
@@ -95,8 +124,7 @@ const LoginPage = ({route}: any) => {
         } else if (res.data.status === 'google') {
           console.log('D');
           setLoginEmail(email);
-          Alert.alert('Success', 'Logged in successfully');
-          navigation.navigate('Welcome', {email});
+          checkPinSetup(email, name || '');
         } else if (res.data.status === 'notgoogle') {
           console.log('E');
           Alert.alert('Success', 'User Registered method Error');
